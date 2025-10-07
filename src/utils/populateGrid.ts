@@ -250,6 +250,16 @@ const createPods = (threeX10Count: number, threeX20Count: number): Array<string>
     }
   }
   
+  // Last resort: Handle single remaining groups (they just rotate through judges)
+  if (remaining3x10 === 1) {
+    podTypes.push(['3x10']);
+    remaining3x10 = 0;
+  }
+  if (remaining3x20 === 1) {
+    podTypes.push(['3x20']);
+    remaining3x20 = 0;
+  }
+  
   // Log any unassigned groups (shouldn't happen with this logic)
   if (remaining3x10 > 0 || remaining3x20 > 0) {
     console.warn(`Unassigned groups: ${remaining3x10} 3x10, ${remaining3x20} 3x20`);
@@ -432,7 +442,24 @@ const assignPodsToJudges = (pod: string[], threeX10Height: number, threeX20Heigh
     : Math.max(threeX10Height, threeX20Height);
   console.log(`Pod height: ${podHeight} slots`);
 
-  if (numGroups === 2) {
+  if (numGroups === 1) {
+    // For 1 group, rotate through all judges sequentially
+    for (let slot = 0; slot < podHeight; slot++) {
+      judgeAssignments[0].push(1); // Group 1 sees judge 1
+      judgeAssignments[1].push(0); // Judge 2 has a bye
+      judgeAssignments[2].push(0); // Judge 3 has a bye
+    }
+    for (let slot = 0; slot < podHeight; slot++) {
+      judgeAssignments[0].push(0); // Judge 1 has a bye
+      judgeAssignments[1].push(1); // Group 1 sees judge 2
+      judgeAssignments[2].push(0); // Judge 3 has a bye
+    }
+    for (let slot = 0; slot < podHeight; slot++) {
+      judgeAssignments[0].push(0); // Judge 1 has a bye
+      judgeAssignments[1].push(0); // Judge 2 has a bye
+      judgeAssignments[2].push(1); // Group 1 sees judge 3
+    }
+  } else if (numGroups === 2) {
     // For 2 groups, simple rotation
     for (let slot = 0; slot < podHeight; slot++) {
       judgeAssignments[0].push(1); // Group 1 sees judge 1

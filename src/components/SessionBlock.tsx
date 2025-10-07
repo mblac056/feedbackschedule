@@ -176,54 +176,17 @@ export default function SessionBlock({
             top: contextMenuPosition.y,
           }}
         >
-          {type === '1xLong' && (
-            <>
+          {(['1xLong', '3x20', '3x10'] as const)
+            .filter(sessionType => sessionType !== type)
+            .map(sessionType => (
               <button
+                key={sessionType}
                 className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center"
-                onClick={() => handleSessionTypeChange('3x20')}
+                onClick={() => handleSessionTypeChange(sessionType)}
               >
-                Change to 3x20
+                Change to {sessionType}
               </button>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center"
-                onClick={() => handleSessionTypeChange('3x10')}
-              >
-                Change to 3x10
-              </button>
-            </>
-          )}
-          {type === '3x20' && (
-            <>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center"
-                onClick={() => handleSessionTypeChange('1xLong')}
-              >
-                Change to 1xLong
-              </button>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center"
-                onClick={() => handleSessionTypeChange('3x10')}
-              >
-                Change to 3x10
-              </button>
-            </>
-          )}
-          {type === '3x10' && (
-            <>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center"
-                onClick={() => handleSessionTypeChange('1xLong')}
-              >
-                Change to 1xLong
-              </button>
-              <button
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center"
-                onClick={() => handleSessionTypeChange('3x20')}
-              >
-                Change to 3x20
-              </button>
-            </>
-          )}
+            ))}
         </div>
       )}
     </>
