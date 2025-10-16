@@ -562,9 +562,9 @@ const handleSessionDragLeave = () => setDragPreview(null);
             <div className="w-10 flex-shrink-0"></div> {/* Empty corner */}
             {judges.map((judge) => (
               //Match heights of the judges columns
-              <div key={judge.id} className="flex-1 flex-shrink-0 text-center">
+              <div key={judge.id} className="flex-1 text-center">
                 <div 
-                  className={`border-2 border-gray-300 text-white p-3 rounded-t-lg cursor-move flex flex-col justify-center relative ${
+                  className={`border-2 border-gray-300 text-white p-3 rounded-t-lg cursor-move flex flex-col justify-center relative h-full ${
                     draggedJudgeId === judge.id ? 'opacity-50 scale-95' : ''
                   } ${
                     dragOverJudgeId === judge.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
