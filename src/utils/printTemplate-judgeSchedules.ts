@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 
 export interface JudgeSchedule {
   judgeName: string;
+  judgeId?: string;
   sessions: Array<{
     entrantName: string;
     startTime: string;
@@ -10,6 +11,7 @@ export interface JudgeSchedule {
     sessionType: string;
     duration: number;
     roomNumber?: string;
+    isFirstPreference?: boolean;
   }>;
   byes: Array<{
     startTime: string;
@@ -50,9 +52,12 @@ export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSche
       
       // Prepare table data
       const tableData = schedule.sessions.map(session => {
+        // Add asterisk if this is the entrant's first preference judge
+        const entrantName = session.isFirstPreference ? `*${session.entrantName}` : session.entrantName;
+        
         const baseRow = [
           `${session.startTime}-${session.endTime}`,
-          session.entrantName,
+          entrantName,
           session.sessionType
         ];
         

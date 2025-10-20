@@ -24,7 +24,7 @@ export function generateMatrixPage(
     const startTime = settings.startTime;
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const totalMinutes = startMinute + (rowIndex * TIME_CONFIG.MINUTES_PER_SLOT);
-    const hour = startHour + Math.floor(totalMinutes / 60);
+    const hour = (startHour + Math.floor(totalMinutes / 60)) % 24;
     const minute = totalMinutes % 60;
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
@@ -85,13 +85,18 @@ export function generateMatrixPage(
     if (startRow < 0 || endRow >= intervals.length) continue;
 
     const span = endRow - startRow + 1;
-    const entrantName = entrantNameById.get(ss.entrantId) ?? 'Unknown';
+    let entrantName = entrantNameById.get(ss.entrantId) ?? 'Unknown';
     
     // Get room information based on movement setting
     const entrant = entrants.find(e => e.id === ss.entrantId);
     const judge = judges.find(j => j.id === ss.judgeId);
     const roomNumber = settings.moving === 'judges' ? entrant?.roomNumber : judge?.roomNumber;
     const roomText = roomNumber ? `\nRoom ${roomNumber}` : '';
+    
+    // Add asterisk if this is the entrant's first preference judge
+    if (entrant && judge && entrant.judgePreference1 === judge.id) {
+      entrantName = `*${entrantName}`;
+    }
 
     // Top cell with rowSpan; others set to null (so autotable knows the area is covered)
     body[startRow][judgeCol] = {

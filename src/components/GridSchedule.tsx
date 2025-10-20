@@ -59,7 +59,7 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
     
     for (let i = 0; i < TIME_CONFIG.TIME_SLOTS; i++) {
       const totalMinutes = startMinute + (i * TIME_CONFIG.MINUTES_PER_SLOT);
-      const hour = startHour + Math.floor(totalMinutes / 60);
+      const hour = (startHour + Math.floor(totalMinutes / 60)) % 24;
       const minute = totalMinutes % 60;
       const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
       

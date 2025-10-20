@@ -1,9 +1,9 @@
-import type { SessionBlock, Entrant } from '../types';
+import type { SessionBlock, Entrant, Judge } from '../types';
 import { getSettings } from './localStorage';
 import { TIME_CONFIG } from '../config/timeConfig';
 import jsPDF from 'jspdf';
 
-export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions: SessionBlock[], entrants: Entrant[], addNewPage: () => void) {
+export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions: SessionBlock[], entrants: Entrant[], judges: Judge[], addNewPage: () => void) {
   addNewPage();
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(16);
@@ -12,39 +12,50 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
 
   // Create feedback announcements data
   const entrantStartTimes = new Map<string, string>();
+  const entrantRooms = new Map<string, string>();
 
-  // Find the earliest start time for each entrant
+  // Find the earliest start time for each entrant and their starting room
   const settings = getSettings();
   const rowIndexToTime = (rowIndex: number): string => {
     const startTime = settings.startTime;
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const totalMinutes = startMinute + (rowIndex * TIME_CONFIG.MINUTES_PER_SLOT);
-    const hour = startHour + Math.floor(totalMinutes / 60);
+    const hour = (startHour + Math.floor(totalMinutes / 60)) % 24;
     const minute = totalMinutes % 60;
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
   
   scheduledSessions.forEach(session => {
     const entrant = entrants.find(e => e.id === session.entrantId);
+    const judge = judges.find(j => j.id === session.judgeId);
     if (entrant) {
       const startTime = rowIndexToTime(session.startRowIndex!);
       const currentStart = entrantStartTimes.get(entrant.name);
+      
+      // Determine room number based on movement setting
+      // If judges are moving: show entrant's room (where they stay)
+      // If groups are moving: show judge's room (where they go)
+      const roomNumber = settings.moving === 'judges' ? entrant.roomNumber : judge?.roomNumber;
+      
       if (!currentStart || startTime < currentStart) {
         entrantStartTimes.set(entrant.name, startTime);
+        entrantRooms.set(entrant.name, roomNumber || 'TBD');
       }
     }
   });
 
-  // Group entrants by start time
-  const groupedByTime = new Map<string, string[]>();
+  // Group entrants by start time with room information
+  const groupedByTime = new Map<string, Array<{ name: string; room: string }>>();
   entrantStartTimes.forEach((startTime, entrantName) => {
     if (!groupedByTime.has(startTime)) {
       groupedByTime.set(startTime, []);
     }
-    groupedByTime.get(startTime)!.push(entrantName);
+    const room = entrantRooms.get(entrantName) || 'TBD';
+    groupedByTime.get(startTime)!.push({ name: entrantName, room });
   });
 
   // Convert to array and sort by start time
+  // Note: String comparison is safe here - all times generated sequentially from startTime
   const sortedGroups = Array.from(groupedByTime.entries())
     .sort(([timeA], [timeB]) => timeA.localeCompare(timeB));
 
@@ -52,7 +63,7 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
   let yPos = 50;
   doc.setFontSize(12);
   
-  sortedGroups.forEach(([startTime, entrantNames]) => {
+  sortedGroups.forEach(([startTime, entrants]) => {
     if (yPos > 250) {
       doc.addPage();
       yPos = 20;
@@ -63,14 +74,14 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
     doc.text(`${startTime}:`, 20, yPos);
     yPos += 12;
     
-    // Entrant names under that time
+    // Entrant names under that time with room numbers
     doc.setFont('helvetica', 'normal');
-    entrantNames.forEach(entrantName => {
+    entrants.forEach(entrant => {
       if (yPos > 250) {
         doc.addPage();
         yPos = 20;
       }
-      doc.text(`  • ${entrantName}`, 30, yPos);
+      doc.text(`  • ${entrant.name} (Room ${entrant.room})`, 30, yPos);
       yPos += 10;
     });
     

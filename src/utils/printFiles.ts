@@ -31,7 +31,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
     const startTime = settings.startTime;
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const totalMinutes = startMinute + (rowIndex * TIME_CONFIG.MINUTES_PER_SLOT);
-    const hour = startHour + Math.floor(totalMinutes / 60);
+    const hour = (startHour + Math.floor(totalMinutes / 60)) % 24;
     const minute = totalMinutes % 60;
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
@@ -45,7 +45,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
   const addMinutesToTime = (timeStr: string, minutes: number): string => {
     const [hours, mins] = timeStr.split(':').map(Number);
     const totalMinutes = hours * 60 + mins + minutes;
-    const newHours = Math.floor(totalMinutes / 60);
+    const newHours = Math.floor(totalMinutes / 60) % 24;
     const newMins = totalMinutes % 60;
     return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
   };
@@ -86,6 +86,9 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
   });
 
   // Sort events by time
+  // Note: String comparison works here because all times are generated sequentially
+  // from the same startTime, so they maintain chronological order even when wrapping
+  // around midnight (e.g., 23:55 -> 00:00 -> 00:05)
   events.sort((a, b) => a.time.localeCompare(b.time));
 
   // Generate judge schedules
@@ -96,6 +99,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
         const entrant = entrants.find(e => e.id === session.entrantId);
         const duration = getSessionDuration(session.type);
         const startTime = rowIndexToTime(session.startRowIndex!);
+        const isFirstPreference = entrant?.judgePreference1 === judge.id;
         return {
           entrantName: entrant?.name || 'Unknown',
           startTime: startTime,
@@ -103,10 +107,11 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
           sessionType: session.type,
           duration,
           // If judges are moving, show entrant's room; if entrants are moving, show judge's room
-          roomNumber: settings.moving === 'judges' ? entrant?.roomNumber : judge.roomNumber
+          roomNumber: settings.moving === 'judges' ? entrant?.roomNumber : judge.roomNumber,
+          isFirstPreference
         };
       })
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+      .sort((a, b) => a.startTime.localeCompare(b.startTime)); // Safe: times generated sequentially
 
     // Calculate byes (gaps between sessions)
     const byes: Array<{ startTime: string; endTime: string; duration: number }> = [];
@@ -131,6 +136,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
 
     return {
       judgeName: judge.name,
+      judgeId: judge.id,
       judgeCategory: judge.category,
       sessions: judgeSessions,
       byes,
@@ -159,7 +165,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
             roomNumber: settings.moving === 'judges' ? entrant.roomNumber : judge?.roomNumber
           };
         })
-        .sort((a, b) => a.startTime.localeCompare(b.startTime));
+        .sort((a, b) => a.startTime.localeCompare(b.startTime)); // Safe: times generated sequentially
 
       // Calculate byes (gaps between sessions)
       const byes: Array<{ startTime: string; endTime: string; duration: number }> = [];
@@ -223,6 +229,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
   });
 
   // Re-sort events by time to include bye events
+  // Note: String comparison is safe here - all times generated sequentially from startTime
   events.sort((a, b) => a.time.localeCompare(b.time));
 
   // Generate flow document
@@ -516,7 +523,7 @@ export function generatePDF(
     generateFlowDocumentPage(doc, printData.flowDocument, addNewPage);
   }
   if (reports.includes('feedbackAnnouncements')) {
-    generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, addNewPage);
+    generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges, addNewPage);
   }
   if (reports.includes('preferenceCheck')) {
     const preferenceCheckData = generatePreferenceCheckData(judges, entrantJudgeAssignments, scheduledSessions, allSessionBlocks, scheduleConflicts);
