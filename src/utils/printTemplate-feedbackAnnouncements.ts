@@ -2,6 +2,7 @@ import type { SessionBlock, Entrant, Judge } from '../types';
 import { getSettings } from './localStorage';
 import { TIME_CONFIG } from '../config/timeConfig';
 import jsPDF from 'jspdf';
+import { formatTimeForDisplay, timeToSortValue } from './printHelpers';
 
 export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions: SessionBlock[], entrants: Entrant[], judges: Judge[], addNewPage: () => void) {
   addNewPage();
@@ -20,7 +21,7 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
     const startTime = settings.startTime;
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const totalMinutes = startMinute + (rowIndex * TIME_CONFIG.MINUTES_PER_SLOT);
-    const hour = (startHour + Math.floor(totalMinutes / 60)) % 24;
+    const hour = (startHour + Math.floor(totalMinutes / 60));
     const minute = totalMinutes % 60;
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
@@ -55,9 +56,9 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
   });
 
   // Convert to array and sort by start time
-  // Note: String comparison is safe here - all times generated sequentially from startTime
+  // Handle times that cross midnight (24:XX, 25:XX, etc.)
   const sortedGroups = Array.from(groupedByTime.entries())
-    .sort(([timeA], [timeB]) => timeA.localeCompare(timeB));
+    .sort(([timeA], [timeB]) => timeToSortValue(timeA) - timeToSortValue(timeB));
 
   // Add grouped list format
   let yPos = 50;
@@ -71,7 +72,7 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
     
     // Time header
     doc.setFont('helvetica', 'bold');
-    doc.text(`${startTime}:`, 20, yPos);
+    doc.text(`${formatTimeForDisplay(startTime)}:`, 20, yPos);
     yPos += 12;
     
     // Entrant names under that time with room numbers

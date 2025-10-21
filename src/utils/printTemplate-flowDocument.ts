@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import { formatTimeForDisplay } from './printHelpers';
 
 export interface FlowDocumentEntry {
   time: string;
@@ -24,7 +25,7 @@ export function generateFlowDocumentPage(doc: jsPDF, flowDocument: FlowDocumentE
     }
     
     doc.setFont('helvetica', 'bold');
-    doc.text(timeSlot.time, 20, yPos);
+    doc.text(formatTimeForDisplay(timeSlot.time), 20, yPos);
     yPos += 8;
     
     doc.setFont('helvetica', 'normal');

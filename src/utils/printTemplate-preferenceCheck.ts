@@ -1,6 +1,6 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import html2pdf from 'html2pdf.js';
 import type { Entrant, Judge, EntrantJudgeAssignments } from '../types';
+import { getCategoryColor } from '../config/categoryConfig';
 
 export interface PreferenceCheckData {
   entrants: Entrant[];
@@ -31,18 +31,7 @@ export interface PreferenceCheckData {
   };
 }
 
-export function generatePreferenceCheckPage(doc: jsPDF, data: PreferenceCheckData, addNewPage: () => void) {
-  addNewPage();
-  
-  // Title
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Preference Check', 20, 20);
-  
-  const yPos = 30;
-
-  
+export async function generatePreferenceCheckPage(data: PreferenceCheckData): Promise<Blob> {
   // Helper function to check if a group has conflicts for a specific entrant
   const hasGroupConflict = (entrantId: string, groupName: string): boolean => {
     if (!data.scheduleConflicts) return false;
@@ -54,161 +43,149 @@ export function generatePreferenceCheckPage(doc: jsPDF, data: PreferenceCheckDat
   // Filter included entrants
   const includedEntrants = data.entrants.filter(e => e.includeInSchedule);
   
-  if (includedEntrants.length === 0) {
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text('No entrants included in schedule yet.', 15, yPos);
-    return;
-  }
-  
-  // Prepare table data with color information
-  const tableData = includedEntrants.map((entrant, index) => {
-    const row = [
-      (index + 1).toString(),
-      entrant.name,
-      entrant.groupsToAvoid || '',
-      entrant.preference || '',
-      '', // Judge 1
-      '', // Judge 2
-      '', // Judge 3
-    ];
-    
-    // Add judge preferences
-    const judge1 = data.judges.find(j => j.id === entrant.judgePreference1);
-    const judge2 = data.judges.find(j => j.id === entrant.judgePreference2);
-    const judge3 = data.judges.find(j => j.id === entrant.judgePreference3);
-    
-    if (judge1) {
-      row[4] = judge1.name;
-    }
-    if (judge2) {
-      row[5] = judge2.name;
-    }
-    if (judge3) {
-      row[6] = judge3.name;
-    }
-    
-    return row;
-  });
-
-  // Prepare cell styles for text color coding
-  const cellStyles: { [key: string]: { textColor: number[] } } = {};
-  
-  includedEntrants.forEach((entrant, rowIndex) => {
-    // Preference column (column 3)
-    if (entrant.preference) {
-      let isGood = false;
-      
-      // Check if any session blocks (scheduled or unscheduled) match their preference
-      const entrantSessionBlocks = data.allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
-      isGood = entrantSessionBlocks.some(block => block.type === entrant.preference);
-      
-      cellStyles[`${rowIndex}-3`] = {
-        textColor: isGood ? [22, 101, 52] : [153, 27, 27] // Dark green or dark red
-      };
-    }
-
-    // Judge columns (columns 4, 5, 6)
-    [entrant.judgePreference1, entrant.judgePreference2, entrant.judgePreference3].forEach((judgeId, judgeIndex) => {
-      if (judgeId && data.judges.find(j => j.id === judgeId)) {
-        const isAssigned = data.entrantJudgeAssignments?.[entrant.id]?.includes(judgeId);
-        const columnIndex = 4 + judgeIndex;
-        
-        cellStyles[`${rowIndex}-${columnIndex}`] = {
-          textColor: isAssigned ? [22, 101, 52] : [75, 85, 99] // Dark green or dark gray
-        };
+  // Build HTML
+  let html = `
+    <style>
+      body { margin: 0; padding: 20px; font-family: Arial, sans-serif; color: #000; }
+      h1 { font-size: 16px; font-weight: bold; margin-bottom: 20px; color: #000; }
+      .summary { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+      .summary h3 { font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px; }
+      .summary-row { display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; }
+      .summary-item { display: flex; align-items: center; gap: 8px; }
+      .summary-dot { width: 12px; height: 12px; border-radius: 50%; }
+      .summary-dot.green { background: #bbf7d0; }
+      .summary-dot.red { background: #fecaca; }
+      .summary-dot.gray { background: #e5e7eb; }
+      .summary-count { font-weight: 600; }
+      .summary-count.green { color: #166534; }
+      .summary-count.red { color: #991b1b; }
+      .summary-count.gray { color: #1f2937; }
+      .summary-label { color: #4b5563; }
+      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      th { background-color: #f3f4f6; color: #374151; padding: 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
+      td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
+      .pill { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 9999px; font-size: 10px; margin: 2px; }
+      .pill.green { background: #dcfce7; color: #166534; }
+      .pill.red { background: #fee2e2; color: #991b1b; }
+      .pill.gray { background: #e5e7eb; color: #4b5563; }
+      .pill-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+      .footer { margin-top: 20px; font-size: 8px; color: #808080; text-align: center; }
+      @media print {
+        @page { size: letter portrait; margin: 0.5in; }
       }
-    });
-  });
-  
-  // Generate main table
-  autoTable(doc, {
-    head: [['#', 'Name', 'Groups to Avoid', 'Type', 'Judge 1', 'Judge 2', 'Judge 3']],
-    body: tableData,
-    startY: yPos,
-    theme: 'grid',
-    styles: {
-      fontSize: 8,
-      cellPadding: 2,
-      lineColor: [180, 180, 180],
-      lineWidth: 0.2,
-      overflow: 'linebreak',
-      halign: 'left',
-      valign: 'middle',
-    },
-    headStyles: {
-      fillColor: [66, 139, 202],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      halign: 'center',
-      valign: 'middle',
-    },
-    columnStyles: {
-      0: { cellWidth: 5, halign: 'center' }, // #
-      1: { cellWidth: 35, halign: 'left' },   // Name
-      2: { cellWidth: 50, halign: 'left' },   // Groups to Avoid
-      3: { cellWidth: 15, halign: 'center' }, // Preference
-      4: { cellWidth: 25, halign: 'left' },   // Judge 1
-      5: { cellWidth: 25, halign: 'left' },   // Judge 2
-      6: { cellWidth: 25, halign: 'left' }    // Judge 3
-    },
-    didDrawCell: (data: { section: string; row: { index: number }; column: { index: number }; cell: { x: number; y: number; width: number; height: number; text: string[] } }) => {
-      // Skip header row
-      if (data.section === 'head') return;
-      
-      const rowIndex = data.row.index;
-      const columnIndex = data.column.index;
-      const cellKey = `${rowIndex}-${columnIndex}`;
-      
-      // Handle Groups to Avoid column (column 2) with mixed colors
-      if (columnIndex === 2) {
-        const entrant = includedEntrants[rowIndex];
-        if (entrant.groupsToAvoid) {
-          const groups = entrant.groupsToAvoid.split(' | ');
-          let currentY = data.cell.y + 6;
-          const lineHeight = 4;
-          
-          groups.forEach((group) => {
-            const hasConflict = hasGroupConflict(entrant.id, group);
-            const textColor = hasConflict ? [153, 27, 27] : [22, 101, 52]; // Red or green
-            
-            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-            doc.setFontSize(8);
-            doc.setFont('helvetica', 'normal');
-            
-            const textX = data.cell.x + 2;
-            doc.text(group, textX, currentY);
-            
-            currentY += lineHeight;
-          });
-          
-          // Reset text color to default
-          doc.setTextColor(0, 0, 0);
-          return;
+    </style>
+    <h1>Preference Check</h1>
+    <div class="summary">
+      <h3>Summary</h3>
+      <div class="summary-row">
+        <div class="summary-item">
+          <span class="summary-dot green"></span>
+          <span class="summary-count green">${data.pillCounts.greenCount}</span>
+          <span class="summary-label">Good/Assigned</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-dot red"></span>
+          <span class="summary-count red">${data.pillCounts.redCount}</span>
+          <span class="summary-label">Conflicts</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-dot gray"></span>
+          <span class="summary-count gray">${data.pillCounts.grayCount}</span>
+          <span class="summary-label">Unassigned/Mismatched</span>
+        </div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Groups to Avoid</th>
+          <th>Preference</th>
+          <th>Judge 1</th>
+          <th>Judge 2</th>
+          <th>Judge 3</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  includedEntrants.forEach((entrant, index) => {
+    html += '<tr>';
+    
+    // # column
+    html += `<td>${index + 1}</td>`;
+    
+    // Name column
+    html += `<td><span style="font-weight: 600;">${entrant.name}</span></td>`;
+    
+    // Groups to Avoid column
+    html += '<td>';
+    if (entrant.groupsToAvoid) {
+      entrant.groupsToAvoid.split(' | ').forEach(group => {
+        const hasConflict = hasGroupConflict(entrant.id, group);
+        const pillClass = hasConflict ? 'red' : 'green';
+        html += `<span class="pill ${pillClass}">${group}</span>`;
+      });
+    }
+    html += '</td>';
+    
+    // Preference column
+    html += '<td>';
+    if (entrant.preference) {
+      const entrantSessionBlocks = data.allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
+      const hasMatchingSessionType = entrantSessionBlocks.some(block => block.type === entrant.preference);
+      const pillClass = hasMatchingSessionType ? 'green' : 'red';
+      html += `<span class="pill ${pillClass}">${entrant.preference}</span>`;
+    }
+    html += '</td>';
+    
+    // Judge columns
+    [entrant.judgePreference1, entrant.judgePreference2, entrant.judgePreference3].forEach(judgeId => {
+      html += '<td>';
+      if (judgeId) {
+        const judge = data.judges.find(j => j.id === judgeId);
+        if (judge) {
+          const isAssigned = data.entrantJudgeAssignments?.[entrant.id]?.includes(judgeId);
+          const pillClass = isAssigned ? 'green' : 'gray';
+          const dotColor = judge.category ? getCategoryColor(judge.category) : '';
+          html += `<span class="pill ${pillClass}">`;
+          if (judge.category) {
+            html += `<span class="pill-dot" style="background-color: ${dotColor};"></span>`;
+          }
+          html += `${judge.name}</span>`;
         }
       }
-      
-      // Handle other columns with single color
-      if (cellStyles[cellKey]) {
-        const style = cellStyles[cellKey];
-        
-        // Set text color
-        doc.setTextColor(style.textColor[0], style.textColor[1], style.textColor[2]);
-        
-        // Draw the text
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'normal');
-        
-        const text = data.cell.text[0] || '';
-        const textX = data.cell.x + 2;
-        const textY = data.cell.y + 6;
-        
-        doc.text(text, textX, textY);
-        
-        // Reset text color to default
-        doc.setTextColor(0, 0, 0);
-      }
-    },
-    margin: { top: yPos, left: 20, right: 20, bottom: 20 },
+      html += '</td>';
+    });
+    
+    html += '</tr>';
   });
+
+  html += `
+      </tbody>
+    </table>
+    <div class="footer">
+      Generated on ${new Date().toLocaleString()}
+    </div>
+  `;
+
+  // Convert HTML to PDF
+  const element = document.createElement('div');
+  element.innerHTML = html;
+  document.body.appendChild(element);
+
+  const opt = {
+    margin: [0.5, 0.5, 0.5, 0.5] as [number, number, number, number],
+    filename: 'preference-check.pdf',
+    image: { type: 'jpeg' as const, quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in' as const, format: 'letter' as const, orientation: 'portrait' as const }
+  };
+
+  const blob = await html2pdf().set(opt).from(element).outputPdf('blob');
+  
+  document.body.removeChild(element);
+  
+  return blob;
 }

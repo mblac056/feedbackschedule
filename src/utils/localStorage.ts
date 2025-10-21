@@ -88,25 +88,25 @@ export const removeEntrant = (entrantId: string): Entrant[] => {
 
 // Settings functions
 export const getSettings = () => {
+  const defaultSettings = {
+    startTime: '09:00',
+    oneXLongLength: 40,
+    threeX20Length: 20,
+    threeX10Length: 10,
+    moving: 'groups' as 'groups' | 'judges',
+  };
+
   try {
     const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsedSettings = JSON.parse(stored);
+      // Merge with defaults to ensure all properties are present
+      return { ...defaultSettings, ...parsedSettings };
     }
     // Return default settings if none stored
-    return {
-      startTime: '09:00',
-      oneXLongLength: 40,
-      threeX20Length: 20,
-      threeX10Length: 10,
-    };
+    return defaultSettings;
   } catch {
-    return {
-      startTime: '09:00',
-      oneXLongLength: 40,
-      threeX20Length: 20,
-      threeX10Length: 10,
-    };
+    return defaultSettings;
   }
 };
 
@@ -115,6 +115,7 @@ export const saveSettings = (settings: {
   oneXLongLength: number;
   threeX20Length: number;
   threeX10Length: number;
+  moving: 'groups' | 'judges';
 }): void => {
   try {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));

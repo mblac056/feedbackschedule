@@ -31,7 +31,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
     const startTime = settings.startTime;
     const [startHour, startMinute] = startTime.split(':').map(Number);
     const totalMinutes = startMinute + (rowIndex * TIME_CONFIG.MINUTES_PER_SLOT);
-    const hour = (startHour + Math.floor(totalMinutes / 60)) % 24;
+    const hour = (startHour + Math.floor(totalMinutes / 60));
     const minute = totalMinutes % 60;
     return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
   };
@@ -45,7 +45,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
   const addMinutesToTime = (timeStr: string, minutes: number): string => {
     const [hours, mins] = timeStr.split(':').map(Number);
     const totalMinutes = hours * 60 + mins + minutes;
-    const newHours = Math.floor(totalMinutes / 60) % 24;
+    const newHours = Math.floor(totalMinutes / 60);
     const newMins = totalMinutes % 60;
     return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
   };
@@ -108,7 +108,9 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
           duration,
           // If judges are moving, show entrant's room; if entrants are moving, show judge's room
           roomNumber: settings.moving === 'judges' ? entrant?.roomNumber : judge.roomNumber,
-          isFirstPreference
+          isFirstPreference,
+          overallSF: entrant?.overallSF,
+          overallF: entrant?.overallF
         };
       })
       .sort((a, b) => a.startTime.localeCompare(b.startTime)); // Safe: times generated sequentially
@@ -123,12 +125,38 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
         const byeDuration = (() => {
           const [endHours, endMins] = currentEnd.split(':').map(Number);
           const [startHours, startMins] = nextStart.split(':').map(Number);
-          return (startHours * 60 + startMins) - (endHours * 60 + endMins);
+          let duration = (startHours * 60 + startMins) - (endHours * 60 + endMins);
+          // Handle midnight wraparound
+          if (duration < 0) {
+            duration += 24 * 60; // Add 24 hours in minutes
+          }
+          return duration;
         })();
         
         byes.push({
           startTime: currentEnd,
           endTime: nextStart,
+          duration: byeDuration
+        });
+      }
+    }
+    
+    // Check for bye between last session and first session (midnight wraparound)
+    if (judgeSessions.length > 1) {
+      const lastEnd = judgeSessions[judgeSessions.length - 1].endTime;
+      const firstStart = judgeSessions[0].startTime;
+      
+      const [lastEndHours, lastEndMins] = lastEnd.split(':').map(Number);
+      const [firstStartHours, firstStartMins] = firstStart.split(':').map(Number);
+      const lastEndMinutes = lastEndHours * 60 + lastEndMins;
+      const firstStartMinutes = firstStartHours * 60 + firstStartMins;
+      
+      // If last session ends before first session starts (wraparound), add a bye
+      if (lastEndMinutes < firstStartMinutes) {
+        const byeDuration = firstStartMinutes - lastEndMinutes;
+        byes.push({
+          startTime: lastEnd,
+          endTime: firstStart,
           duration: byeDuration
         });
       }
@@ -444,10 +472,10 @@ export function generatePreferenceCheckData(
   };
 }
 
-export function generatePDF(
+export async function generatePDF(
   scheduledSessions: SessionBlock[], 
   judges: Judge[], 
-  reports: string[] = ['matrix', 'judgeSchedules', 'entrantSchedules', 'flowDocument', 'feedbackAnnouncements'],
+  reports: string[] = ['matrix'],
   entrantJudgeAssignments?: { [entrantId: string]: string[] },
   allSessionBlocks?: SessionBlock[],
   scheduleConflicts?: Array<{
@@ -459,17 +487,38 @@ export function generatePDF(
     timeSlot: string;
   }>
 ) {
-  const printData = generatePrintData(scheduledSessions, judges);
   const entrants = getEntrants();
   
-  // Create document - will be set to legal landscape if matrix is included
-  const needsMatrix = reports.includes('matrix');
-  const doc = new jsPDF(needsMatrix ? 'landscape' : 'portrait');
-  
-  if (needsMatrix) {
-    doc.internal.pageSize.width = 14 * 25; // 14 inches in points
-    doc.internal.pageSize.height = 8.5 * 25; // 8.5 inches in points
+  // Generate matrix separately if requested
+  if (reports.includes('matrix')) {
+    const matrixBlob = await generateMatrixPage(scheduledSessions, judges, entrants);
+    const url = URL.createObjectURL(matrixBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'schedule-matrix.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+    return;
   }
+
+  // Generate preference check separately if requested
+  if (reports.includes('preferenceCheck')) {
+    const preferenceCheckData = generatePreferenceCheckData(judges, entrantJudgeAssignments, scheduledSessions, allSessionBlocks, scheduleConflicts);
+    const preferenceCheckBlob = await generatePreferenceCheckPage(preferenceCheckData);
+    const url = URL.createObjectURL(preferenceCheckBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'preference-check.pdf';
+    a.click();
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  // Generate other reports
+  const printData = generatePrintData(scheduledSessions, judges);
+  
+  // Create document
+  const doc = new jsPDF('portrait');
   
   let pageCount = 0;
   const generatedDateTime = new Date().toLocaleString();
@@ -490,13 +539,18 @@ export function generatePDF(
     const y = pageHeight - 10;
     
     doc.text(footerText, x, y);
+    
+    // Reset text color to black for subsequent content
+    doc.setTextColor(0, 0, 0);
   };
 
   // Helper function to add new page
-  const addNewPage = (legal: boolean = false, landscape: boolean = false) => {
-    if (pageCount > 0) {
-      // Add footer to previous page before adding new one
-      addFooter();
+  const addNewPage = (legal: boolean = false, landscape: boolean = false, addFooterToPrevious: boolean = true) => {
+    if (pageCount >= 0) {
+      // Add footer to previous page before adding new one (if requested)
+      if (addFooterToPrevious) {
+        addFooter();
+      }
       
       const format = legal ? 'legal' : 'a4';
       const orientation = landscape ? 'landscape' : 'portrait';
@@ -506,18 +560,13 @@ export function generatePDF(
   };
 
   // Generate requested sections
-  if (reports.includes('matrix')) {
-    generateMatrixPage(doc, scheduledSessions, judges, entrants);
-    // Add page break after matrix if other reports follow
-    if (reports.some(r => r !== 'matrix')) {
-      addNewPage();
-    }
-  }
   if (reports.includes('judgeSchedules')) {
     generateJudgeSchedulePages(doc, printData.judgeSchedules, addNewPage);
   }
   if (reports.includes('entrantSchedules')) {
-    generateEntrantSchedulePages(doc, printData.entrantSchedules, addNewPage);
+    // Create a wrapper that doesn't add footers for entrant schedules
+    const addNewPageWithoutFooter = () => addNewPage(false, false, false);
+    generateEntrantSchedulePages(doc, printData.entrantSchedules, addNewPageWithoutFooter);
   }
   if (reports.includes('flowDocument')) {
     generateFlowDocumentPage(doc, printData.flowDocument, addNewPage);
@@ -525,14 +574,25 @@ export function generatePDF(
   if (reports.includes('feedbackAnnouncements')) {
     generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges, addNewPage);
   }
-  if (reports.includes('preferenceCheck')) {
-    const preferenceCheckData = generatePreferenceCheckData(judges, entrantJudgeAssignments, scheduledSessions, allSessionBlocks, scheduleConflicts);
-    generatePreferenceCheckPage(doc, preferenceCheckData, addNewPage);
+
+  // Add footer to the last page (unless entrant schedules is the only report)
+  if (!reports.includes('entrantSchedules') || reports.length > 1) {
+    addFooter();
   }
 
-  // Add footer to the last page
-  addFooter();
+  // Determine filename based on report type
+  const reportNames: { [key: string]: string } = {
+    'judgeSchedules': 'judge-schedules',
+    'entrantSchedules': 'entrant-schedules',
+    'flowDocument': 'flow-document',
+    'feedbackAnnouncements': 'feedback-announcements',
+    'preferenceCheck': 'preference-check'
+  };
+  
+  const filename = reports.length === 1 && reportNames[reports[0]] 
+    ? `${reportNames[reports[0]]}.pdf` 
+    : 'evaluation-schedule.pdf';
 
   // Save the PDF
-  doc.save('evaluation-schedule.pdf');
+  doc.save(filename);
 }

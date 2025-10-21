@@ -1,21 +1,13 @@
 import type { Judge, SessionBlock, Entrant } from '../types';
 import { getSettings } from './localStorage';
 import { getSessionDurationMinutes, TIME_CONFIG } from '../config/timeConfig';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import html2pdf from 'html2pdf.js';
 
-export function generateMatrixPage(
-  doc: jsPDF,
+export async function generateMatrixPage(
   scheduledSessions: SessionBlock[],
   judges: Judge[],
   entrants: Entrant[]
-) {
-  // 1) Page + title (document already created as legal landscape)
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Schedule Matrix', 20, 20);
-
-  // 2) Build time grid (5-minute rows) from earliest start to latest end
+): Promise<Blob> {
   const settings = getSettings();
   const getSessionDuration = (t: string) => getSessionDurationMinutes(t as '1xLong' | '3x20' | '3x10', settings);
   
@@ -48,128 +40,123 @@ export function generateMatrixPage(
     intervals.push(rowIndexToTime(row));
   }
 
-  // 3) Table shape: first column = Time, then one column per Judge
-  const headers = ['Time', ...judges.map((j) => j.category ? `${j.name} (${j.category})` : j.name)];
-  const colCount = headers.length;
-  const timeColIndex = 0;
-
-  // 4) Prepare a body matrix with one row per 5-min slot
-  //    We'll later inject rowSpan cells for the sessions, and mark covered cells as null.
-  type Cell = string | { content: string; rowSpan?: number; styles?: Record<string, unknown>; fillColor?: number[] } | null;
-  const body: Cell[][] = intervals.map((t) => {
-    const baseRow: Cell[] = new Array(colCount).fill('');
-    baseRow[timeColIndex] = t;
-    return baseRow;
-  });
-
-  // quick lookup helpers
+  // Build lookup maps
   const judgeColIndexById = new Map<string, number>();
   judges.forEach((j, idx) => judgeColIndexById.set(j.id, idx + 1));
   const entrantNameById = new Map(entrants.map((e) => [e.id, e.name]));
-  
-  // 5) Place sessions as merged cells (rowSpan across 5-min rows)
-  //    If a session overlaps an already-placed block in the same judge column, mark it as a conflict.
-  for (const ss of scheduledSessions) {
-    const judgeCol = judgeColIndexById.get(ss.judgeId!);
-    if (judgeCol == null) continue;
 
-    const dur = getSessionDuration(ss.type);
-    const startRowIndex = ss.startRowIndex!;
-    const endRowIndex = startRowIndex + Math.ceil(dur / TIME_CONFIG.MINUTES_PER_SLOT) - 1;
-
-    // Convert row indices to matrix row positions
-    const startRow = startRowIndex - minRow;
-    const endRow = endRowIndex - minRow;
-    
-    // Skip if session is outside our matrix range
-    if (startRow < 0 || endRow >= intervals.length) continue;
-
-    const span = endRow - startRow + 1;
-    let entrantName = entrantNameById.get(ss.entrantId) ?? 'Unknown';
-    
-    // Get room information based on movement setting
-    const entrant = entrants.find(e => e.id === ss.entrantId);
-    const judge = judges.find(j => j.id === ss.judgeId);
-    const roomNumber = settings.moving === 'judges' ? entrant?.roomNumber : judge?.roomNumber;
-    const roomText = roomNumber ? `\nRoom ${roomNumber}` : '';
-    
-    // Add asterisk if this is the entrant's first preference judge
-    if (entrant && judge && entrant.judgePreference1 === judge.id) {
-      entrantName = `*${entrantName}`;
-    }
-
-    // Top cell with rowSpan; others set to null (so autotable knows the area is covered)
-    body[startRow][judgeCol] = {
-      content: `${entrantName}\n(${ss.type})${roomText}`,
-      rowSpan: span,
-      styles: {
-        halign: 'center',
-        valign: 'middle',
-        fontSize: 8,
-        cellPadding: 2,
-        textColor: [0, 0, 0],
-      },
-      fillColor: [232, 244, 253],
-    };
-
-    for (let r = startRow + 1; r <= endRow; r++) {
-      body[r][judgeCol] = null; // covered by rowSpan
-    }
-  }
-
-  // 6) Optional: subtle stripes on time column and every 15-minute line
-  const isQuarterHour = (hhmm: string) => ['00', '15', '30', '45'].includes(hhmm.split(':')[1]);
-
-  autoTable(doc, {
-    head: [headers],
-    body,
-    startY: 30,
-    theme: 'grid',
-    styles: {
-      fontSize: 8,
-      cellPadding: 1,
-      lineColor: [180, 180, 180],
-      lineWidth: 0.2,
-    },
-    headStyles: {
-      fillColor: [66, 139, 202],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      halign: 'center',
-      valign: 'middle',
-    },
-    columnStyles: {
-      0: { fontStyle: 'bold', cellWidth: 20 }, // Time col
-    },
-    didParseCell: (hookData) => {
-      const { section, cell, column } = hookData;
-      if (section === 'body') {
-        // Shade the time column
-        if (column.index === 0) {
-          cell.styles.fillColor = [245, 245, 245];
-          // bolder every :00/:15/:30/:45
-          const t = String(cell.raw ?? '');
-          if (isQuarterHour(t)) {
-            cell.styles.fontStyle = 'bold';
-          }
-        }
-        // Apply background color for scheduled sessions
-        if (column.index > 0 && cell.raw && typeof cell.raw === 'object' && 'fillColor' in cell.raw) {
-          cell.styles.fillColor = (cell.raw as { fillColor: [number, number, number] }).fillColor;
-        }
-        // Center judge columns by default
-        if (column.index > 0 && typeof cell.raw === 'string' && cell.raw.trim() === '') {
-          // keep blanks white
-          cell.styles.fillColor = [255, 255, 255];
-        }
+  // Build HTML table
+  let html = `
+    <style>
+      body { margin: 0; padding: 20px; font-family: Arial, sans-serif; color: #000; }
+      h1 { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #000; }
+      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      th { background-color: #d3d3d3; color: #000; padding: 8px; text-align: center; font-weight: bold; border: 1px solid #666; }
+      td { height: 24px; padding: 2px; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
+      .time-col { background-color: #d3d3d3; font-weight: bold; width: 50px; }
+      .time-col.quarter-hour { font-weight: bold; }
+      .session-cell { background-color:#ffffff; }
+      @media print {
+        @page { size: legal landscape; margin: 0.4in; }
       }
-    },
-    didDrawCell: () => {
-      // nothing special; autotable will render rowSpans for us
-    },
-    // Wider margins on legal landscape
-    margin: { top: 30, left: 15, right: 15, bottom: 20 },
-    // Let it paginate; header repeats automatically
-    pageBreak: 'auto',
+    </style>
+    <h1>Schedule Matrix</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          ${judges.map(j => {
+            const roomText = settings.moving === 'groups' && j.roomNumber ? `<br>${j.roomNumber}` : '';
+            return `<th>${j.category ? `${j.name} (${j.category})` : j.name}${roomText}</th>`;
+          }).join('')}
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  // Create a 2D array to track which cells are occupied
+  const cellOccupied: boolean[][] = intervals.map(() => new Array(judges.length + 1).fill(false));
+
+  // Add rows with sessions
+  intervals.forEach((time, rowIndex) => {
+    const isQuarterHour = ['00', '15', '30', '45'].includes(time.split(':')[1]);
+    html += `<tr>`;
+    
+    // Time column
+    html += `<td class="time-col ${isQuarterHour ? 'quarter-hour' : ''}">${time}</td>`;
+    
+    // Judge columns
+    judges.forEach((judge, colIndex) => {
+      const cellIndex = colIndex + 1;
+      
+      if (cellOccupied[rowIndex][cellIndex]) {
+        // Cell is occupied by a rowSpan from above, skip it
+        return;
+      }
+      
+      // Check if there's a session starting at this cell
+      const session = scheduledSessions.find(ss => {
+        if (ss.judgeId !== judge.id) return false;
+        const startRowIndex = ss.startRowIndex!;
+        const startRow = startRowIndex - minRow;
+        return startRow === rowIndex;
+      });
+      
+      if (session) {
+        const dur = getSessionDuration(session.type);
+        const startRowIndex = session.startRowIndex!;
+        const endRowIndex = startRowIndex + Math.ceil(dur / TIME_CONFIG.MINUTES_PER_SLOT) - 1;
+        const rowSpan = endRowIndex - startRowIndex + 1;
+        
+        let entrantName = entrantNameById.get(session.entrantId) ?? 'Unknown';
+        const entrant = entrants.find(e => e.id === session.entrantId);
+        
+        // Only show room number in session cell if judges are visiting groups
+        const roomNumber = settings.moving === 'judges' ? entrant?.roomNumber : null;
+        const roomText = roomNumber ? `<br>${roomNumber}` : '';
+        
+        if (entrant && entrant.judgePreference1 === judge.id) {
+          entrantName = `*${entrantName}`;
+        }
+        
+        html += `<td class="session-cell" rowspan="${rowSpan}">${entrantName}<br>(${session.type})${roomText}</td>`;
+        
+        // Mark cells as occupied
+        for (let r = 0; r < rowSpan; r++) {
+          cellOccupied[rowIndex + r][cellIndex] = true;
+        }
+      } else {
+        html += `<td></td>`;
+      }
+    });
+    
+    html += `</tr>`;
   });
+
+  html += `
+      </tbody>
+    </table>
+    <div style="margin-top: 20px; font-size: 10px; color: #808080; text-align: center;">
+      Generated on ${new Date().toLocaleString()}
+    </div>
+  `;
+
+  // Convert HTML to PDF
+  const element = document.createElement('div');
+  element.innerHTML = html;
+  document.body.appendChild(element);
+
+  const opt = {
+    margin: [0.5, 0.5, 0.5, 0.5] as [number, number, number, number], // Increased bottom margin to 1 inch
+    filename: 'schedule-matrix.pdf',
+    image: { type: 'jpeg' as const, quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'in' as const, format: 'legal' as const, orientation: 'landscape' as const }
+  };
+
+  const blob = await html2pdf().set(opt).from(element).outputPdf('blob');
+  
+  document.body.removeChild(element);
+  
+  return blob;
 }

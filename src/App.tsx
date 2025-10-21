@@ -364,6 +364,8 @@ function App() {
               allSessionBlocks={allSessionBlocks}
               onSessionBlockUpdate={handleSessionBlockUpdate}
               onSessionBlockRemove={handleSessionBlockRemove}
+              entrantJudgeAssignments={entrantJudgeAssignments}
+              scheduleConflicts={scheduleConflicts}
             />
             
             <PreferencesPanel 

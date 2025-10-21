@@ -137,7 +137,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     }
   };
 
-  const handleFieldUpdate = (entrantId: string, field: keyof Entrant, value: string | boolean | null) => {
+  const handleFieldUpdate = (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined) => {
 
       setEntrants(prev => prev.map(entrant => 
         entrant.id === entrantId 
@@ -301,16 +301,18 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
               <table className="min-w-full bg-white border border-gray-200 rounded-lg">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-0 bg-gray-50 z-10">
                       Include
                     </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-[80px] bg-gray-50 z-10">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Groups to Avoid</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Preference</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 1</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 2</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 3</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">O/A SF</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">O/A F</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Actions</th>
                   </tr>
                 </thead>
@@ -318,7 +320,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                   {entrants.map((entrant) => (
                     <tr 
                       key={entrant.id} 
-                      className={`text-gray-600 hover:bg-gray-50 transition-all duration-200 ${
+                      className={`text-gray-600 hover:bg-gray-50 transition-all duration-200 group ${
                         draggedEntrantId === entrant.id ? 'opacity-50 scale-95' : ''
                       } ${
                         dragOverEntrantId === entrant.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
@@ -330,7 +332,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       onDrop={(e) => handleDrop(e, entrant.id)}
                       onDragEnd={handleDragEnd}
                     >
-                      <td className="px-4 py-3 border-b">
+                      <td className="px-4 py-3 border-b sticky left-0 bg-white group-hover:bg-gray-50 z-10">
                         <div className="flex items-center gap-2">
                           <div className="cursor-move text-gray-400 hover:text-gray-600">
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -345,7 +347,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3 border-b">
+                      <td className="px-4 py-3 border-b sticky left-[80px] bg-white group-hover:bg-gray-50 z-10">
                         <input
                           type="text"
                           value={entrant.name}
@@ -477,6 +479,28 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                           onChange={(e) => handleFieldUpdate(entrant.id, 'roomNumber', e.target.value)}
                           onBlur={(e) => handleFieldUpdate(entrant.id, 'roomNumber', e.target.value.trim() || '')}
                           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </td>
+                      <td className="px-4 py-3 border-b">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={entrant.overallSF ?? ''}
+                          onChange={(e) => handleFieldUpdate(entrant.id, 'overallSF', e.target.value === '' ? undefined : Number(e.target.value))}
+                          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="0"
+                        />
+                      </td>
+                      <td className="px-4 py-3 border-b">
+                        <input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={entrant.overallF ?? ''}
+                          onChange={(e) => handleFieldUpdate(entrant.id, 'overallF', e.target.value === '' ? undefined : Number(e.target.value))}
+                          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="0"
                         />
                       </td>
                       <td className="px-4 py-3 border-b">

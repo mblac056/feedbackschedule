@@ -15,6 +15,8 @@ export interface Entrant {
   judgePreference3: string;
   includeInSchedule: boolean;
   roomNumber?: string;
+  overallSF?: number;
+  overallF?: number;
 }
 
 

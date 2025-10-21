@@ -35,7 +35,6 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
     const [draggedSessionData, setDraggedSessionData] = useState<DraggedSessionData | null>(null);
     const [totalDuration, setTotalDuration] = useState<number>(0);
     const [showPrintDropdown, setShowPrintDropdown] = useState<boolean>(false);
-    const [selectedReports, setSelectedReports] = useState<string[]>(['matrix', 'judgeSchedules', 'entrantSchedules', 'flowDocument', 'feedbackAnnouncements']);
 
     useEffect(() => {
         if (scheduledSessions.length === 0) {
@@ -111,25 +110,21 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
           };
 
     const reportOptions = [
-        { id: 'matrix', label: 'Schedule Matrix' },
+        { id: 'matrix', label: 'Feedback Matrix' },
         { id: 'judgeSchedules', label: 'Judge Schedules' },
         { id: 'entrantSchedules', label: 'Entrant Schedules' },
         { id: 'flowDocument', label: 'Flow Document' },
-        { id: 'feedbackAnnouncements', label: 'Feedback Announcements' }
+        { id: 'feedbackAnnouncements', label: 'Feedback Announcements' },
+        { id: 'preferenceCheck', label: 'Preference Check' }
     ];
 
-    const handleReportToggle = (reportId: string) => {
-        setSelectedReports(prev => 
-            prev.includes(reportId) 
-                ? prev.filter(id => id !== reportId)
-                : [...prev, reportId]
-        );
+    const handlePrintMatrix = async () => {
+        await generatePDF(scheduledSessions, judges, ['matrix'], entrantJudgeAssignments, allSessionBlocks, scheduleConflicts);
     };
 
-    const handleGeneratePDF = () => {
-        if (selectedReports.length > 0) {
-            generatePDF(scheduledSessions, judges, selectedReports, entrantJudgeAssignments, allSessionBlocks, scheduleConflicts);
-        }
+    const handleGenerateReport = async (reportId: string) => {
+        setShowPrintDropdown(false);
+        await generatePDF(scheduledSessions, judges, [reportId], entrantJudgeAssignments, allSessionBlocks, scheduleConflicts);
     };
 
 
@@ -182,10 +177,9 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
               <div className="flex">
                 <button 
                   className="bg-[var(--secondary-color)] px-4 py-2 rounded-l-md hover:bg-[var(--secondary-color-dark)] transition-colors" 
-                  onClick={handleGeneratePDF}
-                  disabled={selectedReports.length === 0}
+                  onClick={handlePrintMatrix}
                 >
-                  Create Print File
+                  Print
                 </button>
                 <button 
                   className="bg-[var(--secondary-color)] px-2 py-2 rounded-r-md hover:bg-[var(--secondary-color-dark)] transition-colors border-l border-gray-300"
@@ -197,18 +191,15 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
               
               {showPrintDropdown && (
                 <div className="absolute top-full z-50 left-0 mt-1 bg-white border border-[var(--primary-color)] rounded-md shadow-lg z-10 min-w-64">
-                  <div className="p-2">
-                    <div className="text-sm font-medium text-gray-700 mb-2">Select Reports:</div>
+                  <div className="p-1">
                     {reportOptions.map(option => (
-                      <label key={option.id} className="flex items-center space-x-2 p-1 hover:bg-gray-50 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedReports.includes(option.id)}
-                          onChange={() => handleReportToggle(option.id)}
-                          className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                        />
-                        <span className="text-sm text-gray-700">{option.label}</span>
-                      </label>
+                      <button
+                        key={option.id}
+                        onClick={() => handleGenerateReport(option.id)}
+                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                      >
+                        {option.label}
+                      </button>
                     ))}
                   </div>
                 </div>
