@@ -20,7 +20,7 @@ export interface EntrantSchedule {
   moving: 'judges' | 'groups';
 }
 
-export function generateEntrantSchedulePages(doc: jsPDF, entrantSchedules: EntrantSchedule[], addNewPage: () => void) {
+export function generateEntrantSchedulePages(doc: jsPDF, entrantSchedules: EntrantSchedule[]) {
   const LABELS_PER_PAGE = 10; // 2 columns x 5 rows
   const CELL_WIDTH = 95; // mm
   const CELL_HEIGHT = 51; // mm
@@ -53,7 +53,7 @@ export function generateEntrantSchedulePages(doc: jsPDF, entrantSchedules: Entra
   for (let pageIndex = 0; pageIndex < Math.ceil(scheduleData.length / LABELS_PER_PAGE); pageIndex++) {
     // Add new page if not the first page
     if (pageIndex > 0) {
-      addNewPage();
+      doc.addPage();
     }
     
     const startIndex = pageIndex * LABELS_PER_PAGE;

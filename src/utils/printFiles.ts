@@ -519,8 +519,6 @@ export async function generatePDF(
   
   // Create document
   const doc = new jsPDF('portrait');
-  
-  let pageCount = 1; // Start at 1 since the first page already exists
   const generatedDateTime = new Date().toLocaleString();
 
   // Helper function to add footer to current page
@@ -544,29 +542,12 @@ export async function generatePDF(
     doc.setTextColor(0, 0, 0);
   };
 
-  // Helper function to add new page
-  const addNewPage = (legal: boolean = false, landscape: boolean = false, addFooterToPrevious: boolean = true) => {
-    if (pageCount > 0) {
-      // Add footer to previous page before adding new one (if requested)
-      if (addFooterToPrevious) {
-        addFooter();
-      }
-      
-      const format = legal ? 'legal' : 'a4';
-      const orientation = landscape ? 'landscape' : 'portrait';
-      doc.addPage(format, orientation);
-    }
-    pageCount++;
-  };
-
   // Generate requested sections
   if (reports.includes('judgeSchedules')) {
-    generateJudgeSchedulePages(doc, printData.judgeSchedules, addNewPage);
+    generateJudgeSchedulePages(doc, printData.judgeSchedules);
   }
   if (reports.includes('entrantSchedules')) {
-    // Create a wrapper that doesn't add footers for entrant schedules
-    const addNewPageWithoutFooter = () => addNewPage(false, false, false);
-    generateEntrantSchedulePages(doc, printData.entrantSchedules, addNewPageWithoutFooter);
+    generateEntrantSchedulePages(doc, printData.entrantSchedules);
   }
   if (reports.includes('flowDocument')) {
     generateFlowDocumentPage(doc, printData.flowDocument);
@@ -575,9 +556,15 @@ export async function generatePDF(
     generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges);
   }
 
-  // Add footer to the last page (unless entrant schedules is the only report)
-  if (!reports.includes('entrantSchedules') || reports.length > 1) {
-    addFooter();
+  // Add footer to all pages (except entrant schedules)
+  if (!reports.includes('entrantSchedules')) {
+    const pageCount = doc.internal.pages.length - 1; // jsPDF is 0-indexed
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      addFooter();
+    }
+    // Reset to page 1 after adding footers
+    doc.setPage(1);
   }
 
   // Determine filename based on report type

@@ -24,10 +24,10 @@ export interface JudgeSchedule {
   moving: 'judges' | 'groups';
 }
 
-export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSchedule[], addNewPage: () => void) {
+export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSchedule[]) {
   judgeSchedules.forEach((schedule, index) => {
     if (index > 0) {
-      addNewPage();
+      doc.addPage();
     }
     
     // Title
