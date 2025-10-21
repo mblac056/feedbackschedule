@@ -82,6 +82,7 @@ export const importData = (jsonString: string): { success: boolean; message: str
       oneXLongLength: parsedData.settings?.oneXLongLength || 40,
       threeX20Length: parsedData.settings?.threeX20Length || 20,
       threeX10Length: parsedData.settings?.threeX10Length || 10,
+      moving: parsedData.settings?.moving || 'judges' as 'judges' | 'groups',
     };
     
     console.log('Clean settings:', cleanSettings);
