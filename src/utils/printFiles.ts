@@ -520,7 +520,7 @@ export async function generatePDF(
   // Create document
   const doc = new jsPDF('portrait');
   
-  let pageCount = 0;
+  let pageCount = 1; // Start at 1 since the first page already exists
   const generatedDateTime = new Date().toLocaleString();
 
   // Helper function to add footer to current page
