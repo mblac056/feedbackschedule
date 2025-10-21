@@ -10,6 +10,7 @@ export interface ExportData {
     oneXLongLength: number;
     threeX20Length: number;
     threeX10Length: number;
+    moving: 'judges' | 'groups';
   };
   exportDate: string;
   version: string;
