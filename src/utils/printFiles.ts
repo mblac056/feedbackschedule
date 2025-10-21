@@ -569,7 +569,7 @@ export async function generatePDF(
     generateEntrantSchedulePages(doc, printData.entrantSchedules, addNewPageWithoutFooter);
   }
   if (reports.includes('flowDocument')) {
-    generateFlowDocumentPage(doc, printData.flowDocument, addNewPage);
+    generateFlowDocumentPage(doc, printData.flowDocument);
   }
   if (reports.includes('feedbackAnnouncements')) {
     generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges);
