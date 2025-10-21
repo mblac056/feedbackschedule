@@ -25,8 +25,10 @@ export interface JudgeSchedule {
 }
 
 export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSchedule[], addNewPage: () => void) {
-  judgeSchedules.forEach(schedule => {
-    addNewPage();
+  judgeSchedules.forEach((schedule, index) => {
+    if (index > 0) {
+      addNewPage();
+    }
     
     // Title
     doc.setTextColor(0, 0, 0);

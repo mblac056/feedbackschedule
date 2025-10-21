@@ -4,8 +4,7 @@ import { TIME_CONFIG } from '../config/timeConfig';
 import jsPDF from 'jspdf';
 import { formatTimeForDisplay, timeToSortValue } from './printHelpers';
 
-export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions: SessionBlock[], entrants: Entrant[], judges: Judge[], addNewPage: () => void) {
-  addNewPage();
+export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions: SessionBlock[], entrants: Entrant[], judges: Judge[]) {
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');

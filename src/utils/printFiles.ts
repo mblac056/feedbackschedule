@@ -546,7 +546,7 @@ export async function generatePDF(
 
   // Helper function to add new page
   const addNewPage = (legal: boolean = false, landscape: boolean = false, addFooterToPrevious: boolean = true) => {
-    if (pageCount >= 0) {
+    if (pageCount > 0) {
       // Add footer to previous page before adding new one (if requested)
       if (addFooterToPrevious) {
         addFooter();
@@ -572,7 +572,7 @@ export async function generatePDF(
     generateFlowDocumentPage(doc, printData.flowDocument, addNewPage);
   }
   if (reports.includes('feedbackAnnouncements')) {
-    generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges, addNewPage);
+    generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges);
   }
 
   // Add footer to the last page (unless entrant schedules is the only report)

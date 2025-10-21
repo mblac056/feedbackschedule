@@ -7,7 +7,6 @@ export interface FlowDocumentEntry {
 }
 
 export function generateFlowDocumentPage(doc: jsPDF, flowDocument: FlowDocumentEntry[], addNewPage: () => void) {
-  addNewPage();
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
