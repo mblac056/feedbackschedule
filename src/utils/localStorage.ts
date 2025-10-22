@@ -142,3 +142,13 @@ export const saveSessionBlocks = (sessionBlocks: SessionBlock[]): void => {
   }
 };
 
+// Utility function to clear the grid by unscheduling all session blocks
+export const clearGrid = (sessionBlocks: SessionBlock[]): SessionBlock[] => {
+  return sessionBlocks.map(block => ({
+    ...block,
+    isScheduled: false,
+    startRowIndex: undefined,
+    judgeId: undefined
+  }));
+};
+

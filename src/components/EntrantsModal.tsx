@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { Entrant, Judge, SessionBlock } from '../types';
 import { getEntrants, getJudges, saveEntrants, getSessionBlocks, saveSessionBlocks } from '../utils/localStorage';
+import { importEvalPreferencesCSV } from '../utils/csvImport';
 import { FaTrash } from 'react-icons/fa';
+import CSVImport from './CSVImport';
 
 interface EntrantsModalProps {
   isOpen: boolean;
@@ -16,6 +18,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const [groupsInputs, setGroupsInputs] = useState<{ [key: string]: string }>({});
   const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
   const [dragOverEntrantId, setDragOverEntrantId] = useState<string | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [showPreferencesImport, setShowPreferencesImport] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -23,6 +27,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
       const storedJudges = getJudges();
       setEntrants(storedEntrants);
       setJudges(storedJudges);
+      setShowImport(false); // Reset import state when modal opens
+      setShowPreferencesImport(false); // Reset preferences import state when modal opens
       
       // Initialize groups inputs
       const initialGroupsInputs: { [key: string]: string } = {};
@@ -255,6 +261,38 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     setDragOverEntrantId(null);
   };
 
+  const handleImportComplete = (importedEntrants: Entrant[]) => {
+    // The CSVImport component already handles appending to existing entrants
+    // So we just need to update the local state with the combined list
+    setEntrants(importedEntrants);
+    setShowImport(false);
+  };
+
+  const handlePreferencesImport = async (file: File) => {
+    if (!file.type.includes('csv') && !file.name.endsWith('.csv')) {
+      alert('Please select a CSV file');
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const result = importEvalPreferencesCSV(text, entrants, judges);
+      
+      if (result.success) {
+        // Save updated entrants to localStorage
+        saveEntrants(entrants);
+        // Refresh the entrants state
+        setEntrants([...entrants]);
+        setShowPreferencesImport(false);
+        alert(`Successfully updated ${result.data?.entrantsUpdated || 0} entrants with preferences.`);
+      } else {
+        alert(`Import failed: ${result.message}`);
+      }
+    } catch (error) {
+      alert(`Error reading file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -284,17 +322,112 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-800">Entrants ({entrants.length})</h3>
+            <div className="flex gap-2">
+              {entrants.length > 0 && (
+                <>
+                  <button
+                    onClick={() => setShowImport(true)}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                  >
+                    Import Entrants
+                  </button>
+                  <button
+                    onClick={() => setShowPreferencesImport(true)}
+                    disabled={judges.length === 0}
+                    className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-offset-2 transition-colors ${
+                      judges.length === 0 
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                        : 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                    }`}
+                    title={judges.length === 0 ? 'No judges in the system yet' : ''}
+                  >
+                    Import Preferences
+                  </button>
+                </>
+              )}
             <button
               onClick={handleAddEntrant}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
             >
               Add Entrant
             </button>
+            </div>
           </div>
 
-          {entrants.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p>No entrants added yet. Click "Add Entrant" to get started.</p>
+          {showImport ? (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-medium text-gray-800">Import Entrants from CSV</h4>
+                <button
+                  onClick={() => setShowImport(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <CSVImport 
+                variant="modal"
+                importType="entrants"
+                onEntrantsImportComplete={handleImportComplete}
+                existingEntrants={entrants}
+              />
+            </div>
+          ) : showPreferencesImport ? (
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-lg font-medium text-gray-800">Import Preferences from CSV</h4>
+                <button
+                  onClick={() => setShowPreferencesImport(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <div className="mx-auto w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3">
+                  <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                </div>
+                <h4 className="text-base font-medium text-gray-900 mb-1">
+                  Import Preferences from CSV
+                </h4>
+                <p className="text-sm text-gray-600 mb-2">
+                  Drag and drop your submission document CSV file here, or click to browse
+                </p>
+                <p className="text-xs text-gray-500 mb-4">
+                  Expected format: Group Name, Group To Avoid, Eval Type columns, 1st/2nd/3rd Choice judge preferences
+                </p>
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handlePreferencesImport(file);
+                  }}
+                  className="hidden"
+                  id="preferences-file-input"
+                />
+                <label
+                  htmlFor="preferences-file-input"
+                  className="inline-block px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 cursor-pointer transition-colors"
+                >
+                  Choose File
+                </label>
+              </div>
+            </div>
+          ) : entrants.length === 0 ? (
+            <div className="max-w-md mx-auto">
+              <CSVImport 
+                variant="modal"
+                importType="entrants"
+                onEntrantsImportComplete={handleImportComplete}
+                existingEntrants={entrants}
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">

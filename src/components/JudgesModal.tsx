@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Judge } from '../types';
 import { getJudges, saveJudges } from '../utils/localStorage';
 import { FaTrash } from 'react-icons/fa';
+import CSVImport from './CSVImport';
 
 interface JudgesModalProps {
   isOpen: boolean;
@@ -53,6 +54,10 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
     ));
   };
 
+  const handleImportComplete = (importedJudges: Judge[]) => {
+    setJudges(importedJudges);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -64,18 +69,19 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
             <p className="text-blue-100">Add, edit, and remove competition judges</p>
           </div>
           <div className="flex items-center space-x-3">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
-            >
-              Save & Close
-            </button>
-            <button
+          <button
               onClick={onClose}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               Close
             </button>
+                        <button
+              onClick={handleClose}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+            >
+              Save & Close
+            </button>
+
           </div>
         </div>
         
@@ -91,8 +97,11 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
           </div>
 
           {judges.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <p>No judges added yet. Click "Add Judge" to get started.</p>
+            <div className="max-w-md mx-auto">
+              <CSVImport 
+                variant="modal"
+                onImportComplete={handleImportComplete}
+              />
             </div>
           ) : (
             <div className="overflow-x-auto">

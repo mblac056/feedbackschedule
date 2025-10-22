@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { Judge, Entrant, EntrantJudgeAssignments, SessionBlock } from './types'
-import { getJudges, getEntrants, getSessionBlocks, saveSessionBlocks } from './utils/localStorage'
+import { getJudges, getEntrants, getSessionBlocks, saveSessionBlocks, clearGrid } from './utils/localStorage'
 import { useEntrant, SettingsProvider } from './contexts'
 import Header from './components/Header'
 import JudgesModal from './components/JudgesModal'
@@ -339,6 +339,13 @@ function App() {
     window.location.reload();
   };
 
+  // Handle clearing the grid when settings change
+  const handleClearGrid = useCallback(() => {
+    const clearedSessionBlocks = clearGrid(allSessionBlocks);
+    setAllSessionBlocks(clearedSessionBlocks);
+    saveSessionBlocks(clearedSessionBlocks);
+  }, [allSessionBlocks]);
+
   return (
     <SettingsProvider>
       <div 
@@ -352,7 +359,7 @@ function App() {
         />
         
         {judges.length === 0 ? (
-          <EmptyState onAddFirstJudge={() => setIsJudgesModalOpen(true)} />
+          <EmptyState onJudgesImported={(importedJudges) => setJudges(importedJudges)} />
         ) : (
           <>
             <SessionsArea 
@@ -396,6 +403,7 @@ function App() {
           onClose={() => setIsSettingsModalOpen(false)}
           scheduledSessions={scheduledSessions}
           onCompleteReset={handleCompleteReset}
+          onClearGrid={handleClearGrid}
         />
 
         <ImportExportModal

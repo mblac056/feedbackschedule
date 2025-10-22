@@ -60,7 +60,7 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
     .sort(([timeA], [timeB]) => timeToSortValue(timeA) - timeToSortValue(timeB));
 
   // Add grouped list format
-  let yPos = 50;
+  let yPos = 35;
   doc.setFontSize(12);
   
   sortedGroups.forEach(([startTime, entrants]) => {
@@ -72,7 +72,7 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
     // Time header
     doc.setFont('helvetica', 'bold');
     doc.text(`${formatTimeForDisplay(startTime)}:`, 20, yPos);
-    yPos += 12;
+    yPos += 7;
     
     // Entrant names under that time with room numbers
     doc.setFont('helvetica', 'normal');
@@ -82,7 +82,7 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
         yPos = 20;
       }
       doc.text(`  • ${entrant.name} (Room ${entrant.room})`, 30, yPos);
-      yPos += 10;
+      yPos += 7;
     });
     
     yPos += 5; // Extra space between time groups

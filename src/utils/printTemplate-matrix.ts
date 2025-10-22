@@ -119,7 +119,25 @@ export async function generateMatrixPage(
           entrantName = `*${entrantName}`;
         }
         
-        html += `<td class="session-cell" rowspan="${rowSpan}">${entrantName}<br>(${session.type})${roomText}</td>`;
+        // Build order of appearance display
+        let orderOfAppearanceText = '';
+        if (entrant) {
+          const orderOfAppearance = [];
+          if (entrant.overallSF !== undefined) orderOfAppearance.push(entrant.overallSF);
+          if (entrant.overallF !== undefined) orderOfAppearance.push(entrant.overallF);
+          
+          // If only one value, display just the number; if two values, show both with prefixes
+          if (orderOfAppearance.length === 1) {
+            orderOfAppearanceText = `O/A: ${orderOfAppearance[0].toString()}`;
+          } else if (orderOfAppearance.length === 2) {
+            orderOfAppearanceText = `O/A: SF - ${entrant.overallSF}, F - ${entrant.overallF}`;
+          }
+        }
+        
+        // Use order of appearance if available, otherwise fall back to session type
+        const displayText = orderOfAppearanceText || session.type;
+        
+        html += `<td class="session-cell" rowspan="${rowSpan}">${entrantName}<br>${displayText}${roomText}</td>`;
         
         // Mark cells as occupied
         for (let r = 0; r < rowSpan; r++) {

@@ -52,8 +52,8 @@ export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSche
     if (schedule.sessions.length > 0 || schedule.byes.length > 0) {
       // Determine headers based on movement setting
       const headers = schedule.moving === 'judges' 
-        ? ['Time', 'Entrant', 'Session Type', 'Room', 'O/A SF', 'O/A F']
-        : ['Time', 'Entrant', 'Session Type', 'O/A SF', 'O/A F'];
+        ? ['Time', 'Entrant', 'Session Type', 'Room', 'Order of Appearance']
+        : ['Time', 'Entrant', 'Session Type', 'Order of Appearance'];
       
       // Combine sessions and byes, then sort by start time
       const allItems = [
@@ -83,9 +83,20 @@ export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSche
             baseRow.push(session.roomNumber || '');
           }
           
-          // Add order of appearance columns
-          baseRow.push(session.overallSF !== undefined ? session.overallSF.toString() : '');
-          baseRow.push(session.overallF !== undefined ? session.overallF.toString() : '');
+          // Add combined order of appearance column
+          const orderOfAppearance = [];
+          if (session.overallSF !== undefined) orderOfAppearance.push(session.overallSF);
+          if (session.overallF !== undefined) orderOfAppearance.push(session.overallF);
+          
+          // If only one value, display just the number; if two values, show both with prefixes
+          let displayValue = '';
+          if (orderOfAppearance.length === 1) {
+            displayValue = orderOfAppearance[0].toString();
+          } else if (orderOfAppearance.length === 2) {
+            displayValue = `SF: ${session.overallSF}, F: ${session.overallF}`;
+          }
+          
+          baseRow.push(displayValue);
           
           return baseRow;
         } else {
@@ -102,8 +113,7 @@ export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSche
             baseRow.push('');
           }
           
-          // Add order of appearance columns (empty for byes)
-          baseRow.push('');
+          // Add order of appearance column (empty for byes)
           baseRow.push('');
           
           return baseRow;
@@ -134,7 +144,7 @@ export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSche
           1: { cellWidth: 35 }, // Entrant column
           2: { cellWidth: 20 }, // Session Type column
           ...(schedule.moving === 'judges' && { 3: { cellWidth: 15 } }), // Room column
-          ...(schedule.moving === 'judges' ? { 4: { cellWidth: 15 }, 5: { cellWidth: 15 } } : { 3: { cellWidth: 15 }, 4: { cellWidth: 15 } }) // O/A SF and O/A F columns
+          ...(schedule.moving === 'judges' ? { 4: { cellWidth: 30 } } : { 3: { cellWidth: 30 } }) // Order of Appearance column
         },
         margin: { top: yPos, left: 20, right: 20, bottom: 20 },
       });

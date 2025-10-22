@@ -15,6 +15,7 @@ interface SettingsModalProps {
   onClose: () => void;
   scheduledSessions: SessionBlock[];
   onCompleteReset?: () => void;
+  onClearGrid?: () => void;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -28,9 +29,10 @@ const DEFAULT_SETTINGS: Settings = {
 
 const STORAGE_KEY = 'evalmatrix_settings';
 
-export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset, onClearGrid }: SettingsModalProps) {
   const { setSettings: setContextSettings } = useSettings();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [originalSettings, setOriginalSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [showResetWarning, setShowResetWarning] = useState(false);
   const [showValidationError, setShowValidationError] = useState(false);
   const [showCompleteResetWarning, setShowCompleteResetWarning] = useState(false);
@@ -39,10 +41,12 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
     if (isOpen) {
       // Load settings from localStorage
       const storedSettings = localStorage.getItem(STORAGE_KEY);
+      let loadedSettings = DEFAULT_SETTINGS;
       if (storedSettings) {
         try {
           const parsedSettings = JSON.parse(storedSettings);
-          setSettings({ ...DEFAULT_SETTINGS, ...parsedSettings });
+          loadedSettings = { ...DEFAULT_SETTINGS, ...parsedSettings };
+          setSettings(loadedSettings);
         } catch (error) {
           console.error('Failed to parse stored settings:', error);
           setSettings(DEFAULT_SETTINGS);
@@ -50,6 +54,8 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       } else {
         setSettings(DEFAULT_SETTINGS);
       }
+      // Store the original settings to detect changes
+      setOriginalSettings(loadedSettings);
       // Reset warnings when modal opens
       setShowResetWarning(false);
       setShowValidationError(false);
@@ -65,13 +71,24 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
            settings.threeX20Length < settings.oneXLongLength;
   };
 
+  const hasSessionLengthsChanged = (): boolean => {
+    return settings.oneXLongLength !== originalSettings.oneXLongLength ||
+           settings.threeX20Length !== originalSettings.threeX20Length ||
+           settings.threeX10Length !== originalSettings.threeX10Length;
+  };
+
   const handleSave = () => {
     // Check if session lengths are valid (multiples of 5)
     if (!validateSessionLengths(settings)) {
       setShowValidationError(true);
       return;
     }
-    // Note: Session length changes will be handled by the parent component
+    
+    // Check if session lengths have changed and clear grid if needed
+    if (hasSessionLengthsChanged() && onClearGrid) {
+      onClearGrid();
+    }
+    
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
     
     // Update the context settings with all settings
@@ -262,7 +279,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                   </h3>
                   <div className="mt-2 text-sm text-amber-700">
                     <p>
-                      Changing session lengths will reset your current scheduling grid and clear all scheduled sessions. 
+                      Changing session lengths will automatically clear your current scheduling grid and unschedule all sessions. 
                       Make sure to save or export your current schedule before proceeding.
                     </p>
                   </div>

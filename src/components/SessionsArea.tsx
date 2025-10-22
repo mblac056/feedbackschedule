@@ -2,7 +2,7 @@ import UnassignedSessions from "./UnassignedSessions";
 import GridSchedule from "./GridSchedule";
 import { useState, useEffect } from "react";
 import type { Judge, SessionBlock } from "../types";
-import { saveJudges } from "../utils/localStorage";
+import { saveJudges, clearGrid } from "../utils/localStorage";
 import type { DraggedSessionData } from "../types";
 import { generatePDF } from "../utils/printFiles";
 import { FaChevronDown } from "react-icons/fa";
@@ -152,23 +152,16 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
           <div className="flex items-center gap-4 mb-4 ml-10">
           {scheduledSessions.length > 0 ? (
           <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
-              // Update all session blocks to mark them as unscheduled
-              allSessionBlocks.forEach(block => {
-                if (block.isScheduled) {
-                  const updatedBlock = {
-                    ...block,
-                    isScheduled: false,
-                    startRowIndex: undefined,
-                    judgeId: undefined
-                  };
-                  onSessionBlockUpdate(updatedBlock);
-                }
+              // Clear the grid using the utility function
+              const clearedSessionBlocks = clearGrid(allSessionBlocks);
+              clearedSessionBlocks.forEach(block => {
+                onSessionBlockUpdate(block);
               });
             }}>
               Clear Grid
             </button>) : (
             <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
-              populateGrid(allSessionBlocks, judges, onSessionBlockUpdate);
+              populateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
             }}>
               Populate Grid
             </button>

@@ -1,8 +1,9 @@
 import { getSessionDurationSlots } from "../config/timeConfig";
 import type { SessionBlock, Judge, Entrant} from "../types";
 import { getEntrants } from "./localStorage";
+import type { SessionSettings } from "../config/timeConfig";
 
-export const populateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void) => {
+export const populateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void, settings?: SessionSettings) => {
   // First, clear all scheduled sessions to avoid conflicts
   console.log('=== CLEARING EXISTING SCHEDULE ===');
   allSessionBlocks.forEach(block => {
@@ -26,7 +27,7 @@ export const populateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], 
       const threeX20Count = allSessionBlocks.filter(block => block.type === '3x20').length;
       const oneXLongCount = allSessionBlocks.filter(block => block.type === '1xLong').length;
 
-  const [judgeNumberToJudge, groupNumberToGroup, judgeSchedules] = createMatrix(threeX10Count, threeX20Count, oneXLongCount, getSessionDurationSlots('3x10'), getSessionDurationSlots('3x20'), getSessionDurationSlots('1xLong'), judges, entrants, allSessionBlocks);
+  const [judgeNumberToJudge, groupNumberToGroup, judgeSchedules] = createMatrix(threeX10Count, threeX20Count, oneXLongCount, getSessionDurationSlots('3x10', settings), getSessionDurationSlots('3x20', settings), getSessionDurationSlots('1xLong', settings), judges, entrants, allSessionBlocks);
   console.log(`Judge number to judge: ${judgeNumberToJudge}`);  console.log(`Group number to group: ${groupNumberToGroup}`);
   console.log(`Judge schedules: ${judgeSchedules}`);
   assignSessionBlocksToGrid(judgeNumberToJudge, groupNumberToGroup, judgeSchedules, allSessionBlocks, onSessionBlockUpdate);
