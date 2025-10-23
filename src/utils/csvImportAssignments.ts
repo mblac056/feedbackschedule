@@ -1,7 +1,7 @@
 import type { Judge } from '../types';
 import { 
-  ImportResult, 
-  AssignmentsImportData, 
+  type ImportResult, 
+  type AssignmentsImportData, 
   parseSimpleCSV, 
   shortenJudgeNames, 
   generateId, 

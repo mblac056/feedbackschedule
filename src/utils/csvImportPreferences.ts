@@ -1,7 +1,7 @@
 import type { Judge, Entrant } from '../types';
 import { 
-  ImportResult, 
-  EvalPreferencesImportData, 
+  type ImportResult, 
+  type EvalPreferencesImportData, 
   parseSimpleCSV, 
   normalizeJudgeName 
 } from './csvImportShared';

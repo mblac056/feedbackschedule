@@ -1,7 +1,7 @@
 import type { Entrant } from '../types';
 import { 
-  ImportResult, 
-  DRCJReportImportData, 
+  type ImportResult, 
+  type DRCJReportImportData, 
   parseComplexCSV, 
   generateId 
 } from './csvImportShared';
