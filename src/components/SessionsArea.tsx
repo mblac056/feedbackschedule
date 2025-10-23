@@ -145,103 +145,112 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
     }, [showPrintDropdown]);
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+        <div className="mx-auto px-4 sm:px-6 lg:px-8 py-8"
         onDragStart={handleGlobalDragStart}
         onDragOver={handleGlobalDragOver}
         onDragEnd={handleGlobalDragEnd}>
-          <div className="flex items-center gap-4 mb-4 ml-10">
-          {scheduledSessions.length > 0 ? (
-          <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
-              // Clear the grid using the utility function
-              const clearedSessionBlocks = clearGrid(allSessionBlocks);
-              clearedSessionBlocks.forEach(block => {
-                onSessionBlockUpdate(block);
-              });
-            }}>
-              Clear Grid
-            </button>) : (
-            <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
-              populateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
-            }}>
-              Populate Grid
-            </button>
-            )}
-            <div className="relative print-dropdown-container">
-              <div className="flex">
-                <button 
-                  className="bg-[var(--secondary-color)] px-4 py-2 rounded-l-md hover:bg-[var(--secondary-color-dark)] transition-colors" 
-                  onClick={handlePrintMatrix}
-                >
-                  Print
-                </button>
-                <button 
-                  className="bg-[var(--secondary-color)] px-2 py-2 rounded-r-md hover:bg-[var(--secondary-color-dark)] transition-colors border-l border-gray-300"
-                  onClick={() => setShowPrintDropdown(!showPrintDropdown)}
-                >
-                  <FaChevronDown className={`transition-transform ${showPrintDropdown ? 'rotate-180' : ''}`} />
-                </button>
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-4 ml-10 overflow-x-auto mobile-button-container">
+            {/* Button row - side by side on mobile, horizontal on desktop */}
+            <div className="flex flex-row items-center gap-4 w-full md:w-auto flex-shrink-0">
+              {scheduledSessions.length > 0 ? (
+                <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
+                    // Clear the grid using the utility function
+                    const clearedSessionBlocks = clearGrid(allSessionBlocks);
+                    clearedSessionBlocks.forEach(block => {
+                      onSessionBlockUpdate(block);
+                    });
+                  }}>
+                    Clear Grid
+                  </button>) : (
+                  <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
+                    populateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
+                  }}>
+                    Populate Grid
+                  </button>
+                  )}
+                <div className="relative print-dropdown-container">
+                  <div className="flex">
+                    <button 
+                      className="bg-[var(--secondary-color)] px-4 py-2 rounded-l-md hover:bg-[var(--secondary-color-dark)] transition-colors" 
+                      onClick={handlePrintMatrix}
+                    >
+                      Print
+                    </button>
+                    <button 
+                      className="bg-[var(--secondary-color)] px-2 py-2 rounded-r-md hover:bg-[var(--secondary-color-dark)] transition-colors border-l border-gray-300"
+                      onClick={() => setShowPrintDropdown(!showPrintDropdown)}
+                    >
+                      <FaChevronDown className={`transition-transform ${showPrintDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+                  </div>
+                  
+                  {showPrintDropdown && (
+                    <div className="absolute top-full z-50 left-0 mt-1 bg-white border border-[var(--primary-color)] rounded-md shadow-lg z-10 min-w-64 md:min-w-64 w-full md:w-auto">
+                      <div className="p-1">
+                        {reportOptions.map(option => (
+                          <button
+                            key={option.id}
+                            onClick={() => handleGenerateReport(option.id)}
+                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              {showPrintDropdown && (
-                <div className="absolute top-full z-50 left-0 mt-1 bg-white border border-[var(--primary-color)] rounded-md shadow-lg z-10 min-w-64">
-                  <div className="p-1">
-                    {reportOptions.map(option => (
-                      <button
-                        key={option.id}
-                        onClick={() => handleGenerateReport(option.id)}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Total Length - below buttons on mobile, inline on desktop */}
+              {totalDuration > 0 && (
+                <span className={`text-gray-600 font-bold text-lg ${totalDuration > 180 && 'text-red-500'} w-full md:w-auto`}>
+                  Total Length: {Math.floor(totalDuration / 60) !== 0 && `${Math.floor(totalDuration / 60)}h `}{totalDuration % 60 !== 0 && `${totalDuration % 60}m`}
+                </span>
               )}
-            </div>
-            {totalDuration > 0 && (
-              <span className={`text-gray-600 font-bold text-lg ${totalDuration > 180 && 'text-red-500'}`}>
-                                 Total Length: {Math.floor(totalDuration / 60) !== 0 && `${Math.floor(totalDuration / 60)}h `}{totalDuration % 60 !== 0 && `${totalDuration % 60}m`}
-              </span>
-            )}
           </div>
-        <GridSchedule 
-        judges={judges} 
-        onJudgesReorder={handleJudgesReorder}
-        refreshKey={refreshKey}
-        draggedSessionData={draggedSessionData}
-        scheduledSessions={scheduledSessions}
-        allSessionBlocks={allSessionBlocks}
-        onSessionBlockUpdate={onSessionBlockUpdate}
-        onSessionBlockRemove={onSessionBlockRemove}
-        onSessionDragStart={(sessionData) => {
-          setDraggedSessionData(sessionData);
-        }}
-      />
+        <div className="mobile-scroll-container">
+          <GridSchedule 
+            judges={judges} 
+            onJudgesReorder={handleJudgesReorder}
+            refreshKey={refreshKey}
+            draggedSessionData={draggedSessionData}
+            scheduledSessions={scheduledSessions}
+            allSessionBlocks={allSessionBlocks}
+            onSessionBlockUpdate={onSessionBlockUpdate}
+            onSessionBlockRemove={onSessionBlockRemove}
+            onSessionDragStart={(sessionData) => {
+              setDraggedSessionData(sessionData);
+            }}
+          />
+        </div>
       
-      <UnassignedSessions 
-        allSessionBlocks={allSessionBlocks}
-        refreshKey={refreshKey}
-        onSessionUnscheduled={(sessionData) => {
-          // Find the session block and unschedule it instead of removing it
-          const sessionBlock = allSessionBlocks.find(block => 
-            block.entrantId === sessionData.entrantId && 
-            block.type === sessionData.type && 
-            block.sessionIndex === sessionData.sessionIndex
-          );
-          
-          if (sessionBlock) {
-            const updatedBlock = {
-              ...sessionBlock,
-              isScheduled: false,
-              startRowIndex: undefined,
-              judgeId: undefined
-            };
-            onSessionBlockUpdate(updatedBlock);
-          }
-        }}
-        onSessionBlockUpdate={onSessionBlockUpdate}
-        onSessionBlockRemove={onSessionBlockRemove}
-      />
+      <div className="mobile-scroll-container">
+        <UnassignedSessions 
+          allSessionBlocks={allSessionBlocks}
+          refreshKey={refreshKey}
+          onSessionUnscheduled={(sessionData) => {
+            // Find the session block and unschedule it instead of removing it
+            const sessionBlock = allSessionBlocks.find(block => 
+              block.entrantId === sessionData.entrantId && 
+              block.type === sessionData.type && 
+              block.sessionIndex === sessionData.sessionIndex
+            );
+            
+            if (sessionBlock) {
+              const updatedBlock = {
+                ...sessionBlock,
+                isScheduled: false,
+                startRowIndex: undefined,
+                judgeId: undefined
+              };
+              onSessionBlockUpdate(updatedBlock);
+            }
+          }}
+          onSessionBlockUpdate={onSessionBlockUpdate}
+          onSessionBlockRemove={onSessionBlockRemove}
+        />
+      </div>
       </div>
     )
 }

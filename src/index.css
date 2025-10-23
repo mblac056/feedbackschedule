@@ -24,6 +24,138 @@ body {
   min-height: 100vh;
 }
 
+/* Mobile-specific styles */
+
+  /* Ensure horizontal scrolling for main content */
+  .mobile-scroll-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  /* Hide scrollbar on mobile for cleaner look */
+  .mobile-scroll-container::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .mobile-scroll-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+  }
+  
+  .mobile-scroll-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+  }
+  
+  /* Ensure buttons don't shrink on mobile */
+  .mobile-button-container {
+    min-width: max-content;
+    white-space: nowrap;
+  }
+  
+  /* Stack buttons vertically on mobile */
+  .mobile-button-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  /* Ensure buttons maintain proper spacing on mobile */
+  .mobile-button-container > * {
+    width: auto;
+    min-width: fit-content;
+  }
+  
+  /* Button row takes full width on mobile */
+  .mobile-button-container .flex-row {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  
+  /* Ensure buttons don't wrap on mobile */
+  .mobile-button-container .flex-row > * {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  
+  /* Mobile-friendly grid adjustments */
+  .mobile-grid {
+    min-width: 800px; /* Ensure grid has minimum width for proper display */
+  }
+  
+  /* Print dropdown mobile styling */
+  .print-dropdown-container {
+    position: relative;
+  }
+  
+  /* Mobile dropdown positioning - overlay the grid below */
+  .print-dropdown-container .absolute {
+    position: fixed !important;
+    top: 120px !important; /* Position below the header */
+    left: 2rem !important;
+    width: auto !important;
+    max-width: calc(100vw - 2rem);
+    transform: none !important;
+    z-index: 9999 !important;
+  }
+  
+  /* Ensure dropdown options stack vertically on mobile */
+  .print-dropdown-container .absolute .p-1 {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .print-dropdown-container .absolute button {
+    width: 100%;
+    text-align: left;
+    display: block;
+  }
+  
+  /* Preferences panel scrolling - works at all screen sizes */
+  .flyout-panel {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .flyout-panel .min-w-max {
+    min-width: max-content;
+  }
+  
+  /* Ensure table always scrolls horizontally when needed */
+  .flyout-panel .overflow-x-auto {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure preferences panel fits on mobile - only target the panel, not toggle buttons */
+  .fixed.right-0:not(button) {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+
+
+/* Global rule for horizontal scrolling at all screen sizes */
+.overflow-x-auto {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Force horizontal scrolling for table containers */
+.flyout-panel div[class*="overflow-x-auto"] {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+/* Desktop: restore normal width */
+@media (min-width: 768px) {
+  .fixed.right-0:not(button) {
+    width: auto !important;
+    max-width: 100vw;
+  }
+}
+
 
 
 

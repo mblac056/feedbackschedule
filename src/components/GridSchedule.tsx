@@ -556,7 +556,7 @@ const handleSessionDragLeave = () => setDragPreview(null);
       )}
       
       <div>
-        <div className="min-w-max">
+        <div className="min-w-max mt-4">
           {/* Time Header */}
           <div className="flex">
             <div className="w-10 flex-shrink-0"></div> {/* Empty corner */}

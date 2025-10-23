@@ -297,7 +297,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gray-600 text-white p-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Manage Entrants</h2>

@@ -192,17 +192,17 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
         {/* Flyout Toggle Tab */}
         <button
           onClick={togglePanel}
-          className={`fixed right-0 top-1/2 transform -translate-y-1/2 z-40 bg-blue-600 hover:bg-blue-700 text-white px-3 py-6 rounded-l-lg shadow-lg transition-all duration-300 ease-in-out`}
+          className={`fixed right-0 top-1/2 w-8 transform -translate-y-1/2 z-40 bg-blue-600 hover:bg-blue-700 text-white px-2 py-6 rounded-l-lg shadow-lg transition-all duration-300 ease-in-out`}
           aria-label="Toggle preference panel"
         >
           <div className="flyout-toggle-tab whitespace-nowrap">
-          <span className="font-bold text-xs">Preferences</span>
+          <span className="font-bold text-xs">P</span>
           </div>
         </button>
 
         {/* Flyout Side Panel */}
         <div 
-          className={`fixed right-0 top-0 h-full max-w-6xl bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-41 ${
+          className={`fixed right-0 top-0 h-full w-full max-w-6xl md:w-auto md:max-w-6xl bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-41 ${
             isPanelOpen ? 'translate-x-0' : 'translate-x-full'
           }`}
         >
@@ -246,29 +246,32 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   return (
     <>
       {/* Flyout Toggle Tab */}
-      <button
-        onClick={togglePanel}
-        className={`border border-gray-800 border-2 border-r-0 fixed right-0 top-1/3 transform -translate-y-1/2 z-40 bg-white hover:bg-grey-300 text-white px-3 py-6 rounded-l-lg shadow-lg transition-all duration-300 ease-in-out`}
-        aria-label="Toggle preference panel"
-      >
+        <button
+          onClick={togglePanel}
+          className={`border border-gray-800 w-12 border-2 border-r-0 fixed right-0 top-1/3 transform -translate-y-1/2 z-40 bg-white hover:bg-grey-300 text-white px-2 py-6 rounded-l-lg shadow-lg transition-all duration-300 ease-in-out`}
+          aria-label="Toggle preference panel"
+        >
         <div className="flyout-toggle-tab whitespace-nowrap text-gray-600">
-          <div className="text-xs flex items-center gap-2">
-            <span className="w-3 h-3 bg-green-400 rounded-full"></span>
-            {pillCounts.greenCount}
+          <div className="text-xs flex flex-col gap-1">
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+              <span className="text-xs">{pillCounts.greenCount}</span>
             </div>
-            <div className="text-xs flex items-center gap-2">
-            <span className="w-3 h-3 bg-red-400 rounded-full"></span>
-            {pillCounts.redCount}
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+              <span className="text-xs">{pillCounts.redCount}</span>
             </div>
-            <div className="text-xs flex items-center gap-2">
-            <span className="w-3 h-3 bg-gray-400 rounded-full"></span>
-            {pillCounts.grayCount}</div>
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+              <span className="text-xs">{pillCounts.grayCount}</span>
+            </div>
+          </div>
         </div>
       </button>
 
       {/* Flyout Side Panel */}
       <div 
-        className={`fixed right-0 top-0 h-full max-w-6xl bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-41 ${
+        className={`fixed right-0 top-0 h-full w-full max-w-6xl md:w-auto md:max-w-6xl bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-41 ${
           isPanelOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -288,8 +291,8 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
           </div>
           
           {/* Panel Content */}
-          <div className="flex-1 overflow-y-auto p-6 flyout-panel">
-            <div className="space-y-4">
+          <div className="flex-1 overflow-y-auto overflow-x-auto p-6 flyout-panel">
+            <div className="space-y-4 min-w-max">
               {/* Pill Count Summary */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Summary</h3>
@@ -313,7 +316,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+                <table className="min-w-full bg-white border border-gray-200 rounded-lg" style={{ minWidth: '800px' }}>
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
