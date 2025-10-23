@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Entrant, SessionBlock } from '../types';
-import { getEntrants } from '../utils/localStorage';
+import { getEntrants, reorderSessionBlocksByEntrants } from '../utils/localStorage';
 import SessionBlockComponent from './SessionBlock';
 
 interface UnassignedSessionsProps {
@@ -127,8 +127,11 @@ export default function UnassignedSessions({ refreshKey, allSessionBlocks, onSes
 
   const includedEntrants = entrants.filter(e => e.includeInSchedule);
 
-  // Get unscheduled session blocks
-  const unassignedSessions = allSessionBlocks.filter(block => !block.isScheduled);
+  // Get unscheduled session blocks and reorder them based on entrant order
+  const unassignedSessions = reorderSessionBlocksByEntrants(
+    allSessionBlocks.filter(block => !block.isScheduled),
+    entrants
+  );
 
   if (includedEntrants.length === 0) {
     return (

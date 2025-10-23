@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Entrant, Judge, SessionBlock } from '../types';
-import { getEntrants, getJudges, saveEntrants, getSessionBlocks, saveSessionBlocks } from '../utils/localStorage';
+import { getEntrants, getJudges, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants } from '../utils/localStorage';
 import { importEvalPreferencesCSV } from '../utils/csvImport';
 import { FaTrash } from 'react-icons/fa';
 import CSVImport from './CSVImport';
@@ -250,8 +250,17 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     newEntrants.splice(targetIndex, 0, draggedEntrant);
 
     setEntrants(newEntrants);
+    
     // Save the reordered entrants to localStorage
     saveEntrants(newEntrants);
+    
+    // Get current session blocks and reorder them based on new entrant order
+    const currentSessionBlocks = getSessionBlocks();
+    const reorderedSessionBlocks = reorderSessionBlocksByEntrants(currentSessionBlocks, newEntrants);
+    
+    // Save reordered session blocks to localStorage
+    saveSessionBlocks(reorderedSessionBlocks);
+    
     setDraggedEntrantId(null);
     setDragOverEntrantId(null);
   };

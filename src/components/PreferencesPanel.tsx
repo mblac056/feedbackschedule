@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Entrant, Judge, EntrantJudgeAssignments, SessionBlock } from '../types';
-import { getEntrants, saveEntrants } from '../utils/localStorage';
+import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants } from '../utils/localStorage';
 import { useEntrant } from '../contexts/useEntrant.ts';
 import { getCategoryColor } from '../config/categoryConfig';
 
@@ -18,11 +18,12 @@ interface PreferencesPanelProps {
     conflictingEntrantName: string;
     timeSlot: string;
   }>;
+  onSessionBlocksChange?: () => void; // Callback to notify parent that session blocks have changed
 }
 
 
 
-export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssignments, allSessionBlocks, scheduleConflicts }: PreferencesPanelProps) {
+export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssignments, allSessionBlocks, scheduleConflicts, onSessionBlocksChange }: PreferencesPanelProps) {
   const [entrants, setEntrants] = useState<Entrant[]>([]);
   const [includedEntrants, setIncludedEntrants] = useState<Entrant[]>([]);
   const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
@@ -110,12 +111,24 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     const [movedEntrant] = newAllEntrants.splice(draggedAllIndex, 1);
     newAllEntrants.splice(targetAllIndex, 0, movedEntrant);
 
-    // Update localStorage with new order
+    // Update localStorage with new entrant order
     saveEntrants(newAllEntrants);
+
+    // Get current session blocks and reorder them based on new entrant order
+    const currentSessionBlocks = getSessionBlocks();
+    const reorderedSessionBlocks = reorderSessionBlocksByEntrants(currentSessionBlocks, newAllEntrants);
+    
+    // Save reordered session blocks to localStorage
+    saveSessionBlocks(reorderedSessionBlocks);
 
     // Update local state
     setEntrants(newAllEntrants);
     setIncludedEntrants(newAllEntrants.filter(e => e.includeInSchedule));
+    
+    // Notify parent component that session blocks have changed
+    if (onSessionBlocksChange) {
+      onSessionBlocksChange();
+    }
     
     setDraggedEntrantId(null);
     setDragOverEntrantId(null);

@@ -381,6 +381,7 @@ function App() {
               entrantJudgeAssignments={entrantJudgeAssignments}
               allSessionBlocks={allSessionBlocks}
               scheduleConflicts={scheduleConflicts}
+              onSessionBlocksChange={handleSessionBlocksChange}
             />
           </>
         )}

@@ -152,3 +152,38 @@ export const clearGrid = (sessionBlocks: SessionBlock[]): SessionBlock[] => {
   }));
 };
 
+// Utility function to reorder session blocks based on entrant order
+export const reorderSessionBlocksByEntrants = (sessionBlocks: SessionBlock[], entrants: Entrant[]): SessionBlock[] => {
+  // Create a map of entrant order for quick lookup
+  const entrantOrderMap = new Map<string, number>();
+  entrants.forEach((entrant, index) => {
+    entrantOrderMap.set(entrant.id, index);
+  });
+
+  // Sort session blocks by entrant order, then by type, then by session index
+  return [...sessionBlocks].sort((a, b) => {
+    const aOrder = entrantOrderMap.get(a.entrantId) ?? 999;
+    const bOrder = entrantOrderMap.get(b.entrantId) ?? 999;
+    
+    // First sort by entrant order
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
+    }
+    
+    // Then sort by type (1xLong, 3x20, 3x10)
+    const typeOrder = { '1xLong': 1, '3x20': 2, '3x10': 3 };
+    const aTypeOrder = typeOrder[a.type] || 4;
+    const bTypeOrder = typeOrder[b.type] || 4;
+    
+    if (aTypeOrder !== bTypeOrder) {
+      return aTypeOrder - bTypeOrder;
+    }
+    
+    // Finally sort by session index for multi-session types
+    const aSessionIndex = a.sessionIndex ?? 0;
+    const bSessionIndex = b.sessionIndex ?? 0;
+    
+    return aSessionIndex - bSessionIndex;
+  });
+};
+
