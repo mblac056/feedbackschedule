@@ -126,6 +126,23 @@ export const importEvalPreferencesCSV = (
       // and find the first one that contains "eval type" and has a non-blank value
       console.log(`  All available columns:`, Object.keys(row));
       
+      // Collect all eval type preferences to check for mismatches
+      const evalTypePreferences: { [key: string]: string } = {};
+      for (const [columnName, value] of Object.entries(row)) {
+        const isEvalTypeColumn = columnName.toLowerCase().includes('eval type');
+        if (isEvalTypeColumn && value?.trim()) {
+          evalTypePreferences[columnName] = value.trim();
+        }
+      }
+      
+      // Check for mismatches between semifinals and finals
+      const semifinalsPref = evalTypePreferences['Eval Type Semifinals'];
+      const finalsPref = evalTypePreferences['Eval Type Finals'];
+      
+      if (semifinalsPref && finalsPref && semifinalsPref !== finalsPref) {
+        warnings.push(`Row ${index + 2}: Group "${groupName}" has mismatched preferences - Semifinals: "${semifinalsPref}", Finals: "${finalsPref}"`);
+      }
+      
       // Find first non-blank preference by checking all columns in order
       let preferenceSet = false;
       for (const [columnName, value] of Object.entries(row)) {
@@ -147,6 +164,9 @@ export const importEvalPreferencesCSV = (
             } else if (prefValue.includes('1xLong')) {
               existingEntrant.preference = '1xLong';
               console.log(`  Set preference to: "1xLong"`);
+            } else if (prefValue.includes('None')) {
+              existingEntrant.preference = 'None';
+              console.log(`  Set preference to: "None"`);
             } else {
               console.log(`  Preference value "${prefValue}" did not match any known patterns`);
             }
