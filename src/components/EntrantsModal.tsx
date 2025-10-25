@@ -5,14 +5,24 @@ import CSVImport from './CSVImport';
 import PreferencesImport from './PreferencesImport';
 import EntrantRow from './EntrantRow';
 
+interface SessionConflict {
+  entrantId: string;
+  entrantName: string;
+  conflictingGroup: string;
+  conflictingEntrantId: string;
+  conflictingEntrantName: string;
+  timeSlot: string;
+}
+
 interface EntrantsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onModalClose?: () => void;
   onSessionBlocksChange?: () => void;
+  scheduleConflicts?: SessionConflict[];
 }
 
-export default function EntrantsModal({ isOpen, onClose, onModalClose, onSessionBlocksChange }: EntrantsModalProps) {
+export default function EntrantsModal({ isOpen, onClose, onModalClose, onSessionBlocksChange, scheduleConflicts = [] }: EntrantsModalProps) {
   const [entrants, setEntrants] = useState<Entrant[]>([]);
   const [judges, setJudges] = useState<Judge[]>([]);
   const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
@@ -337,6 +347,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       allEntrants={entrants}
                       draggedEntrantId={draggedEntrantId}
                       dragOverEntrantId={dragOverEntrantId}
+                      scheduleConflicts={scheduleConflicts}
                       onFieldUpdate={handleFieldUpdate}
                       onRemove={handleRemove}
                       onDragStart={handleDragStart}

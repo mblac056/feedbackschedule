@@ -1,12 +1,22 @@
 import { useState } from 'react';
 import type { Entrant, Judge } from '../types';
 
+interface SessionConflict {
+  entrantId: string;
+  entrantName: string;
+  conflictingGroup: string;
+  conflictingEntrantId: string;
+  conflictingEntrantName: string;
+  timeSlot: string;
+}
+
 interface EntrantRowProps {
   entrant: Entrant;
   judges: Judge[];
   allEntrants: Entrant[];
   draggedEntrantId: string | null;
   dragOverEntrantId: string | null;
+  scheduleConflicts?: SessionConflict[];
   onFieldUpdate: (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined) => void;
   onRemove: (entrantId: string) => void;
   onDragStart: (e: React.DragEvent, entrantId: string) => void;
@@ -22,6 +32,7 @@ export default function EntrantRow({
   allEntrants,
   draggedEntrantId,
   dragOverEntrantId,
+  scheduleConflicts = [],
   onFieldUpdate,
   onRemove,
   onDragStart,
@@ -89,12 +100,19 @@ export default function EntrantRow({
     if (!currentInput.trim()) return [];
     
     return allEntrants
-      .filter(entrant => 
-        entrant.id !== entrant.id && 
-        entrant.name.toLowerCase().includes(currentInput.toLowerCase())
+      .filter(otherEntrant => 
+        otherEntrant.id !== entrant.id && 
+        otherEntrant.name.toLowerCase().includes(currentInput.toLowerCase())
       )
-      .map(entrant => entrant.name)
+      .map(otherEntrant => otherEntrant.name)
       .slice(0, 5); // Limit to 5 suggestions
+  };
+
+  // Helper function to check if a group has conflicts
+  const hasGroupConflict = (groupName: string): boolean => {
+    return scheduleConflicts.some(conflict => 
+      conflict.entrantId === entrant.id && conflict.conflictingGroup === groupName
+    );
   };
 
   return (
@@ -157,32 +175,38 @@ export default function EntrantRow({
             {/* Autocomplete Suggestions */}
             {groupsInput && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
-                {getAutocompleteSuggestions(groupsInput).map((suggestion, index) => (
-                  <button
-                    key={index}
-                    onClick={() => {
-                      const currentGroups = entrant.groupsToAvoid || '';
-                      const updatedGroups = currentGroups ? `${currentGroups} | ${suggestion}` : suggestion;
-                      onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
-                      
-                      // Also add to the other entrant
-                      const otherEntrant = allEntrants.find(e => e.name === suggestion);
-                      if (otherEntrant && otherEntrant.id !== entrant.id) {
-                        const otherGroups = otherEntrant.groupsToAvoid || '';
-                        const currentEntrantName = entrant.name || '';
-                        if (currentEntrantName && !otherGroups.includes(currentEntrantName)) {
-                          const updatedOtherGroups = otherGroups ? `${otherGroups} | ${currentEntrantName}` : currentEntrantName;
-                          onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
+                {getAutocompleteSuggestions(groupsInput).length > 0 ? (
+                  getAutocompleteSuggestions(groupsInput).map((suggestion, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        const currentGroups = entrant.groupsToAvoid || '';
+                        const updatedGroups = currentGroups ? `${currentGroups} | ${suggestion}` : suggestion;
+                        onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
+                        
+                        // Also add to the other entrant
+                        const otherEntrant = allEntrants.find(e => e.name === suggestion);
+                        if (otherEntrant && otherEntrant.id !== entrant.id) {
+                          const otherGroups = otherEntrant.groupsToAvoid || '';
+                          const currentEntrantName = entrant.name || '';
+                          if (currentEntrantName && !otherGroups.includes(currentEntrantName)) {
+                            const updatedOtherGroups = otherGroups ? `${otherGroups} | ${currentEntrantName}` : currentEntrantName;
+                            onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
+                          }
                         }
-                      }
-                      
-                      setGroupsInput('');
-                    }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
+                        
+                        setGroupsInput('');
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                    >
+                      {suggestion}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-sm text-gray-500">
+                    No matching entrants found
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -193,7 +217,11 @@ export default function EntrantRow({
               {entrant.groupsToAvoid.split(' | ').map((group, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                    hasGroupConflict(group)
+                      ? 'bg-red-200 text-red-800'
+                      : 'bg-green-200 text-green-800'
+                  }`}
                 >
                   {group}
                   <button
