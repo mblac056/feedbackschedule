@@ -1,5 +1,5 @@
 import type { Entrant, SessionBlock, EntrantJudgeAssignments } from '../types';
-import { getSessionBlocks, saveSessionBlocks, clearGrid } from '../utils/localStorage';
+import { LocalStorageService } from '../utils/localStorage';
 
 export interface SessionConflict {
   entrantId: string;
@@ -96,14 +96,14 @@ export class SessionService {
    * Save session blocks to localStorage
    */
   static saveSessionBlocks(sessionBlocks: SessionBlock[]): void {
-    saveSessionBlocks(sessionBlocks);
+    LocalStorageService.saveSessionBlocks(sessionBlocks);
   }
 
   /**
    * Get session blocks from localStorage
    */
   static getSessionBlocks(): SessionBlock[] {
-    return getSessionBlocks();
+    return LocalStorageService.getSessionBlocks();
   }
 
   /**
@@ -164,7 +164,12 @@ export class SessionService {
    * Clear the grid by unscheduling all session blocks
    */
   static clearGrid(sessionBlocks: SessionBlock[]): SessionBlock[] {
-    return clearGrid(sessionBlocks);
+    return sessionBlocks.map(block => ({
+      ...block,
+      isScheduled: false,
+      startRowIndex: undefined,
+      judgeId: undefined
+    }));
   }
 
   /**
@@ -238,11 +243,11 @@ export class SessionService {
 
     // Check each entrant for conflicts
     entrants.forEach(entrant => {
-      if (!entrant.groupsToAvoid || entrant.groupsToAvoid.trim() === '') {
+      if (!entrant.groupsToAvoid || entrant.groupsToAvoid.length === 0) {
         return; // Skip if no groups to avoid
       }
 
-      const groupsToAvoid = entrant.groupsToAvoid.split(' | ').map(g => g.trim()).filter(g => g);
+      const groupsToAvoidIds = entrant.groupsToAvoid;
       
       // Find this entrant's scheduled sessions
       const entrantSessions = sessions.filter(s => s.entrantId === entrant.id);
@@ -266,10 +271,8 @@ export class SessionService {
             const conflictingEntrant = entrants.find(e => e.id === otherSession.entrantId);
             if (!conflictingEntrant) return;
             
-            // Check if the conflicting entrant's name matches a group this entrant should avoid
-            const hasConflict = groupsToAvoid.some(groupToAvoid => {
-              return conflictingEntrant.name === groupToAvoid;
-            });
+            // Check if the conflicting entrant's ID is in the groups to avoid
+            const hasConflict = groupsToAvoidIds.includes(conflictingEntrant.id);
             
             if (hasConflict) {
               const conflictingGroup = conflictingEntrant.name;

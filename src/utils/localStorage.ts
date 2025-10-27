@@ -1,146 +1,256 @@
 import type { Judge, Entrant, SessionBlock } from '../types';
+import type { SessionSettings } from '../config/timeConfig';
 
-const JUDGES_STORAGE_KEY = 'evalmatrix_judges';
-const ENTRANTS_STORAGE_KEY = 'evalmatrix_entrants';
-const SETTINGS_STORAGE_KEY = 'evalmatrix_settings';
-const SESSION_BLOCKS_STORAGE_KEY = 'evalmatrix_session_blocks';
+// Storage keys - centralized in one place
+const STORAGE_KEYS = {
+  JUDGES: 'evalmatrix_judges',
+  ENTRANTS: 'evalmatrix_entrants',
+  SETTINGS: 'evalmatrix_settings',
+  SESSION_BLOCKS: 'evalmatrix_session_blocks',
+} as const;
 
-export const getJudges = (): Judge[] => {
-  try {
-    const stored = localStorage.getItem(JUDGES_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
+// Default settings - centralized and consistent
+const DEFAULT_SETTINGS: SessionSettings = {
+  startTime: '09:00',
+  oneXLongLength: 40,
+  threeX20Length: 20,
+  threeX10Length: 10,
+  moving: 'groups',
 };
 
-export const saveJudges = (judges: Judge[]): void => {
-  try {
-    localStorage.setItem(JUDGES_STORAGE_KEY, JSON.stringify(judges));
-  } catch (error) {
-    console.error('Failed to save judges to localStorage:', error);
+// Enhanced localStorage service with consistent error handling and logging
+export class LocalStorageService {
+  private static logError(operation: string, error: unknown): void {
+    console.error(`LocalStorageService.${operation} failed:`, error);
   }
-};
+
+  private static logSuccess(operation: string, data?: unknown): void {
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`LocalStorageService.${operation} succeeded`, data ? `with ${Array.isArray(data) ? data.length : 'data'}` : '');
+    }
+  }
+
+  // Judges operations
+  static getJudges(): Judge[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.JUDGES);
+      const judges = stored ? JSON.parse(stored) : [];
+      this.logSuccess('getJudges', judges);
+      return judges;
+    } catch (error) {
+      this.logError('getJudges', error);
+      return [];
+    }
+  }
+
+  static saveJudges(judges: Judge[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges));
+      this.logSuccess('saveJudges', judges);
+    } catch (error) {
+      this.logError('saveJudges', error);
+    }
+  }
+
+  // Entrants operations
+  static getEntrants(): Entrant[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.ENTRANTS);
+      const entrants = stored ? JSON.parse(stored) : [];
+      
+      // Migrate old string-based groupsToAvoid to new array format
+      const migratedEntrants = entrants.map((entrant: any) => {
+        if (entrant.groupsToAvoid && typeof entrant.groupsToAvoid === 'string') {
+          // Convert string to array of IDs by looking up names
+          const groupNames = entrant.groupsToAvoid.split(' | ').map((g: string) => g.trim()).filter((g: string) => g);
+          const groupIds: string[] = [];
+          
+          groupNames.forEach((groupName: string) => {
+            // Find the entrant with this name and get its ID
+            const matchingEntrant = entrants.find((e: any) => e.name === groupName);
+            if (matchingEntrant) {
+              groupIds.push(matchingEntrant.id);
+            } else {
+              console.warn(`Could not find entrant with name "${groupName}" for migration`);
+            }
+          });
+          
+          console.log(`Migrating entrant ${entrant.name}: converted "${entrant.groupsToAvoid}" to ${groupIds.length} IDs`);
+          return {
+            ...entrant,
+            groupsToAvoid: groupIds
+          };
+        }
+        return entrant;
+      });
+      
+      this.logSuccess('getEntrants', migratedEntrants);
+      return migratedEntrants;
+    } catch (error) {
+      this.logError('getEntrants', error);
+      return [];
+    }
+  }
+
+  static saveEntrants(entrants: Entrant[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.ENTRANTS, JSON.stringify(entrants));
+      this.logSuccess('saveEntrants', entrants);
+      
+      // Dispatch custom event to notify components of entrant data changes
+      window.dispatchEvent(new CustomEvent('entrantsUpdated', { detail: entrants }));
+    } catch (error) {
+      this.logError('saveEntrants', error);
+    }
+  }
+
+  // Settings operations
+  static getSettings(): SessionSettings {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      if (stored) {
+        const parsedSettings = JSON.parse(stored);
+        // Merge with defaults to ensure all properties are present
+        const settings = { ...DEFAULT_SETTINGS, ...parsedSettings };
+        this.logSuccess('getSettings', settings);
+        return settings;
+      }
+      this.logSuccess('getSettings', 'using defaults');
+      return DEFAULT_SETTINGS;
+    } catch (error) {
+      this.logError('getSettings', error);
+      return DEFAULT_SETTINGS;
+    }
+  }
+
+  static saveSettings(settings: SessionSettings): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+      this.logSuccess('saveSettings', settings);
+    } catch (error) {
+      this.logError('saveSettings', error);
+    }
+  }
+
+  static clearSettings(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+      this.logSuccess('clearSettings');
+    } catch (error) {
+      this.logError('clearSettings', error);
+    }
+  }
+
+  // Session Blocks operations
+  static getSessionBlocks(): SessionBlock[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.SESSION_BLOCKS);
+      const sessionBlocks = stored ? JSON.parse(stored) : [];
+      this.logSuccess('getSessionBlocks', sessionBlocks);
+      return sessionBlocks;
+    } catch (error) {
+      this.logError('getSessionBlocks', error);
+      return [];
+    }
+  }
+
+  static saveSessionBlocks(sessionBlocks: SessionBlock[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SESSION_BLOCKS, JSON.stringify(sessionBlocks));
+      this.logSuccess('saveSessionBlocks', sessionBlocks);
+    } catch (error) {
+      this.logError('saveSessionBlocks', error);
+    }
+  }
+
+  // Utility methods
+  static clearAll(): void {
+    try {
+      Object.values(STORAGE_KEYS).forEach(key => {
+        localStorage.removeItem(key);
+      });
+      this.logSuccess('clearAll');
+    } catch (error) {
+      this.logError('clearAll', error);
+    }
+  }
+
+  static getStorageInfo(): { key: string; size: number; data: unknown }[] {
+    return Object.entries(STORAGE_KEYS).map(([name, key]) => {
+      const data = localStorage.getItem(key);
+      return {
+        key,
+        size: data ? data.length : 0,
+        data: data ? JSON.parse(data) : null,
+      };
+    });
+  }
+}
+
+// Backward-compatible wrapper functions that use the new LocalStorageService
+// These maintain the existing API while using the centralized service internally
+
+// Judges functions
+export const getJudges = (): Judge[] => LocalStorageService.getJudges();
+export const saveJudges = (judges: Judge[]): void => LocalStorageService.saveJudges(judges);
 
 export const addJudge = (judge: Judge): Judge[] => {
-  const judges = getJudges();
+  const judges = LocalStorageService.getJudges();
   const updatedJudges = [...judges, judge];
-  saveJudges(updatedJudges);
+  LocalStorageService.saveJudges(updatedJudges);
   return updatedJudges;
 };
 
 export const updateJudge = (judgeId: string, updates: Partial<Judge>): Judge[] => {
-  const judges = getJudges();
+  const judges = LocalStorageService.getJudges();
   const updatedJudges = judges.map(judge => 
     judge.id === judgeId ? { ...judge, ...updates } : judge
   );
-  saveJudges(updatedJudges);
+  LocalStorageService.saveJudges(updatedJudges);
   return updatedJudges;
 };
 
 export const removeJudge = (judgeId: string): Judge[] => {
-  const judges = getJudges();
+  const judges = LocalStorageService.getJudges();
   const updatedJudges = judges.filter(judge => judge.id !== judgeId);
-  saveJudges(updatedJudges);
+  LocalStorageService.saveJudges(updatedJudges);
   return updatedJudges;
 };
 
 // Entrants functions
-export const getEntrants = (): Entrant[] => {
-  try {
-    const stored = localStorage.getItem(ENTRANTS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-};
-
-export const saveEntrants = (entrants: Entrant[]): void => {
-  try {
-    localStorage.setItem(ENTRANTS_STORAGE_KEY, JSON.stringify(entrants));
-  } catch (error) {
-    console.error('Failed to save entrants to localStorage:', error);
-  }
-};
+export const getEntrants = (): Entrant[] => LocalStorageService.getEntrants();
+export const saveEntrants = (entrants: Entrant[]): void => LocalStorageService.saveEntrants(entrants);
 
 export const addEntrant = (entrant: Entrant): Entrant[] => {
-  const entrants = getEntrants();
+  const entrants = LocalStorageService.getEntrants();
   const updatedEntrants = [...entrants, entrant];
-  saveEntrants(updatedEntrants);
+  LocalStorageService.saveEntrants(updatedEntrants);
   return updatedEntrants;
 };
 
 export const updateEntrant = (entrantId: string, updatedEntrant: Partial<Entrant>): Entrant[] => {
-  const entrants = getEntrants();
+  const entrants = LocalStorageService.getEntrants();
   const updatedEntrants = entrants.map(entrant => 
     entrant.id === entrantId ? { ...entrant, ...updatedEntrant } : entrant
   );
-  saveEntrants(updatedEntrants);
+  LocalStorageService.saveEntrants(updatedEntrants);
   return updatedEntrants;
 };
 
 export const removeEntrant = (entrantId: string): Entrant[] => {
-  const entrants = getEntrants();
+  const entrants = LocalStorageService.getEntrants();
   const updatedEntrants = entrants.filter(entrant => entrant.id !== entrantId);
-  saveEntrants(updatedEntrants);
+  LocalStorageService.saveEntrants(updatedEntrants);
   return updatedEntrants;
 };
 
 // Settings functions
-export const getSettings = () => {
-  const defaultSettings = {
-    startTime: '09:00',
-    oneXLongLength: 40,
-    threeX20Length: 20,
-    threeX10Length: 10,
-    moving: 'groups' as 'groups' | 'judges',
-  };
-
-  try {
-    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (stored) {
-      const parsedSettings = JSON.parse(stored);
-      // Merge with defaults to ensure all properties are present
-      return { ...defaultSettings, ...parsedSettings };
-    }
-    // Return default settings if none stored
-    return defaultSettings;
-  } catch {
-    return defaultSettings;
-  }
-};
-
-export const saveSettings = (settings: {
-  startTime: string;
-  oneXLongLength: number;
-  threeX20Length: number;
-  threeX10Length: number;
-  moving: 'groups' | 'judges';
-}): void => {
-  try {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-  } catch (error) {
-    console.error('Failed to save settings to localStorage:', error);
-  }
-};
+export const getSettings = (): SessionSettings => LocalStorageService.getSettings();
+export const saveSettings = (settings: SessionSettings): void => LocalStorageService.saveSettings(settings);
 
 // Session Blocks functions
-export const getSessionBlocks = (): SessionBlock[] => {
-  try {
-    const stored = localStorage.getItem(SESSION_BLOCKS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-};
-
-export const saveSessionBlocks = (sessionBlocks: SessionBlock[]): void => {
-  try {
-    localStorage.setItem(SESSION_BLOCKS_STORAGE_KEY, JSON.stringify(sessionBlocks));
-  } catch (error) {
-    console.error('Failed to save session blocks to localStorage:', error);
-  }
-};
+export const getSessionBlocks = (): SessionBlock[] => LocalStorageService.getSessionBlocks();
+export const saveSessionBlocks = (sessionBlocks: SessionBlock[]): void => LocalStorageService.saveSessionBlocks(sessionBlocks);
 
 // Utility function to clear the grid by unscheduling all session blocks
 export const clearGrid = (sessionBlocks: SessionBlock[]): SessionBlock[] => {

@@ -262,9 +262,14 @@ const parseCSVLine = (line: string, delimiter: string): string[] => {
  * Generate a unique ID based on name and timestamp
  */
 export const generateId = (name: string): string => {
-  const timestamp = Date.now();
-  const sanitized = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  return `${sanitized}-${timestamp}`;
+  // Strip out any non-alphanumeric characters and replace with hyphens
+  // Then collapse multiple consecutive hyphens into single hyphens
+  const sanitized = name.toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')  // Replace all non-alphanumeric with hyphens
+    .replace(/-+/g, '-')         // Collapse multiple consecutive hyphens into single hyphen
+    .replace(/^-|-$/g, '');      // Remove leading/trailing hyphens
+  
+  return sanitized;
 };
 
 /**

@@ -3,7 +3,7 @@ import { FaTimes } from 'react-icons/fa';
 import type { SessionBlock } from '../types';
 import { useSettings } from '../contexts/useSettings';
 import type { SessionSettings } from '../config/timeConfig';
-import { saveJudges, saveEntrants, saveSessionBlocks } from '../utils/localStorage';
+import { LocalStorageService } from '../utils/localStorage';
 
 interface Settings extends SessionSettings {
   feedbackStart: string;
@@ -27,7 +27,6 @@ const DEFAULT_SETTINGS: Settings = {
   moving: 'groups',
 };
 
-const STORAGE_KEY = 'evalmatrix_settings';
 
 export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset, onClearGrid }: SettingsModalProps) {
   const { setSettings: setContextSettings } = useSettings();
@@ -39,23 +38,16 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
 
   useEffect(() => {
     if (isOpen) {
-      // Load settings from localStorage
-      const storedSettings = localStorage.getItem(STORAGE_KEY);
-      let loadedSettings = DEFAULT_SETTINGS;
-      if (storedSettings) {
-        try {
-          const parsedSettings = JSON.parse(storedSettings);
-          loadedSettings = { ...DEFAULT_SETTINGS, ...parsedSettings };
-          setSettings(loadedSettings);
-        } catch (error) {
-          console.error('Failed to parse stored settings:', error);
-          setSettings(DEFAULT_SETTINGS);
-        }
-      } else {
-        setSettings(DEFAULT_SETTINGS);
-      }
+      // Load settings from LocalStorageService
+      const loadedSettings = LocalStorageService.getSettings();
+      // Convert SessionSettings to Settings by adding feedbackStart
+      const settingsWithFeedback: Settings = {
+        ...loadedSettings,
+        feedbackStart: '21:00', // Default feedback start time
+      };
+      setSettings(settingsWithFeedback);
       // Store the original settings to detect changes
-      setOriginalSettings(loadedSettings);
+      setOriginalSettings(settingsWithFeedback);
       // Reset warnings when modal opens
       setShowResetWarning(false);
       setShowValidationError(false);
@@ -89,7 +81,15 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       onClearGrid();
     }
     
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    // Save settings using LocalStorageService (only SessionSettings part)
+    const sessionSettings: SessionSettings = {
+      oneXLongLength: settings.oneXLongLength,
+      threeX20Length: settings.threeX20Length,
+      threeX10Length: settings.threeX10Length,
+      startTime: settings.startTime,
+      moving: settings.moving,
+    };
+    LocalStorageService.saveSettings(sessionSettings);
     
     // Update the context settings with all settings
     setContextSettings({
@@ -112,11 +112,11 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
   };
 
   const handleCompleteReset = () => {
-    // Clear all data from localStorage
-    saveJudges([]);
-    saveEntrants([]);
-    saveSessionBlocks([]);
-    localStorage.removeItem(STORAGE_KEY);
+    // Clear all data using LocalStorageService
+    LocalStorageService.saveJudges([]);
+    LocalStorageService.saveEntrants([]);
+    LocalStorageService.saveSessionBlocks([]);
+    LocalStorageService.clearSettings();
     
     // Reset settings to default
     setSettings(DEFAULT_SETTINGS);
@@ -350,7 +350,8 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
           )}
 
           {/* Action Buttons */}
-          <div className="space-y-3 mt-8">
+          {!showCompleteResetWarning && (
+            <div className="space-y-3 mt-8">
             <div className="flex space-x-3">
               <button
                 onClick={handleReset}
@@ -377,6 +378,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
               Complete Reset
             </button>
           </div>
+          )}
         </div>
       </div>
     </div>

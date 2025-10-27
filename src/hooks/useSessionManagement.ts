@@ -130,6 +130,36 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     checkScheduleConflicts(scheduledSessions, entrants);
   }, [scheduledSessions, checkScheduleConflicts]);
 
+  // Also check conflicts when entrants data changes (for groupsToAvoid updates)
+  useEffect(() => {
+    const checkConflictsOnEntrantChange = () => {
+      const entrants = getEntrants();
+      checkScheduleConflicts(scheduledSessions, entrants);
+    };
+    
+    // Set up listeners for entrant data changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'evalmatrix_entrants' && e.newValue) {
+        checkConflictsOnEntrantChange();
+      }
+    };
+    
+    const handleEntrantsUpdated = () => {
+      checkConflictsOnEntrantChange();
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('entrantsUpdated', handleEntrantsUpdated);
+    
+    // Also check immediately in case data was updated in the same tab
+    checkConflictsOnEntrantChange();
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('entrantsUpdated', handleEntrantsUpdated);
+    };
+  }, [scheduledSessions, checkScheduleConflicts]);
+
   return {
     // State
     judges,

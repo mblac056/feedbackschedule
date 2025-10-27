@@ -17,7 +17,7 @@ interface EntrantRowProps {
   draggedEntrantId: string | null;
   dragOverEntrantId: string | null;
   scheduleConflicts?: SessionConflict[];
-  onFieldUpdate: (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined) => void;
+  onFieldUpdate: (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined | string[]) => void;
   onRemove: (entrantId: string) => void;
   onDragStart: (e: React.DragEvent, entrantId: string) => void;
   onDragOver: (e: React.DragEvent, entrantId: string) => void;
@@ -49,23 +49,21 @@ export default function EntrantRow({
 
   const handleGroupsInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && groupsInput.trim()) {
-      const currentGroups = entrant.groupsToAvoid || '';
-      const newGroup = groupsInput.trim();
+      const currentGroups = entrant.groupsToAvoid || [];
+      const newGroupName = groupsInput.trim();
       
-      if (newGroup && !currentGroups.includes(newGroup)) {
+      // Find the entrant by name
+      const otherEntrant = allEntrants.find(e => e.name === newGroupName);
+      if (otherEntrant && otherEntrant.id !== entrant.id && !currentGroups.includes(otherEntrant.id)) {
         // Add to current entrant
-        const updatedGroups = currentGroups ? `${currentGroups} | ${newGroup}` : newGroup;
+        const updatedGroups = [...currentGroups, otherEntrant.id];
         onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
         
-        // Find the other entrant by name (the one being avoided) and add this entrant to their avoidance list
-        const otherEntrant = allEntrants.find(entrant => entrant.name === newGroup);
-        if (otherEntrant && otherEntrant.id !== entrant.id) {
-          const otherGroups = otherEntrant.groupsToAvoid || '';
-          const currentEntrantName = entrant.name || '';
-          if (currentEntrantName && !otherGroups.includes(currentEntrantName)) {
-            const updatedOtherGroups = otherGroups ? `${otherGroups} | ${currentEntrantName}` : currentEntrantName;
-            onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
-          }
+        // Add this entrant to the other entrant's avoidance list
+        const otherGroups = otherEntrant.groupsToAvoid || [];
+        if (!otherGroups.includes(entrant.id)) {
+          const updatedOtherGroups = [...otherGroups, entrant.id];
+          onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
         }
         
         setGroupsInput('');
@@ -73,26 +71,17 @@ export default function EntrantRow({
     }
   };
 
-  const removeGroup = (groupToRemove: string) => {
-    const currentGroups = entrant.groupsToAvoid || '';
-    const updatedGroups = currentGroups
-      .split(' | ')
-      .filter(group => group !== groupToRemove)
-      .join(' | ');
+  const removeGroup = (groupIdToRemove: string) => {
+    const currentGroups = entrant.groupsToAvoid || [];
+    const updatedGroups = currentGroups.filter(id => id !== groupIdToRemove);
     onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
     
-    // Also remove the current entrant's name from the other entrant's avoidance list
-    const otherEntrant = allEntrants.find(entrant => entrant.name === groupToRemove);
+    // Also remove the current entrant's ID from the other entrant's avoidance list
+    const otherEntrant = allEntrants.find(e => e.id === groupIdToRemove);
     if (otherEntrant && otherEntrant.id !== entrant.id) {
-      const otherGroups = otherEntrant.groupsToAvoid || '';
-      const currentEntrantName = entrant.name || '';
-      if (currentEntrantName) {
-        const updatedOtherGroups = otherGroups
-          .split(' | ')
-          .filter(group => group !== currentEntrantName)
-          .join(' | ');
-        onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
-      }
+      const otherGroups = otherEntrant.groupsToAvoid || [];
+      const updatedOtherGroups = otherGroups.filter(id => id !== entrant.id);
+      onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
     }
   };
 
@@ -109,9 +98,9 @@ export default function EntrantRow({
   };
 
   // Helper function to check if a group has conflicts
-  const hasGroupConflict = (groupName: string): boolean => {
+  const hasGroupConflict = (groupId: string): boolean => {
     return scheduleConflicts.some(conflict => 
-      conflict.entrantId === entrant.id && conflict.conflictingGroup === groupName
+      conflict.entrantId === entrant.id && conflict.conflictingEntrantId === groupId
     );
   };
 
@@ -180,17 +169,17 @@ export default function EntrantRow({
                     <button
                       key={index}
                       onClick={() => {
-                        const currentGroups = entrant.groupsToAvoid || '';
-                        const updatedGroups = currentGroups ? `${currentGroups} | ${suggestion}` : suggestion;
-                        onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
-                        
-                        // Also add to the other entrant
+                        const currentGroups = entrant.groupsToAvoid || [];
                         const otherEntrant = allEntrants.find(e => e.name === suggestion);
-                        if (otherEntrant && otherEntrant.id !== entrant.id) {
-                          const otherGroups = otherEntrant.groupsToAvoid || '';
-                          const currentEntrantName = entrant.name || '';
-                          if (currentEntrantName && !otherGroups.includes(currentEntrantName)) {
-                            const updatedOtherGroups = otherGroups ? `${otherGroups} | ${currentEntrantName}` : currentEntrantName;
+                        if (otherEntrant && otherEntrant.id !== entrant.id && !currentGroups.includes(otherEntrant.id)) {
+                          // Add to current entrant
+                          const updatedGroups = [...currentGroups, otherEntrant.id];
+                          onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
+                          
+                          // Add this entrant to the other entrant's avoidance list
+                          const otherGroups = otherEntrant.groupsToAvoid || [];
+                          if (!otherGroups.includes(entrant.id)) {
+                            const updatedOtherGroups = [...otherGroups, entrant.id];
                             onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
                           }
                         }
@@ -212,26 +201,30 @@ export default function EntrantRow({
           </div>
 
           {/* Existing Groups as Pills */}
-          {entrant.groupsToAvoid && (
+          {entrant.groupsToAvoid && Array.isArray(entrant.groupsToAvoid) && entrant.groupsToAvoid.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
-              {entrant.groupsToAvoid.split(' | ').map((group, index) => (
-                <span
-                  key={index}
-                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    hasGroupConflict(group)
-                      ? 'bg-red-200 text-red-800'
-                      : 'bg-green-200 text-green-800'
-                  }`}
-                >
-                  {group}
-                  <button
-                    onClick={() => removeGroup(group)}
-                    className="ml-1 text-red-600 hover:text-red-800"
+              {entrant.groupsToAvoid.map((groupId, index) => {
+                const groupEntrant = allEntrants.find(e => e.id === groupId);
+                const groupName = groupEntrant?.name || 'Unknown Group';
+                return (
+                  <span
+                    key={index}
+                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      hasGroupConflict(groupId)
+                        ? 'bg-red-200 text-red-800'
+                        : 'bg-green-200 text-green-800'
+                    }`}
                   >
-                    ×
-                  </button>
-                </span>
-              ))}
+                    {groupName}
+                    <button
+                      onClick={() => removeGroup(groupId)}
+                      className="ml-1 text-red-600 hover:text-red-800"
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
             </div>
           )}
         </div>

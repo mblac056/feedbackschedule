@@ -5,6 +5,7 @@ import {
   parseComplexCSV, 
   generateId 
 } from './csvImportShared';
+import { createNameToIdMapper } from './nameToIdMapper';
 
 /**
  * Import entrants from a DRCJ Report CSV
@@ -43,22 +44,7 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
     console.log('DRCJ Import: Starting processing of', rows.length, 'rows');
     console.log('DRCJ Import: Available columns:', Object.keys(rows[0] || {}));
 
-    // First pass: collect all group names for shared members matching
-    const allGroupNames = new Map<string, string>(); // lowercase -> original casing
-    rows.forEach((row, index) => {
-      const groupName = row['Group Name']?.trim();
-      if (groupName) {
-        allGroupNames.set(groupName.toLowerCase(), groupName);
-        console.log(`DRCJ Import: Row ${index + 2} - Found group: "${groupName}"`);
-      } else {
-        console.log(`DRCJ Import: Row ${index + 2} - No group name found`);
-      }
-    });
-
-    console.log('DRCJ Import: Total unique groups found:', allGroupNames.size);
-    console.log('DRCJ Import: Group names:', Array.from(allGroupNames.values()));
-
-    // Process rows and create entrants
+    // First pass: create all entrants without groups to avoid
     const entrants: Entrant[] = [];
     const warnings: string[] = [];
     let rowsSkipped = 0;
@@ -90,41 +76,11 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
 
       const overallSF = parseNumber(row['OA']);
 
-      // Process Shared Members for groups to avoid
-      let groupsToAvoid = '';
-      const sharedMembers = row['Shared Members']?.trim();
-      if (sharedMembers) {
-        console.log(`DRCJ Import: Row ${index + 2} - Processing shared members: "${sharedMembers}"`);
-        
-        // Split by comma and check each member against existing group names
-        const sharedMemberNames = sharedMembers.split(',').map(name => name.trim());
-        const validGroupsToAvoid: string[] = [];
-        
-        sharedMemberNames.forEach(memberName => {
-          console.log(`DRCJ Import: Row ${index + 2} - Checking member: "${memberName}"`);
-          
-          // Check if this shared member name matches any existing group name (case insensitive)
-          const matchingGroupOriginal = allGroupNames.get(memberName.toLowerCase());
-          
-          if (matchingGroupOriginal && matchingGroupOriginal !== groupName) {
-            validGroupsToAvoid.push(matchingGroupOriginal);
-            console.log(`DRCJ Import: Row ${index + 2} - Added to groups to avoid: "${matchingGroupOriginal}"`);
-          } else if (matchingGroupOriginal === groupName) {
-            console.log(`DRCJ Import: Row ${index + 2} - Skipped self-reference: "${memberName}"`);
-          } else {
-            console.log(`DRCJ Import: Row ${index + 2} - No match found for: "${memberName}"`);
-          }
-        });
-        
-        groupsToAvoid = validGroupsToAvoid.join(' | ');
-        console.log(`DRCJ Import: Row ${index + 2} - Final groups to avoid: "${groupsToAvoid}"`);
-      }
-
-      // Create entrant object
+      // Create entrant object (without groups to avoid for now)
       const entrant: Entrant = {
         id: generateId(groupName),
         name: groupName,
-        groupsToAvoid,
+        groupsToAvoid: [], // Will be populated in second pass
         preference: null, // Default to null, can be set manually later
         judgePreference1: '',
         judgePreference2: '',
@@ -137,6 +93,50 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
 
       entrants.push(entrant);
       console.log(`DRCJ Import: Row ${index + 2} - Created entrant:`, entrant);
+    });
+
+    console.log('DRCJ Import: Total unique groups found:', entrants.length);
+    console.log('DRCJ Import: Group names:', entrants.map(e => e.name));
+
+    // Second pass: process shared members using robust name-to-ID mapping
+    const nameToIdMapper = createNameToIdMapper([], entrants); // Use newly created entrants
+    
+    rows.forEach((row, index) => {
+      const groupName = row['Group Name']?.trim();
+      if (!groupName) return; // Skip if no group name
+      
+      const entrant = entrants.find(e => e.name === groupName);
+      if (!entrant) return; // Skip if entrant not found
+      
+      const sharedMembers = row['Shared Members']?.trim();
+      if (sharedMembers) {
+        console.log(`DRCJ Import: Row ${index + 2} - Processing shared members: "${sharedMembers}"`);
+        
+        // Split by comma and check each member against all group names
+        const sharedMemberNames = sharedMembers.split(',').map(name => name.trim());
+        
+        sharedMemberNames.forEach(memberName => {
+          console.log(`DRCJ Import: Row ${index + 2} - Checking member: "${memberName}"`);
+          
+          // Use robust name-to-ID mapping
+          const groupToAvoidId = nameToIdMapper.findIdByName(memberName);
+          
+          if (groupToAvoidId && groupToAvoidId !== entrant.id) {
+            // Add the ID if not already present
+            if (!entrant.groupsToAvoid.includes(groupToAvoidId)) {
+              entrant.groupsToAvoid.push(groupToAvoidId);
+              console.log(`DRCJ Import: Row ${index + 2} - Added to groups to avoid: "${memberName}" (ID: ${groupToAvoidId})`);
+            }
+          } else if (groupToAvoidId === entrant.id) {
+            console.log(`DRCJ Import: Row ${index + 2} - Skipped self-reference: "${memberName}"`);
+          } else {
+            console.log(`DRCJ Import: Row ${index + 2} - No match found for: "${memberName}"`);
+            warnings.push(`Row ${index + 2}: Shared member "${memberName}" not found in imported groups`);
+          }
+        });
+        
+        console.log(`DRCJ Import: Row ${index + 2} - Final groups to avoid IDs:`, entrant.groupsToAvoid);
+      }
     });
 
     console.log('DRCJ Import: Final results:', {

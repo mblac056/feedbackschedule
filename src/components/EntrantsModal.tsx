@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { Entrant, Judge, SessionBlock } from '../types';
+import type { Entrant, Judge } from '../types';
 import { getEntrants, getJudges, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants } from '../utils/localStorage';
+import { SessionService } from '../services/SessionService';
 import CSVImport from './CSVImport';
 import PreferencesImport from './PreferencesImport';
 import EntrantRow from './EntrantRow';
@@ -46,7 +47,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     const newEntrant: Entrant = {
       id: Date.now().toString(),
       name: '',
-      groupsToAvoid: '',
+      groupsToAvoid: [],
       preference: null,
       judgePreference1: '',
       judgePreference2: '',
@@ -61,45 +62,6 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     setEntrants(prev => prev.filter(entrant => entrant.id !== entrantId));
   };
 
-  const createSessionBlocksForEntrant = (entrant: Entrant): SessionBlock[] => {
-    const sessionBlocks: SessionBlock[] = [];
-    const sessionType = entrant.preference || '3x20';
-    
-    if (sessionType === '1xLong') {
-      sessionBlocks.push({
-        id: `${entrant.id}-1xlong`,
-        entrantId: entrant.id,
-        entrantName: entrant.name,
-        type: '1xLong',
-        isScheduled: false
-      });
-    } else if (sessionType === '3x20') {
-      for (let i = 0; i < 3; i++) {
-        sessionBlocks.push({
-          id: `${entrant.id}-3x20-${i}`,
-          entrantId: entrant.id,
-          entrantName: entrant.name,
-          type: '3x20',
-          sessionIndex: i,
-          isScheduled: false
-        });
-      }
-    } else if (sessionType === '3x10') {
-      for (let i = 0; i < 3; i++) {
-        sessionBlocks.push({
-          id: `${entrant.id}-3x10-${i}`,
-          entrantId: entrant.id,
-          entrantName: entrant.name,
-          type: '3x10',
-          sessionIndex: i,
-          isScheduled: false
-        });
-      }
-    }
-    
-    return sessionBlocks;
-  };
-
   const handleClose = () => {
     // Get current session blocks
     const currentSessionBlocks = getSessionBlocks();
@@ -112,8 +74,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         const existingBlocks = currentSessionBlocks.filter(block => block.entrantId === entrant.id);
         
         if (existingBlocks.length === 0) {
-          // Create new session blocks for this entrant
-          const newSessionBlocks = createSessionBlocksForEntrant(entrant);
+          // Create new session blocks for this entrant using SessionService
+          const newSessionBlocks = SessionService.generateSessionBlocks([entrant]);
           updatedSessionBlocks.push(...newSessionBlocks);
         }
       } else {
@@ -140,7 +102,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     }
   };
 
-  const handleFieldUpdate = (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined) => {
+  const handleFieldUpdate = (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined | string[]) => {
 
       setEntrants(prev => prev.map(entrant => 
         entrant.id === entrantId 
@@ -296,8 +258,6 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                 </button>
               </div>
               <CSVImport 
-                variant="modal"
-                importType="entrants"
                 onEntrantsImportComplete={handleImportComplete}
                 existingEntrants={entrants}
               />
@@ -312,8 +272,6 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
           ) : entrants.length === 0 ? (
             <div className="max-w-md mx-auto">
               <CSVImport 
-                variant="modal"
-                importType="entrants"
                 onEntrantsImportComplete={handleImportComplete}
                 existingEntrants={entrants}
               />

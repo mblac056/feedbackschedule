@@ -17,14 +17,9 @@ export function EntrantProvider({ children }: EntrantProviderProps) {
     const entrant = entrants.find(e => e.id === selectedEntrant);
     if (!entrant || !entrant.groupsToAvoid) return [];
     
-    // Split the groupsToAvoid string and find the corresponding entrant IDs
-    const groupNames = entrant.groupsToAvoid.split(' | ').map(g => g.trim()).filter(g => g);
-    const groupIds = groupNames
-      .map(groupName => entrants.find(e => e.name === groupName)?.id)
-      .filter(id => id !== undefined) as string[];
-    
-    console.log('Selected entrant:', entrant.name, 'Groups to avoid:', groupIds);
-    return groupIds;
+    // groupsToAvoid is now already an array of IDs
+    console.log('Selected entrant:', entrant.name, 'Groups to avoid:', entrant.groupsToAvoid);
+    return entrant.groupsToAvoid;
   }, [selectedEntrant, entrants]);
 
   const value: EntrantContextType = {

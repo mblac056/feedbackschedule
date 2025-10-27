@@ -33,10 +33,10 @@ export interface PreferenceCheckData {
 
 export async function generatePreferenceCheckPage(data: PreferenceCheckData): Promise<Blob> {
   // Helper function to check if a group has conflicts for a specific entrant
-  const hasGroupConflict = (entrantId: string, groupName: string): boolean => {
+  const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
     if (!data.scheduleConflicts) return false;
     return data.scheduleConflicts.some(conflict => 
-      conflict.entrantId === entrantId && conflict.conflictingGroup === groupName
+      conflict.entrantId === entrantId && conflict.conflictingEntrantId === groupId
     );
   };
 
@@ -121,11 +121,13 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
     
     // Groups to Avoid column
     html += '<td>';
-    if (entrant.groupsToAvoid) {
-      entrant.groupsToAvoid.split(' | ').forEach(group => {
-        const hasConflict = hasGroupConflict(entrant.id, group);
+    if (entrant.groupsToAvoid && entrant.groupsToAvoid.length > 0) {
+      entrant.groupsToAvoid.forEach(groupId => {
+        const groupEntrant = data.entrants.find(e => e.id === groupId);
+        const groupName = groupEntrant?.name || 'Unknown Group';
+        const hasConflict = hasGroupConflict(entrant.id, groupId);
         const pillClass = hasConflict ? 'red' : 'green';
-        html += `<span class="pill ${pillClass}">${group}</span>`;
+        html += `<span class="pill ${pillClass}">${groupName}</span>`;
       });
     }
     html += '</td>';

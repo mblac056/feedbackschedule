@@ -84,6 +84,20 @@ export default function UnassignedSessions({ refreshKey, allSessionBlocks, onSes
     setEntrants(storedEntrants);
   }, [allSessionBlocks]);
 
+  // Listen for entrant data updates
+  useEffect(() => {
+    const handleEntrantsUpdated = () => {
+      const storedEntrants = getEntrants();
+      setEntrants(storedEntrants);
+    };
+    
+    window.addEventListener('entrantsUpdated', handleEntrantsUpdated);
+    
+    return () => {
+      window.removeEventListener('entrantsUpdated', handleEntrantsUpdated);
+    };
+  }, []);
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -165,25 +179,31 @@ export default function UnassignedSessions({ refreshKey, allSessionBlocks, onSes
           </div>
         )}
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {unassignedSessions.map(sessionBlock => (
-            <SessionBlockComponent 
-              key={sessionBlock.id}
-              entrant={{ 
-                id: sessionBlock.entrantId, 
-                name: sessionBlock.entrantName,
-                groupsToAvoid: '',
-                preference: null, // Don't set preference here - it should come from the actual entrant data
-                judgePreference1: '',
-                judgePreference2: '',
-                judgePreference3: '',
-                includeInSchedule: true
-              } as Entrant}
-              type={sessionBlock.type}
-              index={sessionBlock.sessionIndex}
-              useAbsolutePositioning={false}
-              onSessionTypeChange={handleSessionTypeChange}
-            />
-          ))}
+          {unassignedSessions.map(sessionBlock => {
+            // Find the actual entrant data instead of creating fake data
+            const actualEntrant = entrants.find(e => e.id === sessionBlock.entrantId);
+            const entrantData = actualEntrant || {
+              id: sessionBlock.entrantId,
+              name: sessionBlock.entrantName,
+              groupsToAvoid: [],
+              preference: null,
+              judgePreference1: '',
+              judgePreference2: '',
+              judgePreference3: '',
+              includeInSchedule: true
+            };
+            
+            return (
+              <SessionBlockComponent 
+                key={sessionBlock.id}
+                entrant={entrantData}
+                type={sessionBlock.type}
+                index={sessionBlock.sessionIndex}
+                useAbsolutePositioning={false}
+                onSessionTypeChange={handleSessionTypeChange}
+              />
+            );
+          })}
         </div>
       </div>
     </div>

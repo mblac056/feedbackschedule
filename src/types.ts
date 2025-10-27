@@ -8,7 +8,7 @@ export interface Judge {
 export interface Entrant {
   id: string;
   name: string;
-  groupsToAvoid: string;
+  groupsToAvoid: string[];
   preference: '1xLong' | '3x20' | '3x10' | 'None' | null;
   judgePreference1: string;
   judgePreference2: string;

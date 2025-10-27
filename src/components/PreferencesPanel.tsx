@@ -140,10 +140,10 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   };
 
   // Helper function to check if a group has conflicts for a specific entrant
-  const hasGroupConflict = (entrantId: string, groupName: string): boolean => {
+  const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
     if (!scheduleConflicts) return false;
     return scheduleConflicts.some(conflict => 
-      conflict.entrantId === entrantId && conflict.conflictingGroup === groupName
+      conflict.entrantId === entrantId && conflict.conflictingEntrantId === groupId
     );
   };
 
@@ -155,9 +155,9 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
 
     includedEntrants.forEach(entrant => {
       // Count group pills
-      if (entrant.groupsToAvoid) {
-        entrant.groupsToAvoid.split(' | ').forEach(group => {
-          if (hasGroupConflict(entrant.id, group)) {
+      if (entrant.groupsToAvoid && Array.isArray(entrant.groupsToAvoid) && entrant.groupsToAvoid.length > 0) {
+        entrant.groupsToAvoid.forEach(groupId => {
+          if (hasGroupConflict(entrant.id, groupId)) {
             redCount++;
           } else {
             greenCount++;
@@ -380,20 +380,24 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                           <span className="font-medium text-sm">{entrant.name}</span>
                         </td>
                         <td className="px-3 py-2 border-b">
-                          {entrant.groupsToAvoid && (
+                          {entrant.groupsToAvoid && Array.isArray(entrant.groupsToAvoid) && entrant.groupsToAvoid.length > 0 && (
                             <div className="flex flex-wrap gap-1">
-                              {entrant.groupsToAvoid.split(' | ').map((group, groupIndex) => (
-                                <span
-                                  key={groupIndex}
-                                  className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${
-                                    hasGroupConflict(entrant.id, group)
-                                      ? 'bg-red-200 text-red-800'
-                                      : 'bg-green-200 text-green-800'
-                                  }`}
-                                >
-                                  {group}
-                                </span>
-                              ))}
+                              {entrant.groupsToAvoid.map((groupId, groupIndex) => {
+                                const groupEntrant = entrants.find(e => e.id === groupId);
+                                const groupName = groupEntrant?.name || 'Unknown Group';
+                                return (
+                                  <span
+                                    key={groupIndex}
+                                    className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${
+                                      hasGroupConflict(entrant.id, groupId)
+                                        ? 'bg-red-200 text-red-800'
+                                        : 'bg-green-200 text-green-800'
+                                    }`}
+                                  >
+                                    {groupName}
+                                  </span>
+                                );
+                              })}
                             </div>
                           )}
                         </td>

@@ -5,13 +5,14 @@ import {
   parseSimpleCSV, 
   normalizeJudgeName 
 } from './csvImportShared';
+import { createNameToIdMapper } from './nameToIdMapper';
 
 /**
  * Import preferences for existing entrants/groups from submission document
  * 
  * Expected CSV format:
  * - Group Name (required, must match existing)
- * - Group To Avoid (optional, group names to avoid)
+ * - Group To Avoid (optional, group names to avoid - can reference existing or other imported entrants)
  * - Eval Type Finals (optional, preference)
  * - Eval Type Semifinals (optional, preference)
  * - Eval Type Finals (optional, preference - multiple columns)
@@ -20,12 +21,14 @@ import {
  * @param csvText The raw CSV text
  * @param existingEntrants Current entrants to update
  * @param existingJudges Current judges for validation
+ * @param importedEntrants Optional array of entrants being imported in the same batch (for cross-references)
  * @returns ImportResult with update statistics
  */
 export const importEvalPreferencesCSV = (
   csvText: string,
   existingEntrants: Entrant[],
-  existingJudges: Judge[]
+  existingJudges: Judge[],
+  importedEntrants: Entrant[] = []
 ): ImportResult<EvalPreferencesImportData> => {
   try {
     console.log('=== PREFERENCES IMPORT: Starting ===');
@@ -63,6 +66,9 @@ export const importEvalPreferencesCSV = (
     existingJudges.forEach(judge => {
       judgeMap.set(judge.name.toLowerCase().trim(), judge);
     });
+
+    // Create robust name-to-ID mapper (includes both existing and imported entrants)
+    const nameToIdMapper = createNameToIdMapper(existingEntrants, importedEntrants);
 
     // Process rows and update entrants
     const warnings: string[] = [];
@@ -102,22 +108,24 @@ export const importEvalPreferencesCSV = (
       // Process Groups to Avoid
       const groupToAvoid = row['Group To Avoid']?.trim();
       if (groupToAvoid) {
-        if (entrantNames.has(groupToAvoid.toLowerCase())) {
-          // Find the original group name with correct casing
-          const originalGroupName = Array.from(entrantNames).find(name => 
-            name.toLowerCase() === groupToAvoid.toLowerCase()
-          );
-          if (originalGroupName) {
-            const actualGroupName = existingEntrants.find(e => 
-              e.name.toLowerCase() === originalGroupName.toLowerCase()
-            )?.name;
-            
-            if (actualGroupName && actualGroupName !== groupName) {
-              existingEntrant.groupsToAvoid = actualGroupName;
-            }
+        // Use robust name-to-ID mapping
+        const groupToAvoidId = nameToIdMapper.findIdByName(groupToAvoid);
+        
+        if (groupToAvoidId && groupToAvoidId !== existingEntrant.id) {
+          // Initialize groupsToAvoid as array if it's not already
+          if (!Array.isArray(existingEntrant.groupsToAvoid)) {
+            existingEntrant.groupsToAvoid = [];
           }
+          // Add the ID if not already present
+          if (!existingEntrant.groupsToAvoid.includes(groupToAvoidId)) {
+            existingEntrant.groupsToAvoid.push(groupToAvoidId);
+            console.log(`PREFERENCES IMPORT: Row ${index + 2} - Added group to avoid: "${groupToAvoid}" (ID: ${groupToAvoidId})`);
+          }
+        } else if (!groupToAvoidId) {
+          console.warn(`PREFERENCES IMPORT: Row ${index + 2} - Group to avoid "${groupToAvoid}" not found in existing entrants`);
+          warnings.push(`Row ${index + 2}: Group to avoid "${groupToAvoid}" not found`);
         } else {
-          console.warn(`Group to avoid "${groupToAvoid}" not found in existing entrants (Row ${index + 2})`);
+          console.log(`PREFERENCES IMPORT: Row ${index + 2} - Skipped self-reference: "${groupToAvoid}"`);
         }
       }
 

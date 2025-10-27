@@ -406,10 +406,10 @@ export function generatePreferenceCheckData(
   const entrants = getEntrants();
   
   // Helper function to check if a group has conflicts for a specific entrant
-  const hasGroupConflict = (entrantId: string, groupName: string): boolean => {
+  const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
     if (!scheduleConflicts) return false;
     return scheduleConflicts.some(conflict => 
-      conflict.entrantId === entrantId && conflict.conflictingGroup === groupName
+      conflict.entrantId === entrantId && conflict.conflictingEntrantId === groupId
     );
   };
   
@@ -423,9 +423,9 @@ export function generatePreferenceCheckData(
     
     includedEntrants.forEach(entrant => {
       // Count group pills
-      if (entrant.groupsToAvoid) {
-        entrant.groupsToAvoid.split(' | ').forEach(group => {
-          if (hasGroupConflict(entrant.id, group)) {
+      if (entrant.groupsToAvoid && Array.isArray(entrant.groupsToAvoid)) {
+        entrant.groupsToAvoid.forEach(groupId => {
+          if (hasGroupConflict(entrant.id, groupId)) {
             redCount++;
           } else {
             greenCount++;
