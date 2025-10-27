@@ -742,15 +742,15 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
   
   // Helper function to check if a group can be assigned to a judge (no conflicts)
   const canAssignGroupToJudge = (group: Entrant, judgeNumber: number): boolean => {
-    if (!group.groupsToAvoid) return true;
+    if (!group.groupsToAvoid || !Array.isArray(group.groupsToAvoid)) return true;
     
-    const groupsToAvoid = group.groupsToAvoid.split(' | ').map(g => g.trim()).filter(g => g);
+    const groupsToAvoid = group.groupsToAvoid;
     const judgeGroupNumbers = judgeGroups.get(judgeNumber) || new Set();
     
     // Check if any groups this judge evaluates are in the avoid list
     for (const groupNumber of judgeGroupNumbers) {
       const otherGroup = groupNumberToGroup.get(groupNumber);
-      if (otherGroup && groupsToAvoid.includes(otherGroup.name)) {
+      if (otherGroup && groupsToAvoid.includes(otherGroup.id)) {
         return false; // Conflict found
       }
     }

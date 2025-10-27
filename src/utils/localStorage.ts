@@ -25,7 +25,7 @@ export class LocalStorageService {
   }
 
   private static logSuccess(operation: string, data?: unknown): void {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log(`LocalStorageService.${operation} succeeded`, data ? `with ${Array.isArray(data) ? data.length : 'data'}` : '');
     }
   }
@@ -176,7 +176,7 @@ export class LocalStorageService {
   }
 
   static getStorageInfo(): { key: string; size: number; data: unknown }[] {
-    return Object.entries(STORAGE_KEYS).map(([name, key]) => {
+    return Object.entries(STORAGE_KEYS).map(([, key]) => {
       const data = localStorage.getItem(key);
       return {
         key,
