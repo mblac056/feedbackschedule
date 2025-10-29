@@ -599,7 +599,7 @@ const handleSessionDragLeave = () => setDragPreview(null);
         <div className="min-w-max mt-4">
           {/* Time Header */}
           <div className="flex">
-            <div className="w-10 flex-shrink-0"></div> {/* Empty corner */}
+            <div className="w-12 flex-shrink-0"></div> {/* Empty corner */}
             {judges.map((judge) => (
               //Match heights of the judges columns
               <div key={judge.id} className="flex-1 text-center">
@@ -656,11 +656,11 @@ const handleSessionDragLeave = () => setDragPreview(null);
           {/* Time Grid */}
           <div className="flex">
             {/* Time Column */}
-            <div className="w-10 flex-shrink-0">
+            <div className="w-12 flex-shrink-0">
               {timeSlots.map((slot, index) => (
                 <div 
                   key={index}
-                  className={`border-r-3 border-gray-300 text-xs text-gray-500 ${index % TIME_CONFIG.HOUR_MARKER_INTERVAL != 0 ? 'border-b border-gray-300' : ''}`}
+                  className={`border-r-2 border-gray-300 text-xs text-gray-500 ${index % TIME_CONFIG.HOUR_MARKER_INTERVAL != 0 ? 'border-b border-gray-300' : ''}`}
                   style={{ height: `${TIME_CONFIG.SLOT_HEIGHT_PX}px` }}
                 >
                   <div className="p-1 text-right">
@@ -698,7 +698,7 @@ const handleSessionDragLeave = () => setDragPreview(null);
             {judges.map((judge) => (
               <div 
                 key={judge.id} 
-                className="flex-1 border-r-3 border-gray-300"
+                className="flex-1 border-r-2 border-gray-300"
               >
                 {timeSlots.map((_, index) => (
                   <div 
