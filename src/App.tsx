@@ -10,6 +10,7 @@ import ImportExportModal from './components/ImportExportModal'
 import PreferencesPanel from './components/PreferencesPanel'
 import SessionsArea from './components/SessionsArea'
 import EmptyState from './components/EmptyState';
+import Footer from './components/Footer';
 
 function App() {
   const { setEntrants } = useEntrant();
@@ -88,7 +89,7 @@ function App() {
   return (
     <SettingsProvider>
       <div 
-        className="min-h-screen relative bg-gray-100"
+        className="min-h-screen relative bg-gray-100 flex flex-col"
       >
         <Header 
           onOpenJudgesModal={() => setIsJudgesModalOpen(true)}
@@ -97,33 +98,35 @@ function App() {
           onOpenImportExportModal={() => setIsImportExportModalOpen(true)}
         />
         
-        {judges.length === 0 ? (
-          <EmptyState onJudgesImported={(importedJudges) => setJudges(importedJudges)} />
-        ) : (
-          <>
-            <SessionsArea 
-              judges={judges} 
-              setJudges={setJudges}
-              refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
-              onScheduledSessionsChange={handleScheduledSessionsChange}
-              scheduledSessions={scheduledSessions}
-              allSessionBlocks={allSessionBlocks}
-              onSessionBlockUpdate={handleSessionBlockUpdate}
-              onSessionBlockRemove={handleSessionBlockRemove}
-              entrantJudgeAssignments={entrantJudgeAssignments}
-              scheduleConflicts={scheduleConflicts}
-            />
-            
-            <PreferencesPanel 
-              judges={judges} 
-              refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
-              entrantJudgeAssignments={entrantJudgeAssignments}
-              allSessionBlocks={allSessionBlocks}
-              scheduleConflicts={scheduleConflicts}
-              onSessionBlocksChange={handleSessionBlocksChange}
-            />
-          </>
-        )}
+        <div className="flex-1">
+          {judges.length === 0 ? (
+            <EmptyState onJudgesImported={(importedJudges) => setJudges(importedJudges)} />
+          ) : (
+            <>
+              <SessionsArea 
+                judges={judges} 
+                setJudges={setJudges}
+                refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
+                onScheduledSessionsChange={handleScheduledSessionsChange}
+                scheduledSessions={scheduledSessions}
+                allSessionBlocks={allSessionBlocks}
+                onSessionBlockUpdate={handleSessionBlockUpdate}
+                onSessionBlockRemove={handleSessionBlockRemove}
+                entrantJudgeAssignments={entrantJudgeAssignments}
+                scheduleConflicts={scheduleConflicts}
+              />
+              
+              <PreferencesPanel 
+                judges={judges} 
+                refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
+                entrantJudgeAssignments={entrantJudgeAssignments}
+                allSessionBlocks={allSessionBlocks}
+                scheduleConflicts={scheduleConflicts}
+                onSessionBlocksChange={handleSessionBlocksChange}
+              />
+            </>
+          )}
+        </div>
 
         <JudgesModal
           isOpen={isJudgesModalOpen}
@@ -152,6 +155,7 @@ function App() {
           onClose={() => setIsImportExportModalOpen(false)}
         />
 
+        <Footer />
       </div>
     </SettingsProvider>
   )

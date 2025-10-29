@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import type { Entrant, Judge, EntrantJudgeAssignments, SessionBlock } from '../types';
-import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants } from '../utils/localStorage';
+import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants, getSettings } from '../utils/localStorage';
 import { useEntrant } from '../contexts/useEntrant.ts';
 import { getCategoryColor } from '../config/categoryConfig';
+import { calculateTotalByeLength } from '../utils/printFiles';
 
 
 interface PreferencesPanelProps {
@@ -30,6 +31,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   const [dragOverEntrantId, setDragOverEntrantId] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const { selectedEntrant } = useEntrant();
+  const settings = getSettings();
 
   useEffect(() => {
     const storedEntrants = getEntrants();
@@ -147,7 +149,29 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     );
   };
 
-  // Function to count different types of pills
+  // Helper function to format bye length for display
+  const formatByeLength = (minutes: number): string => {
+    if (minutes === 0) return '-';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    let text = '';
+    if (hours > 0) {
+      text += `${hours}h`;
+    }
+    if (mins > 0) {
+      text += `${hours > 0 ? ' ' : ''}${mins}m`;
+    }
+    return text || '0m';
+  };
+
+  // Helper function to get total bye length for an entrant
+  const getEntrantByeLength = (entrantId: string): number => {
+    if (!allSessionBlocks) return 0;
+    const entrantSessions = allSessionBlocks.filter(
+      block => block.entrantId === entrantId && block.isScheduled && block.startRowIndex !== undefined
+    );
+    return calculateTotalByeLength(entrantSessions, settings);
+  };
   const getPillCounts = () => {
     let greenCount = 0;
     let redCount = 0;
@@ -353,6 +377,9 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
                         Judge 3
                       </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                        Byes
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -475,6 +502,11 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                             {judges.find(j => j.id === entrant.judgePreference3)?.name}
                           </span>
                         )}
+                        </td>
+                        <td className="px-3 py-2 border-b">
+                          <span className="text-sm font-medium text-gray-700">
+                            {formatByeLength(getEntrantByeLength(entrant.id))}
+                          </span>
                         </td>
                       </tr>
                     ))}

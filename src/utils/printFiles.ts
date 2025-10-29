@@ -1,6 +1,6 @@
 import type { Judge, SessionBlock } from '../types';
 import { getEntrants, getSettings } from './localStorage';
-import { getSessionDurationMinutes, TIME_CONFIG } from '../config/timeConfig';
+import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '../config/timeConfig';
 import jsPDF from 'jspdf';
 import { generateMatrixPage } from './printTemplate-matrix';
 import { generateJudgeSchedulePages, type JudgeSchedule } from './printTemplate-judgeSchedules';
@@ -21,6 +21,92 @@ interface SessionEvent {
 }
 
 // Types are now imported from template files
+
+/**
+ * Calculate total bye length (in minutes) for a group between their first session start and last session end.
+ * This represents the total time the group spends in breaks/byes.
+ * 
+ * @param entrantSessions - Scheduled sessions for the entrant
+ * @param settings - Session settings containing startTime and session durations
+ * @returns Total bye length in minutes, or 0 if no sessions or only one session
+ */
+export function calculateTotalByeLength(
+  entrantSessions: SessionBlock[],
+  settings: SessionSettings
+): number {
+  // Filter to only scheduled sessions with valid row indices
+  const scheduledSessions = entrantSessions.filter(
+    s => s.isScheduled && s.startRowIndex !== undefined
+  );
+  
+  if (scheduledSessions.length === 0 || scheduledSessions.length === 1) {
+    return 0; // No byes if no sessions or only one session
+  }
+  
+  // Helper function to convert row index to time string
+  const rowIndexToTime = (rowIndex: number): string => {
+    const startTime = settings.startTime;
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const totalMinutes = startMinute + (rowIndex * TIME_CONFIG.MINUTES_PER_SLOT);
+    const hour = (startHour + Math.floor(totalMinutes / 60));
+    const minute = totalMinutes % 60;
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  };
+  
+  // Helper function to get session duration in minutes
+  const getSessionDuration = (sessionType: string): number => {
+    return getSessionDurationMinutes(sessionType as '1xLong' | '3x20' | '3x10', settings);
+  };
+  
+  // Helper function to add minutes to time string
+  const addMinutesToTime = (timeStr: string, minutes: number): string => {
+    const [hours, mins] = timeStr.split(':').map(Number);
+    const totalMinutes = hours * 60 + mins + minutes;
+    const newHours = Math.floor(totalMinutes / 60);
+    const newMins = totalMinutes % 60;
+    return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
+  };
+  
+  // Find first session start time and last session end time
+  let firstStartTime: string | null = null;
+  let lastEndTime: string | null = null;
+  let totalSessionTime = 0;
+  
+  scheduledSessions.forEach(session => {
+    const startTime = rowIndexToTime(session.startRowIndex!);
+    const duration = getSessionDuration(session.type);
+    const endTime = addMinutesToTime(startTime, duration);
+    
+    if (firstStartTime === null || startTime < firstStartTime) {
+      firstStartTime = startTime;
+    }
+    
+    if (lastEndTime === null || endTime > lastEndTime) {
+      lastEndTime = endTime;
+    }
+    
+    totalSessionTime += duration;
+  });
+  
+  if (!firstStartTime || !lastEndTime) {
+    return 0;
+  }
+  
+  // Calculate total span between first start and last end
+  const [firstStartHours, firstStartMins] = firstStartTime.split(':').map(Number);
+  const [lastEndHours, lastEndMins] = lastEndTime.split(':').map(Number);
+  const firstStartMinutes = firstStartHours * 60 + firstStartMins;
+  const lastEndMinutes = lastEndHours * 60 + lastEndMins;
+  
+  let totalSpanMinutes = lastEndMinutes - firstStartMinutes;
+  // Handle midnight wraparound
+  if (totalSpanMinutes < 0) {
+    totalSpanMinutes += 24 * 60;
+  }
+  
+  // Total bye = total span - total session time
+  return totalSpanMinutes - totalSessionTime;
+}
 
 export function generatePrintData(scheduledSessions: SessionBlock[], judges: Judge[]) {
   const entrants = getEntrants();
@@ -392,8 +478,8 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
 export function generatePreferenceCheckData(
   judges: Judge[], 
   entrantJudgeAssignments?: { [entrantId: string]: string[] },
-  scheduledSessions?: Array<{ entrantId: string; type: '1xLong' | '3x20' | '3x10'; }>,
-  allSessionBlocks?: Array<{ entrantId: string; type: '1xLong' | '3x20' | '3x10'; }>,
+  scheduledSessions?: SessionBlock[] | Array<{ entrantId: string; type: '1xLong' | '3x20' | '3x10'; }>,
+  allSessionBlocks?: Array<{ entrantId: string; type: '1xLong' | '3x20' | '3x10'; }> | SessionBlock[],
   scheduleConflicts?: Array<{
     entrantId: string;
     entrantName: string;
@@ -404,6 +490,7 @@ export function generatePreferenceCheckData(
   }>
 ): PreferenceCheckData {
   const entrants = getEntrants();
+  const settings = getSettings();
   
   // Helper function to check if a group has conflicts for a specific entrant
   const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
@@ -461,6 +548,56 @@ export function generatePreferenceCheckData(
     return { greenCount, redCount, grayCount };
   };
 
+  // Calculate total bye lengths for each entrant
+  const entrantByeLengths: { [entrantId: string]: number } = {};
+  if (scheduledSessions && scheduledSessions.length > 0) {
+    // Check if scheduledSessions is SessionBlock[] format (has startRowIndex property)
+    const isSessionBlockFormat = 'startRowIndex' in scheduledSessions[0] || 
+                                 (scheduledSessions[0] && 'isScheduled' in scheduledSessions[0]);
+    
+    if (isSessionBlockFormat) {
+      // Use SessionBlock[] directly
+      const sessionsByEntrant = new Map<string, SessionBlock[]>();
+      (scheduledSessions as SessionBlock[]).forEach(session => {
+        if (session.isScheduled && session.startRowIndex !== undefined) {
+          if (!sessionsByEntrant.has(session.entrantId)) {
+            sessionsByEntrant.set(session.entrantId, []);
+          }
+          sessionsByEntrant.get(session.entrantId)!.push(session);
+        }
+      });
+      
+      // Calculate bye length for each entrant
+      sessionsByEntrant.forEach((sessions, entrantId) => {
+        entrantByeLengths[entrantId] = calculateTotalByeLength(sessions, settings);
+      });
+    } else if (allSessionBlocks && Array.isArray(allSessionBlocks) && allSessionBlocks.length > 0) {
+      // If scheduledSessions is in simplified format, map to SessionBlock[] using allSessionBlocks
+      const isAllSessionBlocksFormat = 'startRowIndex' in allSessionBlocks[0] || 
+                                       (allSessionBlocks[0] && 'isScheduled' in allSessionBlocks[0]);
+      
+      if (isAllSessionBlocksFormat) {
+        // allSessionBlocks is already SessionBlock[]
+        const scheduledSessionBlocks = (allSessionBlocks as SessionBlock[])
+          .filter(block => block.isScheduled && block.startRowIndex !== undefined);
+        
+        // Group sessions by entrant
+        const sessionsByEntrant = new Map<string, SessionBlock[]>();
+        scheduledSessionBlocks.forEach(session => {
+          if (!sessionsByEntrant.has(session.entrantId)) {
+            sessionsByEntrant.set(session.entrantId, []);
+          }
+          sessionsByEntrant.get(session.entrantId)!.push(session);
+        });
+        
+        // Calculate bye length for each entrant
+        sessionsByEntrant.forEach((sessions, entrantId) => {
+          entrantByeLengths[entrantId] = calculateTotalByeLength(sessions, settings);
+        });
+      }
+    }
+  }
+
   return {
     entrants,
     judges,
@@ -468,7 +605,8 @@ export function generatePreferenceCheckData(
     scheduledSessions: scheduledSessions?.map(s => ({ session: { entrantId: s.entrantId, type: s.type } })),
     allSessionBlocks: allSessionBlocks?.map(s => ({ entrantId: s.entrantId, type: s.type })),
     scheduleConflicts,
-    pillCounts: getPillCounts()
+    pillCounts: getPillCounts(),
+    entrantByeLengths
   };
 }
 

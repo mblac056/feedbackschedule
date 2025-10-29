@@ -1,7 +1,26 @@
 {
-  "name": "evalmatrix",
-  "private": true,
-  "version": "0.0.0",
+  "name": "feedbackschedule",
+  "private": false,
+  "version": "1.0.0",
+  "description": "A comprehensive feedback scheduling system designed for barbershop singing competitions with BHS contest entry and style feedback types. Features drag-and-drop session management, conflict detection, and automated report generation.",
+  "homepage": "https://feedbackschedule.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mblac056/feedbackschedule.git"
+  },
+  "keywords": [
+    "barbershop",
+    "singing",
+    "competition",
+    "BHS",
+    "feedback",
+    "scheduling",
+    "judging",
+    "react",
+    "typescript"
+  ],
+  "author": "Michael Black <https://michael-black.com>",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",

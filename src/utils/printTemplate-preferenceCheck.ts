@@ -29,6 +29,7 @@ export interface PreferenceCheckData {
     redCount: number;
     grayCount: number;
   };
+  entrantByeLengths?: { [entrantId: string]: number };
 }
 
 export async function generatePreferenceCheckPage(data: PreferenceCheckData): Promise<Blob> {
@@ -105,6 +106,7 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
           <th>Judge 1</th>
           <th>Judge 2</th>
           <th>Judge 3</th>
+          <th>Byes</th>
         </tr>
       </thead>
       <tbody>
@@ -160,6 +162,25 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
       }
       html += '</td>';
     });
+    
+    // Total Byes column
+    html += '<td>';
+    const byeLength = data.entrantByeLengths?.[entrant.id] ?? 0;
+    if (byeLength > 0) {
+      const hours = Math.floor(byeLength / 60);
+      const minutes = byeLength % 60;
+      let byeText = '';
+      if (hours > 0) {
+        byeText += `${hours}h`;
+      }
+      if (minutes > 0) {
+        byeText += `${hours > 0 ? ' ' : ''}${minutes}m`;
+      }
+      html += `<span style="font-weight: 600;">${byeText || '0m'}</span>`;
+    } else {
+      html += '<span style="color: #9ca3af;">-</span>';
+    }
+    html += '</td>';
     
     html += '</tr>';
   });
