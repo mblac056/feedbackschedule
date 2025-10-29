@@ -504,7 +504,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                         )}
                         </td>
                         <td className="px-3 py-2 border-b">
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-sm font-medium">
                             {formatByeLength(getEntrantByeLength(entrant.id))}
                           </span>
                         </td>

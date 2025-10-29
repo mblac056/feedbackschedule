@@ -125,7 +125,7 @@ src/
 
 ## Contributing
 
-Help me ! See the [Contributing Guidelines](CONTRIBUTING.md) for details.
+Help me build handy sh*t for the BHS! See the [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 ### Development Setup
 
@@ -139,7 +139,7 @@ Help me ! See the [Contributing Guidelines](CONTRIBUTING.md) for details.
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 👨Author
+## Author
 
 **Michael Black**
 - Website: [michael-black.com](https://michael-black.com)

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Judge, Entrant, SessionBlock, DraggedSessionData } from '../types';
-import { getEntrants } from '../utils/localStorage';
+import { getEntrants, saveSettings } from '../utils/localStorage';
 import SessionBlockComponent from './SessionBlock';
 import { TIME_CONFIG, getSessionHeight } from '../config/timeConfig';
 import { useSettings } from '../contexts/useSettings';
@@ -28,17 +28,57 @@ interface DragPreview {
 }
 
 export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigned, refreshKey, draggedSessionData, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlockRemove, onSessionDragStart }: GridScheduleProps) {
-  const { settings } = useSettings();
+  const { settings, setSettings } = useSettings();
   const { selectedEntrant, entrants: contextEntrants } = useEntrant();
   const [draggedJudgeId, setDraggedJudgeId] = useState<string | null>(null);
   const [dragOverJudgeId, setDragOverJudgeId] = useState<string | null>(null);
   const [entrants, setEntrants] = useState<Entrant[]>([]);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+  const [isEditingStartTime, setIsEditingStartTime] = useState(false);
+  const [tempStartTime, setTempStartTime] = useState(settings.startTime);
 
   useEffect(() => {
     const storedEntrants = getEntrants();
     setEntrants(storedEntrants);
   }, [refreshKey]);
+
+  // Update temp start time when settings change
+  useEffect(() => {
+    setTempStartTime(settings.startTime);
+  }, [settings.startTime]);
+
+  // Handle start time editing
+  const handleStartTimeClick = () => {
+    setIsEditingStartTime(true);
+  };
+
+  const handleStartTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTempStartTime(e.target.value);
+  };
+
+  const handleStartTimeBlur = () => {
+    // Validate time format (HH:MM)
+    const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (timeRegex.test(tempStartTime)) {
+      // Update settings
+      const newSettings = { ...settings, startTime: tempStartTime };
+      setSettings(newSettings);
+      saveSettings(newSettings);
+    } else {
+      // Reset to original value if invalid
+      setTempStartTime(settings.startTime);
+    }
+    setIsEditingStartTime(false);
+  };
+
+  const handleStartTimeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleStartTimeBlur();
+    } else if (e.key === 'Escape') {
+      setTempStartTime(settings.startTime);
+      setIsEditingStartTime(false);
+    }
+  };
 
   // Note: Session type validation is now handled at the App.tsx level when regenerating session blocks
   // The GridSchedule component now relies entirely on the SessionBlocks provided to it
@@ -624,7 +664,31 @@ const handleSessionDragLeave = () => setDragPreview(null);
                   style={{ height: `${TIME_CONFIG.SLOT_HEIGHT_PX}px` }}
                 >
                   <div className="p-1 text-right">
-                    {slot.displayTime}
+                    {index === 0 ? (
+                      // First time slot - editable start time
+                      isEditingStartTime ? (
+                        <input
+                          type="text"
+                          value={tempStartTime}
+                          onChange={handleStartTimeChange}
+                          onBlur={handleStartTimeBlur}
+                          onKeyDown={handleStartTimeKeyDown}
+                          className="w-full text-right bg-transparent border-none outline-none text-xs text-gray-700 font-mono"
+                          placeholder="HH:MM"
+                          autoFocus
+                        />
+                      ) : (
+                        <button
+                          onClick={handleStartTimeClick}
+                          className="w-full text-right hover:bg-gray-100 rounded px-1 py-0.5 transition-colors cursor-pointer"
+                          title="Click to edit start time"
+                        >
+                          {slot.displayTime}
+                        </button>
+                      )
+                    ) : (
+                      slot.displayTime
+                    )}
                   </div>
                 </div>
               ))}
