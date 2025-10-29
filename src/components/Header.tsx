@@ -26,7 +26,7 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-2">
             <RiLayoutMasonryFill className="text-2xl text-[var(--primary-color)]" />
-            <h1 className="text-2xl font-bold text-[var(--primary-color)]">Feedback Matrix</h1>
+            <h1 className="text-2xl font-bold text-[var(--primary-color)]">Feedback Schedule</h1>
           </div>
           
           {/* Desktop menu */}
