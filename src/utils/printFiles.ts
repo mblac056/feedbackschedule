@@ -93,8 +93,11 @@ export function calculateTotalByeLength(
   }
   
   // Calculate total span between first start and last end
-  const [firstStartHours, firstStartMins] = firstStartTime.split(':').map(Number);
-  const [lastEndHours, lastEndMins] = lastEndTime.split(':').map(Number);
+  // TypeScript assertion: we've already checked these are non-null
+  const startTime = firstStartTime as string;
+  const endTime = lastEndTime as string;
+  const [firstStartHours, firstStartMins] = startTime.split(':').map(Number);
+  const [lastEndHours, lastEndMins] = endTime.split(':').map(Number);
   const firstStartMinutes = firstStartHours * 60 + firstStartMins;
   const lastEndMinutes = lastEndHours * 60 + lastEndMins;
   
