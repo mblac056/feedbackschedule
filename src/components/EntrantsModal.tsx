@@ -30,6 +30,10 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const [dragOverEntrantId, setDragOverEntrantId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showPreferencesImport, setShowPreferencesImport] = useState(false);
+  const [originalEntrants, setOriginalEntrants] = useState<Entrant[]>([]);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+  const [sortColumn, setSortColumn] = useState<'name' | 'include' | 'overallSF' | 'overallF' | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     if (isOpen) {
@@ -37,9 +41,12 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
       const storedJudges = getJudges();
       setEntrants(storedEntrants);
       setJudges(storedJudges);
+      setOriginalEntrants(JSON.parse(JSON.stringify(storedEntrants))); // Deep copy
       setShowImport(false); // Reset import state when modal opens
       setShowPreferencesImport(false); // Reset preferences import state when modal opens
-      
+      setShowConfirmClose(false);
+      setSortColumn(null); // Reset sort when modal opens
+      setSortDirection('asc');
     }
   }, [isOpen]);
 
@@ -95,6 +102,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
       onSessionBlocksChange();
     }
     
+    // Update original to reflect saved state
+    setOriginalEntrants(JSON.parse(JSON.stringify(entrants)));
     onClose();
     // Notify parent component that modal has closed
     if (onModalClose) {
@@ -177,12 +186,124 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     saveEntrants(updatedEntrants);
     // Refresh the entrants state
     setEntrants(updatedEntrants);
+    // Update original to reflect saved state
+    setOriginalEntrants(JSON.parse(JSON.stringify(updatedEntrants)));
   };
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = () => {
+    return JSON.stringify(entrants) !== JSON.stringify(originalEntrants);
+  };
+
+  const handleCloseWithoutSave = () => {
+    setShowConfirmClose(false);
+    onClose();
+    if (onModalClose) {
+      onModalClose();
+    }
+  };
+
+  const handleCloseClick = () => {
+    if (hasUnsavedChanges()) {
+      setShowConfirmClose(true);
+    } else {
+      onClose();
+      if (onModalClose) {
+        onModalClose();
+      }
+    }
+  };
+
+  // Handle column header click for sorting
+  const handleSort = (column: 'name' | 'include' | 'overallSF' | 'overallF') => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new column and default to ascending
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
+
+  // Sort entrants based on current sort settings
+  const getSortedEntrants = (): Entrant[] => {
+    if (!sortColumn) {
+      return entrants;
+    }
+
+    const sorted = [...entrants].sort((a, b) => {
+      let aValue: string | number | boolean | undefined;
+      let bValue: string | number | boolean | undefined;
+
+      switch (sortColumn) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'include':
+          aValue = a.includeInSchedule;
+          bValue = b.includeInSchedule;
+          break;
+        case 'overallSF':
+          aValue = a.overallSF ?? -Infinity; // Treat undefined as lowest
+          bValue = b.overallSF ?? -Infinity;
+          break;
+        case 'overallF':
+          aValue = a.overallF ?? -Infinity; // Treat undefined as lowest
+          bValue = b.overallF ?? -Infinity;
+          break;
+      }
+
+      // Compare values
+      let comparison = 0;
+      if (aValue < bValue) {
+        comparison = -1;
+      } else if (aValue > bValue) {
+        comparison = 1;
+      }
+
+      // Apply direction
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
+  };
+
+  const sortedEntrants = getSortedEntrants();
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <>
+      {/* Confirmation Dialog */}
+      {showConfirmClose && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Unsaved Changes</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to close without saving? Your changes will be lost.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowConfirmClose(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCloseWithoutSave}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={handleCloseClick}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gray-600 text-white p-6 flex justify-between items-center">
           <div>
@@ -197,7 +318,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
               Save & Close
             </button>
             <button
-              onClick={onClose}
+              onClick={handleCloseClick}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               Close
@@ -281,23 +402,69 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
               <table className="min-w-full bg-white border border-gray-200 rounded-lg">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-0 bg-gray-50 z-10">
-                      
+                    <th 
+                      className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-0 bg-gray-50 z-10 cursor-pointer hover:bg-gray-100 select-none ${
+                        sortColumn === 'include' ? 'bg-gray-100' : ''
+                      }`}
+                      onClick={() => handleSort('include')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Include</span>
+                        {sortColumn === 'include' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
                     </th>
-                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-[60px] bg-gray-50 z-10 w-48">Name</th>
+                    <th 
+                      className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-[60px] bg-gray-50 z-10 w-48 cursor-pointer hover:bg-gray-100 select-none ${
+                        sortColumn === 'name' ? 'bg-gray-100' : ''
+                      }`}
+                      onClick={() => handleSort('name')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Name</span>
+                        {sortColumn === 'name' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Groups to Avoid</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Preference</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 1</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 2</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 3</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">O/A SF</th>
-                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">O/A F</th>
+                    <th 
+                      className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
+                        sortColumn === 'overallSF' ? 'bg-gray-100' : ''
+                      }`}
+                      onClick={() => handleSort('overallSF')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>O/A SF</span>
+                        {sortColumn === 'overallSF' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
+                        sortColumn === 'overallF' ? 'bg-gray-100' : ''
+                      }`}
+                      onClick={() => handleSort('overallF')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>O/A F</span>
+                        {sortColumn === 'overallF' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {entrants.map((entrant) => (
+                  {sortedEntrants.map((entrant) => (
                     <EntrantRow
                       key={entrant.id}
                       entrant={entrant}
@@ -322,5 +489,6 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         </div>
       </div>
     </div>
+    </>
   );
 }

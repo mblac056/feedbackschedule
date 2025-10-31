@@ -88,7 +88,7 @@ export default function EmptyState({ onJudgesImported }: EmptyStateProps) {
   }, []);
 
   return (
-    <div className="text-center py-16">
+    <div className="text-center py-16 px-4">
       <div className="max-w-md mx-auto space-y-6">
         <div
           className={`relative border-2 border-dashed rounded-xl p-12 transition-colors cursor-pointer ${

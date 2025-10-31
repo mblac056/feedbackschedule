@@ -11,11 +11,15 @@ interface JudgesModalProps {
 
 export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesModalProps) {
   const [judges, setJudges] = useState<Judge[]>([]);
+  const [originalJudges, setOriginalJudges] = useState<Judge[]>([]);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       const storedJudges = getJudges();
       setJudges(storedJudges);
+      setOriginalJudges(JSON.parse(JSON.stringify(storedJudges))); // Deep copy
+      setShowConfirmClose(false);
     }
   }, [isOpen]);
 
@@ -37,10 +41,36 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
   const handleClose = () => {
     // Save all local changes to localStorage before closing
     saveJudges(judges);
+    // Update original to reflect saved state
+    setOriginalJudges(JSON.parse(JSON.stringify(judges)));
     onClose();
     // Notify parent component that modal has closed
     if (onModalClose) {
       onModalClose();
+    }
+  };
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges = () => {
+    return JSON.stringify(judges) !== JSON.stringify(originalJudges);
+  };
+
+  const handleCloseWithoutSave = () => {
+    setShowConfirmClose(false);
+    onClose();
+    if (onModalClose) {
+      onModalClose();
+    }
+  };
+
+  const handleCloseClick = () => {
+    if (hasUnsavedChanges()) {
+      setShowConfirmClose(true);
+    } else {
+      onClose();
+      if (onModalClose) {
+        onModalClose();
+      }
     }
   };
 
@@ -56,7 +86,35 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <>
+      {/* Confirmation Dialog */}
+      {showConfirmClose && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Unsaved Changes</h3>
+              <p className="text-gray-600 mb-6">
+                Are you sure you want to close without saving? Your changes will be lost.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowConfirmClose(false)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCloseWithoutSave}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Yes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={handleCloseClick}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gray-600 text-white p-6 flex justify-between items-center">
           <div>
@@ -65,7 +123,7 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
           </div>
           <div className="flex items-center space-x-3">
           <button
-              onClick={onClose}
+              onClick={handleCloseClick}
               className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
             >
               Close
@@ -170,5 +228,6 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
         </div>
       </div>
     </div>
+    </>
   );
 }

@@ -204,7 +204,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
               
               {/* Total Length - below buttons on mobile, inline on desktop */}
               {totalDuration > 0 && (
-                <span className={`text-gray-600 font-bold text-lg ${totalDuration > 180 && 'text-red-500'} w-full md:w-auto`}>
+                <span className={`text-gray-600 font-bold text-lg ${totalDuration > 120 && 'text-red-500'} w-full md:w-auto`}>
                   Total Length: {Math.floor(totalDuration / 60) !== 0 && `${Math.floor(totalDuration / 60)}h `}{totalDuration % 60 !== 0 && `${totalDuration % 60}m`}
                 </span>
               )}

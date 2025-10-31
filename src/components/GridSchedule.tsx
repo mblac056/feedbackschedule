@@ -440,15 +440,45 @@ const handleSessionDragLeave = () => setDragPreview(null);
     return null;
   };
 
+  // Helper function to calculate session end time
+  const getSessionEndTime = (session: SessionBlock): string => {
+    const startTime = settings.startTime;
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const sessionDurationMinutes = session.type === '1xLong' ? settings.oneXLongLength : 
+                                   session.type === '3x20' ? settings.threeX20Length : 
+                                   settings.threeX10Length;
+    const startRowIndex = session.startRowIndex!;
+    const totalMinutes = startMinute + (startRowIndex * TIME_CONFIG.MINUTES_PER_SLOT) + sessionDurationMinutes;
+    const hour = (startHour + Math.floor(totalMinutes / 60));
+    const minute = totalMinutes % 60;
+    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+  };
+
+  // Check if a session ends after 1am (25:00)
+  const isSessionEndingAfter1AM = (session: SessionBlock): boolean => {
+    const endTime = getSessionEndTime(session);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+    return endHour > 25 || (endHour === 25 && endMinute > 0);
+  };
+
   // Get conflict details for display
   const getConflictDetails = () => {
     const conflicts = new Set<string>();
     const conflictList: Array<{
-      type: 'category' | 'entrant' | 'room';
+      type: 'category' | 'entrant' | 'room' | 'late';
       entrantName?: string;
       category?: string;
       roomNumber?: string;
     }> = [];
+    
+    // Check for sessions ending after 1am
+    const lateSessions = scheduledSessions.filter(session => isSessionEndingAfter1AM(session));
+    if (lateSessions.length > 0) {
+      conflictList.push({
+        type: 'late',
+        entrantName: lateSessions.map(s => s.entrantName).join(', ')
+      });
+    }
     
     scheduledSessions.forEach(session => {
       if (hasSessionConflict(session)) {
@@ -583,6 +613,12 @@ const handleSessionDragLeave = () => setDragPreview(null);
                       return (
                         <li key={index}>
                           Room <strong>{conflict.roomNumber}</strong> has overlapping sessions
+                        </li>
+                      );
+                    } else if (conflict.type === 'late') {
+                      return (
+                        <li key={index}>
+                          Sessions ending after 1am for: <strong>{conflict.entrantName}</strong>
                         </li>
                       );
                     }
