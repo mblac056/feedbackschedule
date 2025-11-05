@@ -11,6 +11,7 @@ import PreferencesPanel from './components/PreferencesPanel'
 import SessionsArea from './components/SessionsArea'
 import EmptyState from './components/EmptyState';
 import Footer from './components/Footer';
+import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 
 function App() {
   const { setEntrants } = useEntrant();
@@ -156,6 +157,7 @@ function App() {
         />
 
         <Footer />
+        <PWAUpdatePrompt />
       </div>
     </SettingsProvider>
   )
