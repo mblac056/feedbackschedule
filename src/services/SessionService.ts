@@ -317,8 +317,9 @@ export class SessionService {
           console.warn(`  - At ${conflict.timeSlot}: conflicting with ${conflict.conflictingEntrantName} (${conflict.conflictingGroup})`);
         });
       });
-    } else {
+    /*} else {
       console.log('No schedule conflicts detected with groups to avoid.');
-    }
+    */
+      }
   }
 }

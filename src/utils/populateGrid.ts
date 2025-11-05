@@ -5,7 +5,6 @@ import type { SessionSettings } from "../config/timeConfig";
 
 export const populateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void, settings?: SessionSettings) => {
   // First, clear all scheduled sessions to avoid conflicts
-  console.log('=== CLEARING EXISTING SCHEDULE ===');
   allSessionBlocks.forEach(block => {
     if (block.isScheduled) {
       const clearedBlock: SessionBlock = {
@@ -18,24 +17,20 @@ export const populateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], 
       onSessionBlockUpdate(clearedBlock);
     }
   });
-  console.log('Cleared all existing scheduled sessions');
+  
   //Fetch Entrants, filtered to only include entrants that have Session Blocks from Blocks
   const entrants = getEntrants().filter(entrant => allSessionBlocks.some(block => block.entrantId === entrant.id));
 
   // Count the session blocks of each type
-      const threeX10Count = allSessionBlocks.filter(block => block.type === '3x10').length;
-      const threeX20Count = allSessionBlocks.filter(block => block.type === '3x20').length;
-      const oneXLongCount = allSessionBlocks.filter(block => block.type === '1xLong').length;
+  const threeX10Count = allSessionBlocks.filter(block => block.type === '3x10').length;
+  const threeX20Count = allSessionBlocks.filter(block => block.type === '3x20').length;
+  const oneXLongCount = allSessionBlocks.filter(block => block.type === '1xLong').length;
 
   const [judgeNumberToJudge, groupNumberToGroup, judgeSchedules] = createMatrix(threeX10Count, threeX20Count, oneXLongCount, getSessionDurationSlots('3x10', settings), getSessionDurationSlots('3x20', settings), getSessionDurationSlots('1xLong', settings), judges, entrants, allSessionBlocks);
-  console.log(`Judge number to judge: ${judgeNumberToJudge}`);  console.log(`Group number to group: ${groupNumberToGroup}`);
-  console.log(`Judge schedules: ${judgeSchedules}`);
   assignSessionBlocksToGrid(judgeNumberToJudge, groupNumberToGroup, judgeSchedules, allSessionBlocks, onSessionBlockUpdate);
 };
 
 const assignSessionBlocksToGrid = (judgeNumberToJudge: Map<number, Judge>, groupNumberToGroup: Map<number, Entrant>, judgeSchedules: number[][], allSessionBlocks: SessionBlock[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void) => {
-  console.log('=== ASSIGNING SESSION BLOCKS TO GRID ===');
-  
   // Group session blocks by entrant for easier lookup
   const sessionBlocksByEntrant = new Map<string, SessionBlock[]>();
   allSessionBlocks.forEach(block => {
@@ -93,27 +88,19 @@ const assignSessionBlocksToGrid = (judgeNumberToJudge: Map<number, Judge>, group
         // Update the session block
         onSessionBlockUpdate(updatedBlock);
         assignedBlocks.add(unassignedBlock);
-        
-        console.log(`Assigned ${unassignedBlock.entrantName} (${unassignedBlock.type}) to ${judge.name} at time slot ${startRowIndex}`);
       } else {
         console.warn(`No unassigned session block found for group ${group.name}`);
       }
     }
   }
   
-  console.log(`Total session blocks assigned: ${assignedBlocks.size} out of ${allSessionBlocks.length}`);
+  console.log(`✓ Assigned ${assignedBlocks.size} session blocks to grid`);
 }
 
 
 const createMatrix = (threeX10Count: number, threeX20Count: number, oneXLongCount: number, threeX10Height: number, threeX20Height: number, oneXLongHeight: number, judges: Judge[], entrants: Entrant[], allSessionBlocks: SessionBlock[]): [Map<number, Judge>, Map<number, Entrant>, number[][]] => {
-  console.log('=== EVALUATION MATRIX SCHEDULER ===');
-  console.log(`Input Parameters:`);
-  console.log(`  - 3x10 Sessions: ${threeX10Count} (${threeX10Count / 3} groups)`);
-  console.log(`  - 3x20 Sessions: ${threeX20Count} (${threeX20Count / 3} groups)`);
-  console.log(`  - 1xLong Sessions: ${oneXLongCount}`);
-  console.log(`  - Judges: ${judges.length}`);
-  console.log(`  - Time Slots: 3x10=${threeX10Height}, 3x20=${threeX20Height}, 1xLong=${oneXLongHeight}`);
-  console.log('');
+  console.log('=== GENERATING SCHEDULE ===');
+  console.log(`Sessions: ${threeX10Count / 3}×3x10, ${threeX20Count / 3}×3x20, ${oneXLongCount}×1xLong | Judges: ${judges.length}`);
 
   // Step 1: Analyze and create pods
   const pods = createPods(threeX10Count, threeX20Count);
@@ -122,30 +109,20 @@ const createMatrix = (threeX10Count: number, threeX20Count: number, oneXLongCoun
   const judgeSchedules = generateScheduleMatrix(pods, judges, threeX10Height, threeX20Height, oneXLongCount, oneXLongHeight);
   
   // Step 3: Assign judges and groups
-    // Extract data for assigning actual groups and judges
-    const judgeGroupAssignments = getJudgeGroupAssignments(judgeSchedules);
-    const groupTypes = getGroupTypes(pods, oneXLongCount);
+  const judgeGroupAssignments = getJudgeGroupAssignments(judgeSchedules);
+  const groupTypes = getGroupTypes(pods, oneXLongCount);
 
   const [judgeNumberToJudge, groupNumberToGroup] = assignGroupsAndJudges(judgeGroupAssignments, groupTypes, judges, entrants, allSessionBlocks);
-  console.log(`Judge number to judge: ${judgeNumberToJudge}`);
-  console.log(`Group number to group: ${groupNumberToGroup}`);
 
-
-  // Step 4: Display results
-  //displaySchedule(judgeSchedules, judges);
   return [judgeNumberToJudge, groupNumberToGroup, judgeSchedules];
 };
 
 
 // Step 1: Pod Analysis and Creation
 const createPods = (threeX10Count: number, threeX20Count: number): Array<string>[] => {
-  console.log('=== CREATING PODS ===');
-  
   // Convert session counts to group counts
   const threeX10Groups = threeX10Count / 3;
   const threeX20Groups = threeX20Count / 3;
-  
-  console.log(`Groups to schedule: ${threeX10Groups} 3x10, ${threeX20Groups} 3x20`);
   
   const podTypes: Array<string>[] = [];
 
@@ -265,42 +242,12 @@ const createPods = (threeX10Count: number, threeX20Count: number): Array<string>
   if (remaining3x10 > 0 || remaining3x20 > 0) {
     console.warn(`Unassigned groups: ${remaining3x10} 3x10, ${remaining3x20} 3x20`);
   }
-  console.log(podTypes);
   return podTypes;
 };
 
 // Step 2: Schedule Generation
 const generateScheduleMatrix = (pods: Array<string>[], judges: Judge[], threeX10Height: number, threeX20Height: number, oneXLongCount: number, oneXLongHeight: number): number[][] => {
-  console.log('=== GENERATING SCHEDULE MATRIX ===');
-  
-  // Count the number of judges in each category
-  const judgesByCategory = {
-    MUS: judges.filter(j => j.category === 'MUS').length,
-    SNG: judges.filter(j => j.category === 'SNG').length,
-    PER: judges.filter(j => j.category === 'PER').length
-  }
-  console.log(`Judges by category: MUS=${judgesByCategory.MUS}, SNG=${judgesByCategory.SNG}, PER=${judgesByCategory.PER}`);
-  const maxJudgeSets = Math.max(judgesByCategory.MUS, judgesByCategory.SNG, judgesByCategory.PER);
-  const extraJudges = judges.length - maxJudgeSets * 3;
-  console.log(`Extra judges: ${extraJudges}`);
-  console.log(`Max judge sets: ${maxJudgeSets}`);
-//Create an array of arrays of the length of the judges
-  const columns = [];
-  for (let i = 0; i < judges.length; i++) {
-    columns.push([]);
-  }
-  // Figure out how long each pod will be
-  // If pod contains 3x20, use threeX20Height, otherwise use threeX10Height
-  // Then multiply by max of number of groups in the pod or 3 (number of judges in the pod)
-  const podLengths = pods.map(pod => {
-    return (pod.includes('3x20') ? threeX20Height : threeX10Height) * Math.max(pod.length, 3);
-  });
-  console.log(threeX10Height, threeX20Height);
-  console.log(`Pod lengths: ${podLengths}`);
-  // Sort pod based on pod lengths, shortest to longest
-  const sortedPods = podLengths.sort((a, b) => a - b);
-  console.log(`Sorted pods: ${sortedPods}`);
-  let lastGroupIndex=0
+  let lastGroupIndex = 0;
   
   // Initialize judge schedules - each judge gets an empty array
   const judgeSchedules: number[][] = [];
@@ -312,11 +259,9 @@ const generateScheduleMatrix = (pods: Array<string>[], judges: Judge[], threeX10
   for (let i = 0; i < pods.length; i++) {
     const pod = pods[i];
     const judgeAssignments = assignPodsToJudges(pod, threeX10Height, threeX20Height);
-    console.log(`Pod ${i + 1} (${pod.join(', ')}):`, judgeAssignments);
     
     // Renumber the groups in this pod's assignments
     lastGroupIndex = renumberGroups(judgeAssignments, lastGroupIndex);
-    console.log(`After renumbering, last group index: ${lastGroupIndex}`);
     
     // Find the next available set of 3 judges (complete judge sets only)
     const judgeSlotCounts = judgeSchedules.map(schedule => schedule.length);
@@ -344,7 +289,6 @@ const generateScheduleMatrix = (pods: Array<string>[], judges: Judge[], threeX10
     for (let j = 0; j < 3; j++) {
       const targetJudgeIndex = bestJudgeSet[j];
       judgeSchedules[targetJudgeIndex] = judgeSchedules[targetJudgeIndex].concat(judgeAssignments[j]);
-      console.log(`Assigned pod judge ${j + 1} to judge ${targetJudgeIndex + 1}`);
     }
   }
 
@@ -353,11 +297,6 @@ const generateScheduleMatrix = (pods: Array<string>[], judges: Judge[], threeX10
 
   // Assign the 1xLong groups to the judges with the most available slots
   assign1xLongGroups(judgeSchedules, oneXLongCount, oneXLongHeight, lastGroupIndex + 1);
-  
-  console.log('Final judge schedules:');
-  judgeSchedules.forEach((schedule, index) => {
-    console.log(`Judge ${index + 1}: [${schedule.join(',')}]`);
-  });
   
   return judgeSchedules;
 };
@@ -383,8 +322,6 @@ const clearTrailingByeSlots = (judgeSchedules: number[][]) => {
 const assign1xLongGroups = (judgeSchedules: number[][], oneXLongCount: number, oneXLongHeight: number, startGroupNumber: number) => {
   if (oneXLongCount === 0) return;
   
-  console.log(`=== ASSIGNING ${oneXLongCount} 1xLong SESSIONS ===`);
-  
   for (let i = 0; i < oneXLongCount; i++) {
     // Find the judge with the fewest slots assigned
     const judgeSlotCounts = judgeSchedules.map(schedule => schedule.length);
@@ -397,8 +334,6 @@ const assign1xLongGroups = (judgeSchedules: number[][], oneXLongCount: number, o
     for (let slot = 0; slot < oneXLongHeight; slot++) {
       judgeSchedules[judgeWithFewestSlots].push(groupNumber);
     }
-    
-    console.log(`Assigned 1xLong session ${i + 1} (Group ${groupNumber}) to Judge ${judgeWithFewestSlots + 1}`);
   }
 }
 
@@ -435,13 +370,11 @@ const assignPodsToJudges = (pod: string[], threeX10Height: number, threeX20Heigh
 
   // Check if the pod is homogeneous or hybrid
   const isHomogeneous = pod.every(group => group === pod[0]);
-  console.log(`Pod ${pod.join(', ')} is ${isHomogeneous ? 'homogeneous' : 'hybrid'}`);
 
   // Determine the height for this pod (use the maximum height for hybrid pods)
   const podHeight = isHomogeneous 
     ? (pod[0] === '3x10' ? threeX10Height : threeX20Height)
     : Math.max(threeX10Height, threeX20Height);
-  console.log(`Pod height: ${podHeight} slots`);
 
   if (numGroups === 1) {
     // For 1 group, rotate through all judges sequentially
@@ -527,7 +460,6 @@ const assignPodsToJudges = (pod: string[], threeX10Height: number, threeX20Heigh
     const threeX10GroupIndices = pod.map((group, index) => group === '3x10' ? index + 1 : null).filter(i => i !== null);
     // Calculate bye slots for 3x10 groups
     const byeSlots = threeX20Height - threeX10Height;
-    console.log(`3x10 group indices: ${threeX10GroupIndices}, bye slots: ${byeSlots}`);
     
     // Go through each judge's assignments and clear slots where 3x10 groups appear
     for (let judgeIndex = 0; judgeIndex < judgeAssignments.length; judgeIndex++) {
@@ -552,58 +484,12 @@ const assignPodsToJudges = (pod: string[], threeX10Height: number, threeX20Heigh
             break; // Only clear once per rotation block
           }
         }
+        }
       }
     }
-  }
-    console.log(`Judge assignments: ${judgeAssignments}`);
   
   return judgeAssignments;
 }
-
-/*
-// Step 3: Display Results
-const displaySchedule = (judgeSchedules: number[][], judges: Judge[]) => {
-  console.log('=== FINAL SCHEDULE MATRIX ===');
-  
-  // Find the maximum length of any judge schedule
-  const maxLength = Math.max(...judgeSchedules.map(schedule => schedule.length));
-  
-  console.log(`Schedule Matrix (${judges.length} judges × ${maxLength} time slots):`);
-  console.log('');
-  
-  // Header - just numbered judges
-  let header = 'Time |';
-  for (let i = 0; i < judges.length; i++) {
-    header += ` J${i + 1} |`;
-  }
-  console.log(header);
-  console.log(''.padEnd(header.length, '-'));
-  
-  // Rows
-  for (let timeSlot = 0; timeSlot < maxLength; timeSlot++) {
-    let row = `${timeSlot.toString().padStart(4, ' ')} |`;
-    for (let judgeIndex = 0; judgeIndex < judges.length; judgeIndex++) {
-      const judgeSchedule = judgeSchedules[judgeIndex];
-      const value = judgeSchedule[timeSlot];
-      
-      if (value === undefined) {
-        row += '    |';
-      } else if (value === 0) {
-        row += ' -- |';
-      } else {
-        row += ` G${value.toString()} |`;
-      }
-    }
-    console.log(row);
-  }
-  
-  console.log('');
-  console.log('Legend:');
-  console.log('  - GX = Group X (evaluating that group)');
-  console.log('  - -- = No evaluation (break time)');
-  console.log('  - Empty = No assignment');
-};
-*/
 
 // Helper functions for extracting assignment data
 const getJudgeGroupAssignments = (judgeSchedules: number[][]): Map<number, Set<number>> => {
@@ -647,16 +533,14 @@ const getGroupTypes = (pods: Array<string>[], oneXLongCount: number): Map<number
 };
 
 const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes: Map<number, string>, judges: Judge[], groups: Entrant[], allSessionBlocks: SessionBlock[]): [Map<number, Judge>, Map<number, Entrant>] => {
-  console.log('=== ASSIGNING GROUPS AND JUDGES ===');
-  
+  const judgeStats = judgePopularity(judges, groups);
+
   // Group judges by category
   const judgesByCategory = {
     MUS: judges.filter(j => j.category === 'MUS'),
     SNG: judges.filter(j => j.category === 'SNG'),
     PER: judges.filter(j => j.category === 'PER')
   };
-  
-  console.log(`Available judges: MUS=${judgesByCategory.MUS.length}, SNG=${judgesByCategory.SNG.length}, PER=${judgesByCategory.PER.length}`);
   
   // Create mappings
   const judgeNumberToJudge = new Map<number, Judge>();
@@ -665,29 +549,74 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
   // Track which judges have been assigned
   const assignedJudges = new Set<Judge>();
   
-  // Group judges into pods (sets of 3)
   const numPods = Math.floor(judges.length / 3);
-  console.log(`Creating ${numPods} pods from ${judges.length} judges`);
   
-  // For each pod, try to assign one judge from each category
+  // Helper function to get first choice count for a judge
+  const getFirstChoiceCount = (judge: Judge): number => {
+    const stats = judgeStats.get(judge.id);
+    return stats ? stats.first : 0;
+  };
+  
+  // Helper function to calculate remaining first choices and target
+  const calculateTarget = (remainingPods: number): number => {
+    const remainingFirstChoices = judges
+      .filter(j => !assignedJudges.has(j))
+      .reduce((sum, judge) => sum + getFirstChoiceCount(judge), 0);
+    return remainingPods > 0 ? remainingFirstChoices / remainingPods : 0;
+  };
+  
+  // Helper function to find best pod assignment that balances first choices
+  const findBestPodAssignment = (targetTotal: number): (Judge | null)[] => {
+    const availableMUS = judgesByCategory.MUS.filter(j => !assignedJudges.has(j));
+    const availableSNG = judgesByCategory.SNG.filter(j => !assignedJudges.has(j));
+    const availablePER = judgesByCategory.PER.filter(j => !assignedJudges.has(j));
+    
+    let bestAssignment: (Judge | null)[] = [null, null, null];
+    let bestScore = Infinity;
+    
+    // Try all combinations of available judges
+    for (const musJudge of availableMUS) {
+      for (const sngJudge of availableSNG) {
+        for (const perJudge of availablePER) {
+          const podTotal = getFirstChoiceCount(musJudge) + getFirstChoiceCount(sngJudge) + getFirstChoiceCount(perJudge);
+          const score = Math.abs(podTotal - targetTotal);
+          
+          if (score < bestScore) {
+            bestScore = score;
+            bestAssignment = [musJudge, sngJudge, perJudge];
+          }
+        }
+      }
+    }
+    
+    // If we couldn't find a complete assignment, try with missing categories
+    if (bestAssignment[0] === null && bestAssignment[1] === null && bestAssignment[2] === null) {
+      // Fallback: assign any available judges
+      if (availableMUS.length > 0) bestAssignment[0] = availableMUS[0];
+      if (availableSNG.length > 0) bestAssignment[1] = availableSNG[0];
+      if (availablePER.length > 0) bestAssignment[2] = availablePER[0];
+    }
+    
+    return bestAssignment;
+  };
+  
+  // For each pod, assign judges to balance first choices
   for (let podIndex = 0; podIndex < numPods; podIndex++) {
     const podJudges = [podIndex * 3 + 1, podIndex * 3 + 2, podIndex * 3 + 3]; // Judge numbers 1,2,3 or 4,5,6, etc.
-    console.log(`\nProcessing Pod ${podIndex + 1} with judge numbers: ${podJudges.join(', ')}`);
     
-    // Try to assign one judge from each category to this pod
-    const podAssignments: (Judge | null)[] = [null, null, null]; // MUS, SNG, PER
+    // Calculate target based on remaining pods (dynamic adjustment)
+    const remainingPods = numPods - podIndex;
+    const targetTotal = calculateTarget(remainingPods);
     
-    // Find available judges for each category
-    for (const category of ['MUS', 'SNG', 'PER'] as const) {
-      const availableJudges = judgesByCategory[category].filter(j => !assignedJudges.has(j));
-      if (availableJudges.length > 0) {
-        // For now, just pick the first available judge
-        // TODO: Could optimize based on group preferences here
-        const selectedJudge = availableJudges[0];
-        const categoryIndex = category === 'MUS' ? 0 : category === 'SNG' ? 1 : 2;
-        podAssignments[categoryIndex] = selectedJudge;
-        assignedJudges.add(selectedJudge);
-        console.log(`  Assigned ${selectedJudge.name} (${category}) to judge number ${podJudges[categoryIndex]}`);
+    // Find the best assignment for this pod
+    const podAssignments = findBestPodAssignment(targetTotal);
+    
+    // Assign the judges
+    for (let i = 0; i < 3; i++) {
+      if (podAssignments[i]) {
+        const judge = podAssignments[i]!;
+        assignedJudges.add(judge);
+        judgeNumberToJudge.set(podJudges[i], judge);
       }
     }
     
@@ -698,14 +627,7 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
         const judge = unassignedJudges.shift()!;
         podAssignments[i] = judge;
         assignedJudges.add(judge);
-        console.log(`  Assigned ${judge.name} to judge number ${podJudges[i]}`);
-      }
-    }
-    
-    // Map judge numbers to actual judges
-    for (let i = 0; i < 3; i++) {
-      if (podAssignments[i]) {
-        judgeNumberToJudge.set(podJudges[i], podAssignments[i]!);
+        judgeNumberToJudge.set(podJudges[i], judge);
       }
     }
   }
@@ -715,7 +637,6 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
   let remainingJudgeNumber = numPods * 3 + 1;
   for (const judge of remainingJudges) {
     judgeNumberToJudge.set(remainingJudgeNumber, judge);
-    console.log(`  Assigned remaining judge ${judge.name} to judge number ${remainingJudgeNumber}`);
     remainingJudgeNumber++;
   }
   
@@ -727,15 +648,6 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
       entrantSessionTypes.set(block.entrantId, block.type);
     }
   });
-  
-  // Group the entrants by their session types
-  const groupsByType = {
-    '3x10': groups.filter(g => entrantSessionTypes.get(g.id) === '3x10'),
-    '3x20': groups.filter(g => entrantSessionTypes.get(g.id) === '3x20'),
-    '1xLong': groups.filter(g => entrantSessionTypes.get(g.id) === '1xLong')
-  };
-  
-  console.log(`Groups by type: 3x10=${groupsByType['3x10'].length}, 3x20=${groupsByType['3x20'].length}, 1xLong=${groupsByType['1xLong'].length}`);
   
   // Track which groups have been assigned
   const assignedGroups = new Set<Entrant>();
@@ -758,103 +670,187 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
     return true; // No conflicts
   };
   
-  // Helper function to find the best available judge for a group based on preferences
-  const findBestJudgeForGroup = (group: Entrant, evaluatingJudges: Set<number>): number | null => {
-    // Try preferences in order: 1st, 2nd, 3rd
-    const preferences = [group.judgePreference1, group.judgePreference2, group.judgePreference3];
-    
-    for (const preferenceId of preferences) {
-      if (!preferenceId) continue;
-      
-      // Find the judge number for this preference
-      for (const [judgeNum, judge] of judgeNumberToJudge) {
-        if (judge.id === preferenceId && evaluatingJudges.has(judgeNum)) {
-          // Check if this assignment would cause conflicts
-          if (canAssignGroupToJudge(group, judgeNum)) {
-            return judgeNum;
-          }
-        }
+  // Helper function to get evaluating judges for a groupNumber
+  const getEvaluatingJudges = (groupNumber: number): Set<number> => {
+    const evaluatingJudges = new Set<number>();
+    for (const [judgeNum, judgeGroupNumbers] of judgeGroups) {
+      if (judgeGroupNumbers.has(groupNumber)) {
+        evaluatingJudges.add(judgeNum);
       }
     }
-    
-    // If no preferences work, try any available judge without conflicts
-    for (const judgeNum of evaluatingJudges) {
-      if (canAssignGroupToJudge(group, judgeNum)) {
-        return judgeNum;
-      }
-    }
-    
-    // If all judges have conflicts, return the first one (fallback)
-    return evaluatingJudges.size > 0 ? Array.from(evaluatingJudges)[0] : null;
+    return evaluatingJudges;
   };
   
-  // Sort groups by their order in the original list (first-come-first-served)
-  const allGroups = [...groups];
-  
-  // Assign groups based on the groupTypes mapping with first-come-first-served preference assignment
-  for (const [groupNumber, sessionType] of groupTypes) {
-    const availableGroups = groupsByType[sessionType as keyof typeof groupsByType].filter(g => !assignedGroups.has(g));
-    if (availableGroups.length > 0) {
-      // Get all judges that will evaluate this group number
-      const evaluatingJudges = new Set<number>();
-      for (const [judgeNum, judgeGroupNumbers] of judgeGroups) {
-        if (judgeGroupNumbers.has(groupNumber)) {
-          evaluatingJudges.add(judgeNum);
+  // Helper function to find the best available groupNumber for a group based on preferences
+  const findBestGroupNumberForGroup = (group: Entrant): { groupNumber: number; judgeNumber: number; reason: string } | null => {
+    const groupSessionType = entrantSessionTypes.get(group.id);
+    if (!groupSessionType) return null;
+    
+    // Find all groupNumbers of this session type that haven't been assigned yet
+    const availableGroupNumbers: number[] = [];
+    for (const [groupNumber, sessionType] of groupTypes) {
+      if (sessionType === groupSessionType && !groupNumberToGroup.has(groupNumber)) {
+        availableGroupNumbers.push(groupNumber);
+      }
+    }
+    
+    if (availableGroupNumbers.length === 0) return null;
+    
+    // PRIORITY 1: Find all groupNumbers where first preferred judge is available
+    if (group.judgePreference1) {
+      // Find which judge number corresponds to first preference
+      let firstPreferenceJudgeNum: number | null = null;
+      for (const [judgeNum, judge] of judgeNumberToJudge) {
+        if (judge.id === group.judgePreference1) {
+          firstPreferenceJudgeNum = judgeNum;
+          break;
         }
       }
       
-      // Find the first available group (in original order) that can be assigned
-      let selectedGroup: Entrant | null = null;
-      let assignmentReason = '';
-      
-      for (const group of allGroups) {
-        if (!availableGroups.includes(group)) continue; // Skip if not available for this session type
-        
-        const bestJudge = findBestJudgeForGroup(group, evaluatingJudges);
-        if (bestJudge !== null) {
-          selectedGroup = group;
-          
-          // Determine assignment reason for logging
-          const judge = judgeNumberToJudge.get(bestJudge);
-          if (group.judgePreference1 === judge?.id) {
-            assignmentReason = '1st preference';
-          } else if (group.judgePreference2 === judge?.id) {
-            assignmentReason = '2nd preference';
-          } else if (group.judgePreference3 === judge?.id) {
-            assignmentReason = '3rd preference';
-          } else {
-            assignmentReason = 'fallback (no conflicts)';
+      if (firstPreferenceJudgeNum !== null) {
+        // Check all available groupNumbers to see if first preference judge evaluates them
+        for (const groupNumber of availableGroupNumbers) {
+          const evaluatingJudges = getEvaluatingJudges(groupNumber);
+          if (evaluatingJudges.has(firstPreferenceJudgeNum)) {
+            // Check if conflicts exist (for logging)
+            const hasConflicts = group.groupsToAvoid && Array.isArray(group.groupsToAvoid) && 
+              Array.from(judgeGroups.get(firstPreferenceJudgeNum) || [])
+                .filter(gn => gn !== groupNumber)
+                .some(gn => {
+                  const otherGroup = groupNumberToGroup.get(gn);
+                  return otherGroup && group.groupsToAvoid!.includes(otherGroup.id);
+                });
+            const reason = hasConflicts ? '1st preference (conflicts ignored)' : '1st preference';
+            return { groupNumber, judgeNumber: firstPreferenceJudgeNum, reason };
           }
-          
-          break; // Take the first group that can be assigned
+        }
+      }
+    }
+    
+    // PRIORITY 2: Find groupNumbers where second preferred judge is available (with conflict checking)
+    if (group.judgePreference2) {
+      let secondPreferenceJudgeNum: number | null = null;
+      for (const [judgeNum, judge] of judgeNumberToJudge) {
+        if (judge.id === group.judgePreference2) {
+          secondPreferenceJudgeNum = judgeNum;
+          break;
         }
       }
       
-      // Fallback: if no group can be assigned without conflicts, take the first available
-      if (!selectedGroup) {
-        selectedGroup = availableGroups[0];
-        assignmentReason = 'fallback (conflicts unavoidable)';
+      if (secondPreferenceJudgeNum !== null) {
+        for (const groupNumber of availableGroupNumbers) {
+          const evaluatingJudges = getEvaluatingJudges(groupNumber);
+          if (evaluatingJudges.has(secondPreferenceJudgeNum)) {
+            if (canAssignGroupToJudge(group, secondPreferenceJudgeNum)) {
+              return { groupNumber, judgeNumber: secondPreferenceJudgeNum, reason: '2nd preference' };
+            }
+          }
+        }
+      }
+    }
+    
+    // PRIORITY 3: Find groupNumbers where third preferred judge is available (with conflict checking)
+    if (group.judgePreference3) {
+      let thirdPreferenceJudgeNum: number | null = null;
+      for (const [judgeNum, judge] of judgeNumberToJudge) {
+        if (judge.id === group.judgePreference3) {
+          thirdPreferenceJudgeNum = judgeNum;
+          break;
+        }
       }
       
-      groupNumberToGroup.set(groupNumber, selectedGroup);
-      assignedGroups.add(selectedGroup);
-      console.log(`  Assigned group ${selectedGroup.name} (${sessionType}) to group number ${groupNumber} - ${assignmentReason}`);
+      if (thirdPreferenceJudgeNum !== null) {
+        for (const groupNumber of availableGroupNumbers) {
+          const evaluatingJudges = getEvaluatingJudges(groupNumber);
+          if (evaluatingJudges.has(thirdPreferenceJudgeNum)) {
+            if (canAssignGroupToJudge(group, thirdPreferenceJudgeNum)) {
+              return { groupNumber, judgeNumber: thirdPreferenceJudgeNum, reason: '3rd preference' };
+            }
+          }
+        }
+      }
+    }
+    
+    // PRIORITY 4: Find any groupNumber with any judge without conflicts
+    for (const groupNumber of availableGroupNumbers) {
+      const evaluatingJudges = getEvaluatingJudges(groupNumber);
+      for (const judgeNum of evaluatingJudges) {
+        if (canAssignGroupToJudge(group, judgeNum)) {
+          return { groupNumber, judgeNumber: judgeNum, reason: 'fallback (no conflicts)' };
+        }
+      }
+    }
+    
+    // PRIORITY 5: Final fallback - use first available groupNumber even with conflicts
+    if (availableGroupNumbers.length > 0) {
+      const fallbackGroupNumber = availableGroupNumbers[0];
+      const evaluatingJudges = getEvaluatingJudges(fallbackGroupNumber);
+      const firstJudge = evaluatingJudges.size > 0 ? Array.from(evaluatingJudges)[0] : 0;
+      return { groupNumber: fallbackGroupNumber, judgeNumber: firstJudge, reason: 'fallback (conflicts unavoidable)' };
+    }
+    
+    return null;
+  };
+  
+  // Assign groups one by one in order, checking their preferences first
+  const preferenceCounts = { first: 0, second: 0, third: 0, fallback: 0 };
+  for (const group of groups) {
+    if (assignedGroups.has(group)) continue;
+    
+    const assignment = findBestGroupNumberForGroup(group);
+    if (assignment) {
+      groupNumberToGroup.set(assignment.groupNumber, group);
+      assignedGroups.add(group);
+      
+      // Track preference fulfillment
+      if (assignment.reason.includes('1st preference')) preferenceCounts.first++;
+      else if (assignment.reason.includes('2nd preference')) preferenceCounts.second++;
+      else if (assignment.reason.includes('3rd preference')) preferenceCounts.third++;
+      else preferenceCounts.fallback++;
     } else {
-      console.warn(`No available ${sessionType} groups for group number ${groupNumber}`);
+      console.warn(`Could not assign group ${group.name} - no available group numbers for session type`);
     }
   }
   
-  console.log('\n=== FINAL ASSIGNMENTS ===');
-  console.log('Judge Assignments:');
-  for (const [judgeNum, judge] of judgeNumberToJudge) {
-    console.log(`  Judge ${judgeNum}: ${judge.name} (${judge.category})`);
-  }
-  
-  console.log('\nGroup Assignments:');
-  for (const [groupNum, group] of groupNumberToGroup) {
-    const evalType = groupTypes.get(groupNum) || 'Unknown';
-    console.log(`  Group ${groupNum}: ${group.name} (${evalType})`);
-  }
+  console.log(`✓ Assigned ${assignedGroups.size} groups: ${preferenceCounts.first} first, ${preferenceCounts.second} second, ${preferenceCounts.third} third, ${preferenceCounts.fallback} fallback`);
   
   return [judgeNumberToJudge, groupNumberToGroup];
+}
+
+const judgePopularity = (judges: Judge[], groups: Entrant[]): Map<string, { first: number; second: number; third: number; category: string }> => {
+  console.log('=== JUDGE POPULARITY SUMMARY ===');
+  
+  // Create a map to track counts for each judge
+  const judgeStats = new Map<string, { first: number; second: number; third: number; category: string }>();
+  
+  // Initialize stats for all judges
+  for (const judge of judges) {
+    judgeStats.set(judge.id, { first: 0, second: 0, third: 0, category: judge.category || 'Unknown' });
+  }
+  
+  // Count preferences for each group
+  for (const group of groups) {
+    if (group.judgePreference1) {
+      const stats = judgeStats.get(group.judgePreference1);
+      if (stats) stats.first++;
+    }
+    if (group.judgePreference2) {
+      const stats = judgeStats.get(group.judgePreference2);
+      if (stats) stats.second++;
+    }
+    if (group.judgePreference3) {
+      const stats = judgeStats.get(group.judgePreference3);
+      if (stats) stats.third++;
+    }
+  }
+  
+  // Output summary for each judge
+  for (const judge of judges) {
+    const stats = judgeStats.get(judge.id);
+    if (stats) {
+      console.log(`  ${judge.name} (${stats.category}) - First: ${stats.first}, Second: ${stats.second}, Third: ${stats.third}`);
+    }
+  }
+  
+  return judgeStats;
 }

@@ -24,18 +24,18 @@ export class LocalStorageService {
     console.error(`LocalStorageService.${operation} failed:`, error);
   }
 
-  private static logSuccess(operation: string, data?: unknown): void {
+  /*private static logSuccess(operation: string, data?: unknown): void {
     if (import.meta.env.DEV) {
       console.log(`LocalStorageService.${operation} succeeded`, data ? `with ${Array.isArray(data) ? data.length : 'data'}` : '');
     }
-  }
+  }*/
 
   // Judges operations
   static getJudges(): Judge[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.JUDGES);
       const judges = stored ? JSON.parse(stored) : [];
-      this.logSuccess('getJudges', judges);
+      //this.logSuccess('getJudges', judges);
       return judges;
     } catch (error) {
       this.logError('getJudges', error);
@@ -46,7 +46,7 @@ export class LocalStorageService {
   static saveJudges(judges: Judge[]): void {
     try {
       localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges));
-      this.logSuccess('saveJudges', judges);
+      //this.logSuccess('saveJudges', judges);
     } catch (error) {
       this.logError('saveJudges', error);
     }
@@ -59,7 +59,7 @@ export class LocalStorageService {
       const entrants = stored ? JSON.parse(stored) : [];
       
       // Migrate old string-based groupsToAvoid to new array format
-      const migratedEntrants = entrants.map((entrant: any) => {
+      const migratedEntrants = entrants.map((entrant: Entrant | (Partial<Entrant> & { groupsToAvoid?: string | string[]; name?: string; id?: string })) => {
         if (entrant.groupsToAvoid && typeof entrant.groupsToAvoid === 'string') {
           // Convert string to array of IDs by looking up names
           const groupNames = entrant.groupsToAvoid.split(' | ').map((g: string) => g.trim()).filter((g: string) => g);
@@ -67,7 +67,7 @@ export class LocalStorageService {
           
           groupNames.forEach((groupName: string) => {
             // Find the entrant with this name and get its ID
-            const matchingEntrant = entrants.find((e: any) => e.name === groupName);
+            const matchingEntrant = entrants.find((e: Entrant | (Partial<Entrant> & { name?: string; id?: string })) => e.name === groupName);
             if (matchingEntrant) {
               groupIds.push(matchingEntrant.id);
             } else {
@@ -84,7 +84,7 @@ export class LocalStorageService {
         return entrant;
       });
       
-      this.logSuccess('getEntrants', migratedEntrants);
+      //this.logSuccess('getEntrants', migratedEntrants);
       return migratedEntrants;
     } catch (error) {
       this.logError('getEntrants', error);
@@ -95,7 +95,7 @@ export class LocalStorageService {
   static saveEntrants(entrants: Entrant[]): void {
     try {
       localStorage.setItem(STORAGE_KEYS.ENTRANTS, JSON.stringify(entrants));
-      this.logSuccess('saveEntrants', entrants);
+      //this.logSuccess('saveEntrants', entrants);
       
       // Dispatch custom event to notify components of entrant data changes
       window.dispatchEvent(new CustomEvent('entrantsUpdated', { detail: entrants }));
@@ -112,10 +112,10 @@ export class LocalStorageService {
         const parsedSettings = JSON.parse(stored);
         // Merge with defaults to ensure all properties are present
         const settings = { ...DEFAULT_SETTINGS, ...parsedSettings };
-        this.logSuccess('getSettings', settings);
+        //this.logSuccess('getSettings', settings);
         return settings;
       }
-      this.logSuccess('getSettings', 'using defaults');
+      //this.logSuccess('getSettings', 'using defaults');
       return DEFAULT_SETTINGS;
     } catch (error) {
       this.logError('getSettings', error);
@@ -126,7 +126,7 @@ export class LocalStorageService {
   static saveSettings(settings: SessionSettings): void {
     try {
       localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-      this.logSuccess('saveSettings', settings);
+      //this.logSuccess('saveSettings', settings);
     } catch (error) {
       this.logError('saveSettings', error);
     }
@@ -135,7 +135,7 @@ export class LocalStorageService {
   static clearSettings(): void {
     try {
       localStorage.removeItem(STORAGE_KEYS.SETTINGS);
-      this.logSuccess('clearSettings');
+      //this.logSuccess('clearSettings');
     } catch (error) {
       this.logError('clearSettings', error);
     }
@@ -146,7 +146,7 @@ export class LocalStorageService {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.SESSION_BLOCKS);
       const sessionBlocks = stored ? JSON.parse(stored) : [];
-      this.logSuccess('getSessionBlocks', sessionBlocks);
+      //this.logSuccess('getSessionBlocks', sessionBlocks);
       return sessionBlocks;
     } catch (error) {
       this.logError('getSessionBlocks', error);
@@ -157,7 +157,7 @@ export class LocalStorageService {
   static saveSessionBlocks(sessionBlocks: SessionBlock[]): void {
     try {
       localStorage.setItem(STORAGE_KEYS.SESSION_BLOCKS, JSON.stringify(sessionBlocks));
-      this.logSuccess('saveSessionBlocks', sessionBlocks);
+      //this.logSuccess('saveSessionBlocks', sessionBlocks);
     } catch (error) {
       this.logError('saveSessionBlocks', error);
     }
@@ -169,7 +169,7 @@ export class LocalStorageService {
       Object.values(STORAGE_KEYS).forEach(key => {
         localStorage.removeItem(key);
       });
-      this.logSuccess('clearAll');
+      //this.logSuccess('clearAll');
     } catch (error) {
       this.logError('clearAll', error);
     }
