@@ -51,21 +51,21 @@ export default function EntrantRow({
     if (e.key === 'Enter' && groupsInput.trim()) {
       const currentGroups = entrant.groupsToAvoid || [];
       const newGroupName = groupsInput.trim();
-      
+
       // Find the entrant by name
       const otherEntrant = allEntrants.find(e => e.name === newGroupName);
       if (otherEntrant && otherEntrant.id !== entrant.id && !currentGroups.includes(otherEntrant.id)) {
         // Add to current entrant
         const updatedGroups = [...currentGroups, otherEntrant.id];
         onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
-        
+
         // Add this entrant to the other entrant's avoidance list
         const otherGroups = otherEntrant.groupsToAvoid || [];
         if (!otherGroups.includes(entrant.id)) {
           const updatedOtherGroups = [...otherGroups, entrant.id];
           onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
         }
-        
+
         setGroupsInput('');
       }
     }
@@ -75,7 +75,7 @@ export default function EntrantRow({
     const currentGroups = entrant.groupsToAvoid || [];
     const updatedGroups = currentGroups.filter(id => id !== groupIdToRemove);
     onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
-    
+
     // Also remove the current entrant's ID from the other entrant's avoidance list
     const otherEntrant = allEntrants.find(e => e.id === groupIdToRemove);
     if (otherEntrant && otherEntrant.id !== entrant.id) {
@@ -87,10 +87,10 @@ export default function EntrantRow({
 
   const getAutocompleteSuggestions = (currentInput: string) => {
     if (!currentInput.trim()) return [];
-    
+
     return allEntrants
-      .filter(otherEntrant => 
-        otherEntrant.id !== entrant.id && 
+      .filter(otherEntrant =>
+        otherEntrant.id !== entrant.id &&
         otherEntrant.name.toLowerCase().includes(currentInput.toLowerCase())
       )
       .map(otherEntrant => otherEntrant.name)
@@ -99,13 +99,13 @@ export default function EntrantRow({
 
   // Helper function to check if a group has conflicts
   const hasGroupConflict = (groupId: string): boolean => {
-    return scheduleConflicts.some(conflict => 
+    return scheduleConflicts.some(conflict =>
       conflict.entrantId === entrant.id && conflict.conflictingEntrantId === groupId
     );
   };
 
   return (
-    <tr 
+    <tr
       className={`text-gray-600 hover:bg-gray-50 transition-all duration-200 group ${
         draggedEntrantId === entrant.id ? 'opacity-50 scale-95' : ''
       } ${
@@ -126,13 +126,26 @@ export default function EntrantRow({
               <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
             </svg>
           </div>
-          <input 
-            type="checkbox" 
+          <input
+            type="checkbox"
             checked={entrant.includeInSchedule || false}
             onChange={(e) => onFieldUpdate(entrant.id, 'includeInSchedule', e.target.checked)}
             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
         </div>
+      </td>
+
+      {/* Score */}
+      <td className="px-2 py-2 border-b">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={entrant.score ?? ''}
+          onChange={(e) => onFieldUpdate(entrant.id, 'score', e.target.value === '' ? undefined : Number(e.target.value))}
+          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="0"
+        />
       </td>
 
        {/* Name */}
@@ -145,6 +158,19 @@ export default function EntrantRow({
           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Enter name"
         />
+      </td>
+
+      {/* Group Type */}
+      <td className="px-2 py-2 border-b">
+        <select
+          value={entrant.groupType || ''}
+          onChange={(e) => onFieldUpdate(entrant.id, 'groupType', e.target.value || null)}
+          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="">Select Type</option>
+          <option value="Chorus">Chorus</option>
+          <option value="Quartet">Quartet</option>
+        </select>
       </td>
 
       {/* Groups to Avoid */}
@@ -160,7 +186,7 @@ export default function EntrantRow({
               placeholder="Type to add groups to avoid..."
               className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
-            
+
             {/* Autocomplete Suggestions */}
             {groupsInput && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
@@ -175,7 +201,7 @@ export default function EntrantRow({
                           // Add to current entrant
                           const updatedGroups = [...currentGroups, otherEntrant.id];
                           onFieldUpdate(entrant.id, 'groupsToAvoid', updatedGroups);
-                          
+
                           // Add this entrant to the other entrant's avoidance list
                           const otherGroups = otherEntrant.groupsToAvoid || [];
                           if (!otherGroups.includes(entrant.id)) {
@@ -183,7 +209,7 @@ export default function EntrantRow({
                             onFieldUpdate(otherEntrant.id, 'groupsToAvoid', updatedOtherGroups);
                           }
                         }
-                        
+
                         setGroupsInput('');
                       }}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100"
