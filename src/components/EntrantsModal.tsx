@@ -32,8 +32,9 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const [showPreferencesImport, setShowPreferencesImport] = useState(false);
   const [originalEntrants, setOriginalEntrants] = useState<Entrant[]>([]);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
-  const [sortColumn, setSortColumn] = useState<'name' | 'include' | 'overallSF' | 'overallF' | null>(null);
+  const [sortColumn, setSortColumn] = useState<'score' | 'name' | 'include' | 'overallSF' | 'overallF' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [groupFilter, setGroupFilter] = useState('All');
 
   useEffect(() => {
     if (isOpen) {
@@ -61,7 +62,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
       judgePreference3: '',
       includeInSchedule: false,
     };
-    
+
     setEntrants(prev => [...prev, newEntrant]);
   };
 
@@ -73,13 +74,13 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     // Get current session blocks
     const currentSessionBlocks = getSessionBlocks();
     let updatedSessionBlocks = [...currentSessionBlocks];
-    
+
     // Process each entrant
     entrants.forEach(entrant => {
       if (entrant.includeInSchedule) {
         // Check if this entrant already has session blocks
         const existingBlocks = currentSessionBlocks.filter(block => block.entrantId === entrant.id);
-        
+
         if (existingBlocks.length === 0) {
           // Create new session blocks for this entrant using SessionService
           const newSessionBlocks = SessionService.generateSessionBlocks([entrant]);
@@ -90,18 +91,18 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         updatedSessionBlocks = updatedSessionBlocks.filter(block => block.entrantId !== entrant.id);
       }
     });
-    
+
     // Save updated session blocks
     saveSessionBlocks(updatedSessionBlocks);
-    
+
     // Save all local changes to localStorage before closing
     saveEntrants(entrants);
-    
+
     // Notify parent component that session blocks may have changed
     if (onSessionBlocksChange) {
       onSessionBlocksChange();
     }
-    
+
     // Update original to reflect saved state
     setOriginalEntrants(JSON.parse(JSON.stringify(entrants)));
     onClose();
@@ -113,8 +114,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
 
   const handleFieldUpdate = (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined | string[]) => {
 
-      setEntrants(prev => prev.map(entrant => 
-        entrant.id === entrantId 
+      setEntrants(prev => prev.map(entrant =>
+        entrant.id === entrantId
           ? { ...entrant, [field]: value }
           : entrant
       ));
@@ -146,7 +147,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
 
     const draggedIndex = entrants.findIndex(e => e.id === draggedEntrantId);
     const targetIndex = entrants.findIndex(e => e.id === targetEntrantId);
-    
+
     if (draggedIndex === -1 || targetIndex === -1) return;
 
     const newEntrants = [...entrants];
@@ -154,17 +155,17 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     newEntrants.splice(targetIndex, 0, draggedEntrant);
 
     setEntrants(newEntrants);
-    
+
     // Save the reordered entrants to localStorage
     saveEntrants(newEntrants);
-    
+
     // Get current session blocks and reorder them based on new entrant order
     const currentSessionBlocks = getSessionBlocks();
     const reorderedSessionBlocks = reorderSessionBlocksByEntrants(currentSessionBlocks, newEntrants);
-    
+
     // Save reordered session blocks to localStorage
     saveSessionBlocks(reorderedSessionBlocks);
-    
+
     setDraggedEntrantId(null);
     setDragOverEntrantId(null);
   };
@@ -215,7 +216,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   };
 
   // Handle column header click for sorting
-  const handleSort = (column: 'name' | 'include' | 'overallSF' | 'overallF') => {
+  const handleSort = (column: 'score' | 'name' | 'include' | 'overallSF' | 'overallF') => {
     if (sortColumn === column) {
       // Toggle direction if same column
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -237,6 +238,10 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
       let bValue: string | number | boolean | undefined;
 
       switch (sortColumn) {
+        case 'score':
+          aValue = a.score ?? -Infinity;
+          bValue = b.score ?? -Infinity;
+          break;
         case 'name':
           aValue = a.name.toLowerCase();
           bValue = b.name.toLowerCase();
@@ -325,13 +330,25 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
             </button>
           </div>
         </div>
-        
+
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-800">
-              Entrants ({entrants.filter(e => e.includeInSchedule).length > 0 
-                ? `${entrants.filter(e => e.includeInSchedule).length}/${entrants.length}` 
-                : entrants.length})
+              {entrants.filter(e => e.includeInSchedule).length > 0
+                ? `Selected Entrants (${entrants.filter(e => e.includeInSchedule).length}/${entrants.length})`
+                : `Entrants (${entrants.length})`}
+            </h3>
+            <h3 className="text-lg font-semibold text-gray-800">
+              Entrants to Display:
+              <select
+                value={groupFilter}
+                onChange={(e) => setGroupFilter(e.target.value)}
+                className="text-gray-800 mx-2 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="All">All</option>
+                <option value="Chorus">Choruses</option>
+                <option value="Quartet">Quartets</option>
+              </select>
             </h3>
             <div className="flex gap-2">
               {entrants.length > 0 && (
@@ -346,8 +363,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                     onClick={() => setShowPreferencesImport(true)}
                     disabled={judges.length === 0}
                     className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-offset-2 transition-colors ${
-                      judges.length === 0 
-                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                      judges.length === 0
+                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
                         : 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
                     }`}
                     title={judges.length === 0 ? 'No judges in the system yet' : ''}
@@ -378,7 +395,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                   </svg>
                 </button>
               </div>
-              <CSVImport 
+              <CSVImport
                 onEntrantsImportComplete={handleImportComplete}
                 existingEntrants={entrants}
               />
@@ -392,7 +409,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
             />
           ) : entrants.length === 0 ? (
             <div className="max-w-md mx-auto">
-              <CSVImport 
+              <CSVImport
                 onEntrantsImportComplete={handleImportComplete}
                 existingEntrants={entrants}
               />
@@ -402,7 +419,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
               <table className="min-w-full bg-white border border-gray-200 rounded-lg">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th 
+                    <th
                       className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-0 bg-gray-50 z-10 cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'include' ? 'bg-gray-100' : ''
                       }`}
@@ -415,7 +432,21 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
-                    <th 
+
+                    <th
+                      className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
+                        sortColumn === 'score' ? 'bg-gray-100' : ''
+                      }`}
+                      onClick={() => handleSort('score')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Score</span>
+                        {sortColumn === 'score' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
+                    <th
                       className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-[60px] bg-gray-50 z-10 w-48 cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'name' ? 'bg-gray-100' : ''
                       }`}
@@ -428,13 +459,14 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
+                    <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Group Type</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Groups to Avoid</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Preference</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 1</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 2</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 3</th>
                     <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
-                    <th 
+                    <th
                       className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'overallSF' ? 'bg-gray-100' : ''
                       }`}
@@ -447,7 +479,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
-                    <th 
+                    <th
                       className={`px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'overallF' ? 'bg-gray-100' : ''
                       }`}
@@ -464,23 +496,28 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {sortedEntrants.map((entrant) => (
-                    <EntrantRow
-                      key={entrant.id}
-                      entrant={entrant}
-                      judges={judges}
-                      allEntrants={entrants}
-                      draggedEntrantId={draggedEntrantId}
-                      dragOverEntrantId={dragOverEntrantId}
-                      scheduleConflicts={scheduleConflicts}
-                      onFieldUpdate={handleFieldUpdate}
-                      onRemove={handleRemove}
-                      onDragStart={handleDragStart}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      onDragEnd={handleDragEnd}
-                    />
+                  {sortedEntrants
+                    .filter((entrant) => {
+                      if (groupFilter === 'All') return true;
+                      return entrant.groupType === groupFilter;
+                    })
+                    .map((entrant) => (
+                      <EntrantRow
+                        key={entrant.id}
+                        entrant={entrant}
+                        judges={judges}
+                        allEntrants={entrants}
+                        draggedEntrantId={draggedEntrantId}
+                        dragOverEntrantId={dragOverEntrantId}
+                        scheduleConflicts={scheduleConflicts}
+                        onFieldUpdate={handleFieldUpdate}
+                        onRemove={handleRemove}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onDragEnd={handleDragEnd}
+                      />
                   ))}
                 </tbody>
               </table>
