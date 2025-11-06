@@ -51,11 +51,10 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
 
     rows.forEach((row, index) => {
       const groupName = row['Group Name']?.trim();
-      const bhs_id = row['BHS ID']?.trim();
-      const regex = new RegExp("^[A-Za-z]"); // tests true if starts with letter
+      const estimated_pos:number = Number(row['Estimated POS']);
 
-      const parseBHS = (id: string) => {
-        if (regex.test(id)) {
+      const parsePOS = (pos: number) => {
+        if (pos > 4) {
           return "Chorus";
         }
         return "Quartet";
@@ -99,7 +98,7 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
         overallSF,
         overallF: undefined, // Not available in DRCJ Report format
         score: undefined, // Not available in DRCJ Report format
-        groupType: parseBHS(bhs_id),
+        groupType: parsePOS(estimated_pos),
       };
 
       entrants.push(entrant);
