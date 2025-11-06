@@ -17,6 +17,8 @@ export interface Entrant {
   roomNumber?: string;
   overallSF?: number;
   overallF?: number;
+  score?: number;
+  groupType?: 'Chorus' | 'Quartet' | null;
 }
 
 
@@ -35,7 +37,7 @@ export interface SessionBlock {
 }
 
 
-  
+
   export interface DraggedSessionData {
     entrantId: string;
     entrantName: string;
