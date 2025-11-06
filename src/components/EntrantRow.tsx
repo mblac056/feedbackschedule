@@ -119,7 +119,7 @@ export default function EntrantRow({
       onDragEnd={onDragEnd}
     >
       {/* Include Checkbox */}
-      <td className="px-2 py-2 border-b sticky left-0 bg-white group-hover:bg-gray-50 z-10">
+      <td className="px-2 py-2 w-24 border-b sticky left-0 bg-white group-hover:bg-gray-50 z-10">
         <div className="flex items-center gap-2">
           <div className="cursor-move text-gray-400 hover:text-gray-600">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -135,21 +135,8 @@ export default function EntrantRow({
         </div>
       </td>
 
-      {/* Score */}
-      <td className="px-2 py-2 border-b">
-        <input
-          type="number"
-          min="0"
-          step="1"
-          value={entrant.score ?? ''}
-          onChange={(e) => onFieldUpdate(entrant.id, 'score', e.target.value === '' ? undefined : Number(e.target.value))}
-          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="0"
-        />
-      </td>
-
-       {/* Name */}
-       <td className="px-2 py-2 border-b sticky left-[60px] bg-white group-hover:bg-gray-50 z-10 w-48">
+      {/* Name */}
+      <td className="px-2 py-2 min-w-[12rem] border-b sticky left-24 bg-white group-hover:bg-gray-50 z-10">
         <input
           type="text"
           value={entrant.name}
@@ -173,8 +160,21 @@ export default function EntrantRow({
         </select>
       </td>
 
+      {/* Score */}
+      <td className="px-2 py-2 w-10 border-b">
+        <input
+          type="number"
+          min="0"
+          step="1"
+          value={entrant.score ?? ''}
+          onChange={(e) => onFieldUpdate(entrant.id, 'score', e.target.value === '' ? undefined : Number(e.target.value))}
+          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="0"
+        />
+      </td>
+
       {/* Groups to Avoid */}
-      <td className="px-2 py-2 border-b">
+      <td className="px-2 py-2 min-w-[14rem] border-b">
         <div className="space-y-2">
           {/* Input with Autocomplete */}
           <div className="relative">
@@ -350,7 +350,7 @@ export default function EntrantRow({
       </td>
 
       {/* Actions */}
-      <td className="px-2 py-2 border-b text-right">
+      <td className="px-2 py-2 w-10 border-b text-right">
         <button
           onClick={() => onRemove(entrant.id)}
           className="text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors font-bold text-lg"
