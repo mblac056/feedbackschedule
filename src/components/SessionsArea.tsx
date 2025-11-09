@@ -2,13 +2,15 @@ import UnassignedSessions from "./UnassignedSessions";
 import GridSchedule from "./GridSchedule";
 import { useState, useEffect } from "react";
 import type { Judge, SessionBlock } from "../types";
-import { saveJudges, clearGrid } from "../utils/localStorage";
+import { saveJudges, clearGrid, saveSettings } from "../utils/localStorage";
 import type { DraggedSessionData } from "../types";
 import { generatePDF } from "../utils/printFiles";
 import { FaChevronDown } from "react-icons/fa";
 import { useSettings } from "../contexts/useSettings";
 import { getSessionDurationMinutes } from "../config/timeConfig";
 import { populateGrid } from "../utils/populateGrid";
+import type { SessionSettings } from "../config/timeConfig";
+
 
 type SessionsAreaProps = {
     judges: Judge[];
@@ -31,7 +33,7 @@ type SessionsAreaProps = {
 }
 
 export default function SessionsArea({judges, setJudges, refreshKey, onScheduledSessionsChange, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlockRemove, entrantJudgeAssignments, scheduleConflicts }: SessionsAreaProps) {
-    const { settings } = useSettings();
+    const { settings, setSettings } = useSettings();
     const [draggedSessionData, setDraggedSessionData] = useState<DraggedSessionData | null>(null);
     const [totalDuration, setTotalDuration] = useState<number>(0);
     const [showPrintDropdown, setShowPrintDropdown] = useState<boolean>(false);
@@ -127,6 +129,30 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
         await generatePDF(scheduledSessions, judges, [reportId], entrantJudgeAssignments, allSessionBlocks, scheduleConflicts);
     };
 
+    const handlePopulateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void, sessionSettings?: SessionSettings) => {
+      // Determine if the majority of groups are Chorus or Quartet
+      const groupTypeQuartet3x20and3x10 = allSessionBlocks.filter(block => block.groupType === 'Quartet' && block.type !== '1xLong').length/3;
+      const groupTypeQuartet1xLong = allSessionBlocks.filter(block => block.groupType === 'Quartet' && block.type === '1xLong').length;
+      const groupTypeQuartet = groupTypeQuartet3x20and3x10 + groupTypeQuartet1xLong;
+      const groupTypeChorus3x20and3x10 = allSessionBlocks.filter(block => block.groupType === 'Chorus' && block.type !== '1xLong').length/3;
+      const groupTypeChorus1xLong = allSessionBlocks.filter(block => block.groupType === 'Chorus' && block.type === '1xLong').length;
+      const groupTypeChorus = groupTypeChorus3x20and3x10 + groupTypeChorus1xLong;
+      // If majority of groups are Chorus, set format to Judges moving to Groups
+      if(groupTypeChorus > groupTypeQuartet) {
+          const movingType: 'judges' | 'groups' = 'judges';
+          const newSettings = { ...settings, moving: movingType };
+          setSettings(newSettings);
+          saveSettings(newSettings);
+      } else {
+          const movingType: 'judges' | 'groups' = 'groups';
+          const newSettings = { ...settings, moving: movingType };
+          setSettings(newSettings);
+          saveSettings(newSettings);
+      }
+
+      populateGrid(allSessionBlocks, judges, onSessionBlockUpdate, sessionSettings);
+    }
+
 
 
     // Close dropdown when clicking outside
@@ -163,7 +189,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                     Clear Grid
                   </button>) : (
                   <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
-                    populateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
+                    handlePopulateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
                   }}>
                     Populate Grid
                   </button>
@@ -191,7 +217,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                           <button
                             key={option.id}
                             onClick={() => handleGenerateReport(option.id)}
-                            className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                            className="w-full text-left px-3 py-0 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
                           >
                             {option.label}
                           </button>
@@ -202,12 +228,18 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                 </div>
               </div>
               
-              {/* Total Length - below buttons on mobile, inline on desktop */}
-              {totalDuration > 0 && (
-                <span className={`text-gray-600 font-bold text-lg ${totalDuration > 120 && 'text-red-500'} w-full md:w-auto`}>
-                  Total Length: {Math.floor(totalDuration / 60) !== 0 && `${Math.floor(totalDuration / 60)}h `}{totalDuration % 60 !== 0 && `${totalDuration % 60}m`}
-                </span>
-              )}
+          </div>
+          <div className="grid grid-cols-3 w-full content-start mx-12">
+            {/* Total Length - below buttons on mobile, inline on desktop */}
+            {totalDuration > 0 && (
+              <span className={`text-gray-600 font-bold text-lg ${totalDuration > 120 && 'text-red-500'} w-full md:w-auto`}>
+                Total Length: {Math.floor(totalDuration / 60) !== 0 && `${Math.floor(totalDuration / 60)}h `}{totalDuration % 60 !== 0 && `${totalDuration % 60}m`}
+              </span>
+            )}
+            <span className={`text-gray-600 font-bold text-lg text-center`}>{ 
+              'Session Format: ' +
+              (settings.moving === 'groups' ? 'Groups moving to Judges' : 'Judges moving to Groups')
+            }</span>
           </div>
         <div className="mobile-scroll-container">
           <GridSchedule 

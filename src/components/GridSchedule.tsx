@@ -272,8 +272,13 @@ const handleSessionDragLeave = () => setDragPreview(null);
   };
 
   // Helper function to check if two time ranges overlap
-  const doTimeRangesOverlap = (start1: number, end1: number, start2: number, end2: number): boolean => {
-    return !(start1 > end2 || end1 < start2);
+  const doTimeRangesOverlap = (start1: number, end1: number, start2: number, end2: number, requireTimePadding?: boolean): boolean => {
+    if (requireTimePadding) {
+      return !(start1 > end2 + 2 || end1 + 2 < start2);
+    } else {
+      return !(start1 > end2 || end1 < start2);
+    }
+    
   };
 
   // Check if a session block has conflicts
@@ -334,8 +339,14 @@ const handleSessionDragLeave = () => setDragPreview(null);
           const otherStartRow = otherSession.startRowIndex!;
           const otherDuration = getSessionDurationInSlots(otherSession.type);
           const otherEndRow = otherStartRow + otherDuration - 1;
-          
-          return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
+
+          // If same entrant, no padding required; if different entrant, require padding
+          if (otherSession.entrantId === session.entrantId) {
+            return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
+          } else {
+            return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow, true);
+          }
+
         });
         
         if (hasRoomOverlap) return true;
@@ -465,7 +476,7 @@ const handleSessionDragLeave = () => setDragPreview(null);
   const getConflictDetails = () => {
     const conflicts = new Set<string>();
     const conflictList: Array<{
-      type: 'category' | 'entrant' | 'room' | 'late';
+      type: 'category' | 'entrant' | 'room' | 'late' | 'unpaddedChorusChange';
       entrantName?: string;
       category?: string;
       roomNumber?: string;
@@ -567,6 +578,34 @@ const handleSessionDragLeave = () => setDragPreview(null);
               });
             }
           }
+
+          const hasUnpaddedChorusChange = scheduledSessions.some(otherSession => {
+            if (otherSession.id === session.id) return false;
+            
+            const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
+            const otherEntrantRoom = otherEntrant?.roomNumber;
+            
+            if (otherEntrantRoom !== currentEntrantRoom) return false;
+            
+            const otherStartRow = otherSession.startRowIndex!;
+            const otherDuration = getSessionDurationInSlots(otherSession.type);
+            const otherEndRow = otherStartRow + otherDuration - 1;
+            
+            return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow, true);
+          });
+          if (hasUnpaddedChorusChange) {
+            const conflictKey = `unpaddedChorusChange-${currentEntrantRoom}`;
+            if (!conflicts.has(conflictKey)) {
+              conflicts.add(conflictKey);
+              conflictList.push({
+                type: 'unpaddedChorusChange',
+                roomNumber: currentEntrantRoom,
+                entrantName: session.entrantName 
+
+              });
+            }
+          }
+          
         }
       }
     });
@@ -619,6 +658,12 @@ const handleSessionDragLeave = () => setDragPreview(null);
                       return (
                         <li key={index}>
                           Sessions ending after 1am for: <strong>{conflict.entrantName}</strong>
+                        </li>
+                      );
+                    } else if (conflict.type === 'unpaddedChorusChange') {
+                      return (
+                        <li key={index}>
+                          Room <strong>{conflict.roomNumber}</strong> may need transition time added before group <strong>{conflict.entrantName}</strong>
                         </li>
                       );
                     }
