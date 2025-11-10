@@ -36,7 +36,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const [sortColumn, setSortColumn] = useState<'score' | 'name' | 'include' | 'overallSF' | 'overallF' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [groupFilter, setGroupFilter] = useState('All');
-  const { settings } = useSettings();
+  const [movementPrompt, setMovementPrompt] = useState<'chorusToJudges' | 'quartetToGroups' | null>(null);
+  const { settings, setSettings } = useSettings();
   
 
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     setEntrants(prev => prev.filter(entrant => entrant.id !== entrantId));
   };
 
-  const handleClose = () => {
+  const performSaveAndClose = () => {
     // Get current session blocks
     const currentSessionBlocks = getSessionBlocks();
     let updatedSessionBlocks = [...currentSessionBlocks];
@@ -113,6 +114,43 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     if (onModalClose) {
       onModalClose();
     }
+  };
+
+  const handleSaveAndClose = () => {
+    const selectedEntrants = entrants.filter(entrant => entrant.includeInSchedule);
+
+    if (selectedEntrants.length > 0) {
+      const chorusCount = selectedEntrants.filter(entrant => entrant.groupType === 'Chorus').length;
+      const quartetCount = selectedEntrants.filter(entrant => entrant.groupType === 'Quartet').length;
+
+      if (chorusCount > quartetCount && settings.moving === 'groups') {
+        setMovementPrompt('chorusToJudges');
+        return;
+      }
+
+      if (quartetCount > chorusCount && settings.moving === 'judges') {
+        setMovementPrompt('quartetToGroups');
+        return;
+      }
+    }
+
+    performSaveAndClose();
+  };
+
+  const handleMovementPromptConfirm = () => {
+    if (movementPrompt === 'chorusToJudges' && settings.moving !== 'judges') {
+      setSettings({ ...settings, moving: 'judges' });
+    } else if (movementPrompt === 'quartetToGroups' && settings.moving !== 'groups') {
+      setSettings({ ...settings, moving: 'groups' });
+    }
+
+    setMovementPrompt(null);
+    performSaveAndClose();
+  };
+
+  const handleMovementPromptDecline = () => {
+    setMovementPrompt(null);
+    performSaveAndClose();
   };
 
   const handleFieldUpdate = (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined | string[]) => {
@@ -383,6 +421,36 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
           </div>
         </div>
       )}
+      {movementPrompt && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[62] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {movementPrompt === 'chorusToJudges' ? 'Switch to Judges Move?' : 'Switch to Groups Move?'}
+              </h3>
+              <p className="text-gray-600 mb-6">
+                {movementPrompt === 'chorusToJudges'
+                  ? 'Most of the selected entrants are choruses. Switching to judges move can improve the flow of the schedule. Would you like to switch before saving?'
+                  : 'Most of the selected entrants are quartets. Switching to groups move can improve the flow of the schedule. Would you like to switch before saving?'}
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleMovementPromptDecline}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Keep Current
+                </button>
+                <button
+                  onClick={handleMovementPromptConfirm}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Switch Movement
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={handleCloseClick}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gray-600 text-white p-6 flex justify-between items-center">
@@ -392,7 +460,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={handleClose}
+              onClick={handleSaveAndClose}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
             >
               Save & Close
