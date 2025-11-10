@@ -160,7 +160,7 @@ export const importEvalPreferencesCSV = (
           const prefValue = value?.trim();
           console.log(`  Checking column "${columnName}": "${prefValue}"`);
           
-          if (prefValue && prefValue !== '' && prefValue !== 'None') {
+          if (prefValue && prefValue !== '' ) {
             console.log(`  Found preference value: "${prefValue}"`);
             // Map the preference values
             if (prefValue.includes('3x20')) {

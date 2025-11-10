@@ -27,6 +27,7 @@ export class SessionService {
           id: `${entrant.id}-1xlong`,
           entrantId: entrant.id,
           entrantName: entrant.name,
+          groupType: entrant.groupType,
           type: '1xLong',
           isScheduled: false
         });
@@ -36,6 +37,7 @@ export class SessionService {
             id: `${entrant.id}-3x20-${i}`,
             entrantId: entrant.id,
             entrantName: entrant.name,
+            groupType: entrant.groupType,
             type: '3x20',
             sessionIndex: i,
             isScheduled: false
@@ -47,6 +49,7 @@ export class SessionService {
             id: `${entrant.id}-3x10-${i}`,
             entrantId: entrant.id,
             entrantName: entrant.name,
+            groupType: entrant.groupType,
             type: '3x10',
             sessionIndex: i,
             isScheduled: false

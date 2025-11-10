@@ -5,6 +5,7 @@ import { SessionService } from '../services/SessionService';
 import CSVImport from './CSVImport';
 import PreferencesImport from './PreferencesImport';
 import EntrantRow from './EntrantRow';
+import { useSettings } from '../contexts/useSettings';
 
 interface SessionConflict {
   entrantId: string;
@@ -35,6 +36,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const [sortColumn, setSortColumn] = useState<'score' | 'name' | 'include' | 'overallSF' | 'overallF' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [groupFilter, setGroupFilter] = useState('All');
+  const { settings } = useSettings();
+  
 
   useEffect(() => {
     if (isOpen) {
@@ -238,6 +241,45 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     });
   };
 
+
+  // Helper function to check the status of checkbox
+  const getEligibleEntrants = () => {
+    return entrants.filter(entrant => {
+      if (entrant.preference === 'None') return false;
+      if (groupFilter === 'Chorus') return entrant.groupType === 'Chorus';
+      if (groupFilter === 'Quartet') return entrant.groupType === 'Quartet';
+      return true;
+    });
+  };
+
+  const areAllChecked = () => {
+    const eligibleEntrants = getEligibleEntrants();
+    if (eligibleEntrants.length === 0) return false;
+    return eligibleEntrants.every(entrant => entrant.includeInSchedule);
+  };
+
+  // Helper function to check all filtered entrants
+  const onCheckboxUpdate = (value: boolean) => {
+    setEntrants(prev =>
+      prev.map(entrant => {
+        const matchesFilter =
+          groupFilter === 'All' ||
+          (groupFilter === 'Chorus' && entrant.groupType === 'Chorus') ||
+          (groupFilter === 'Quartet' && entrant.groupType === 'Quartet');
+
+        if (!matchesFilter) {
+          return value ? entrant : { ...entrant, includeInSchedule: false };
+        }
+
+        if (entrant.preference === 'None') {
+          return { ...entrant, includeInSchedule: false };
+        }
+
+        return { ...entrant, includeInSchedule: value };
+      })
+    );
+  };
+
   // Handle column header click for sorting
   const handleSort = (column: 'score' | 'name' | 'include' | 'overallSF' | 'overallF') => {
     const isSameColumn = sortColumn === column;
@@ -301,13 +343,22 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
 
   const sortedEntrants = getSortedEntrants();
 
+  const visibleEntrants = sortedEntrants.filter(entrant => {
+    if (groupFilter === 'All') return true;
+    return entrant.groupType === groupFilter;
+  });
+
+  const eligibleVisibleEntrants = visibleEntrants.filter(entrant => entrant.preference !== 'None');
+  const selectedVisibleCount = eligibleVisibleEntrants.filter(entrant => entrant.includeInSchedule).length;
+  const totalVisibleEligible = eligibleVisibleEntrants.length;
+
   if (!isOpen) return null;
 
   return (
     <>
       {/* Confirmation Dialog */}
       {showConfirmClose && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[61] p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Unsaved Changes</h3>
@@ -358,9 +409,9 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         <div className="p-6 overflow-y-auto overflow-x-auto max-h-[calc(90vh-200px)]">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-800">
-              {entrants.filter(e => e.includeInSchedule).length > 0
-                ? `Selected Entrants (${entrants.filter(e => e.includeInSchedule).length}/${entrants.length})`
-                : `Entrants (${entrants.length})`}
+              {selectedVisibleCount > 0
+                ? `Selected Entrants (${selectedVisibleCount}/${totalVisibleEligible})`
+                : `Entrants (${totalVisibleEligible})`}
             </h3>
             <h3 className="text-lg font-semibold text-gray-800">
               Entrants to Display:
@@ -450,6 +501,15 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       onClick={() => handleSort('include')}
                     >
                       <div className="flex items-center space-x-1">
+
+                      <input
+                        type="checkbox"
+                        checked={areAllChecked()}
+                        onChange={(e) => onCheckboxUpdate(e.target.checked)}  
+                        onClick={(e) => e.stopPropagation()}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+
                         <span>Include</span>
                         {sortColumn === 'include' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -489,7 +549,15 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                     <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 1</th>
                     <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 2</th>
                     <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 3</th>
+                    
+                   {/*Render Room and POS columns only if moving judges*/}
+                    {settings.moving === 'judges' && (
+                     <>
                     <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
+                    <th className="px-2 py-2 w-32 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Performers</th>
+                    </>
+                    )}
+
                     <th
                       className={`px-2 py-2 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'overallSF' ? 'bg-gray-100' : ''
@@ -497,7 +565,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       onClick={() => handleSort('overallSF')}
                     >
                       <div className="flex items-center space-x-1">
-                        <span>O/A SF</span>
+                        <span>O/A Semi-Final</span>
                         {sortColumn === 'overallSF' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}
@@ -510,7 +578,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       onClick={() => handleSort('overallF')}
                     >
                       <div className="flex items-center space-x-1">
-                        <span>O/A F</span>
+                        <span>O/A Final</span>
                         {sortColumn === 'overallF' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}
@@ -520,12 +588,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {sortedEntrants
-                    .filter((entrant) => {
-                      if (groupFilter === 'All') return true;
-                      return entrant.groupType === groupFilter;
-                    })
-                    .map((entrant) => (
+                  {visibleEntrants.map((entrant) => (
                       <EntrantRow
                         key={entrant.id}
                         entrant={entrant}

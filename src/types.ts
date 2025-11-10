@@ -19,6 +19,7 @@ export interface Entrant {
   overallF?: number;
   score?: number;
   groupType?: 'Chorus' | 'Quartet' | null;
+  pos?: number | null;
 }
 
 
@@ -27,6 +28,7 @@ export interface SessionBlock {
   id: string;
   entrantId: string;
   entrantName: string;
+  groupType?: 'Chorus' | 'Quartet' | null;
   type: '1xLong' | '3x20' | '3x10';
   sessionIndex?: number;
   // Scheduling information (only present for scheduled sessions)

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Entrant, Judge } from '../types';
+import { useSettings } from '../contexts/useSettings';
 
 interface SessionConflict {
   entrantId: string;
@@ -42,6 +43,7 @@ export default function EntrantRow({
   onDragEnd
 }: EntrantRowProps) {
   const [groupsInput, setGroupsInput] = useState('');
+  const { settings } = useSettings();
 
   const handleGroupsInputChange = (value: string) => {
     setGroupsInput(value);
@@ -68,6 +70,15 @@ export default function EntrantRow({
 
         setGroupsInput('');
       }
+    }
+  };
+
+  const handlePreferenceChange = (value: string) => {
+    const nextPreference = value || null;
+    onFieldUpdate(entrant.id, 'preference', nextPreference);
+
+    if (value === 'None' && entrant.includeInSchedule) {
+      onFieldUpdate(entrant.id, 'includeInSchedule', false);
     }
   };
 
@@ -131,6 +142,7 @@ export default function EntrantRow({
             checked={entrant.includeInSchedule || false}
             onChange={(e) => onFieldUpdate(entrant.id, 'includeInSchedule', e.target.checked)}
             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            disabled={entrant.preference === 'None'}
           />
         </div>
       </td>
@@ -260,13 +272,14 @@ export default function EntrantRow({
       <td className="px-2 py-2 border-b">
         <select
           value={entrant.preference || ''}
-          onChange={(e) => onFieldUpdate(entrant.id, 'preference', e.target.value || null)}
+          onChange={(e) => handlePreferenceChange(e.target.value)}
           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Select Preference</option>
           <option value="1xLong">1xLong</option>
           <option value="3x20">3x20</option>
           <option value="3x10">3x10</option>
+          <option value="None">None</option>
         </select>
       </td>
 
@@ -312,6 +325,9 @@ export default function EntrantRow({
         </select>
       </td>
 
+      {/*Render Room and POS columns only if moving judges*/}
+        {settings.moving === 'judges' && (
+       <>        
       {/* Room */}
       <td className="px-2 py-2 border-b">
         <input
@@ -322,6 +338,19 @@ export default function EntrantRow({
           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </td>
+      {/* POS */}
+      <td className="px-2 py-2 border-b">
+        <input
+          type="text"
+          value={entrant.pos || ''}
+          onChange={(e) => onFieldUpdate(entrant.id, 'roomNumber', e.target.value)}
+          onBlur={(e) => onFieldUpdate(entrant.id, 'roomNumber', e.target.value.trim() || '')}
+          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </td>
+      </>
+      )}
+
 
       {/* O/A SF */}
       <td className="px-2 py-2 border-b">
