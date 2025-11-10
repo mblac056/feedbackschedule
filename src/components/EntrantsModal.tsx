@@ -342,7 +342,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     <>
       {/* Confirmation Dialog */}
       {showConfirmClose && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[61] p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <h3 className="text-xl font-bold text-gray-900 mb-2">Unsaved Changes</h3>
