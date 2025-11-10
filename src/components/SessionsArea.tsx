@@ -232,7 +232,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
               </div>
               
           </div>
-          <div className="w-full content-start mx-12 mb-4">
+          <div className="content-start mx-12 mb-4">
             <div className="text-gray-600 text-lg">
               Session Format:{' '}
               <span className={`font-bold ${settings.moving === 'groups' ? 'text-green-600' : 'text-blue-600'} font-bold`}>
