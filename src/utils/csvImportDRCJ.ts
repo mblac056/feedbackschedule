@@ -99,6 +99,7 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
         overallF: undefined, // Not available in DRCJ Report format
         score: undefined, // Not available in DRCJ Report format
         groupType: parsePOS(estimated_pos),
+        pos: isNaN(estimated_pos) ? null : estimated_pos
       };
 
       entrants.push(entrant);

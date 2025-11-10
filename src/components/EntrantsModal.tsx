@@ -5,6 +5,7 @@ import { SessionService } from '../services/SessionService';
 import CSVImport from './CSVImport';
 import PreferencesImport from './PreferencesImport';
 import EntrantRow from './EntrantRow';
+import { useSettings } from '../contexts/useSettings';
 
 interface SessionConflict {
   entrantId: string;
@@ -35,6 +36,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const [sortColumn, setSortColumn] = useState<'score' | 'name' | 'include' | 'overallSF' | 'overallF' | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [groupFilter, setGroupFilter] = useState('All');
+  const { settings } = useSettings();
 
   useEffect(() => {
     if (isOpen) {
@@ -236,6 +238,39 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
 
       return sortedEntrants;
     });
+  };
+
+  // Helper function to check the status of checkbox
+  const areAllChecked = () => {
+    if (groupFilter === 'Chorus') {
+      return entrants.filter (e => e.groupType === 'Chorus' && e.includeInSchedule === false).length === 0;
+    } else if (groupFilter === 'Quartet') {
+      return entrants.filter (e => e.groupType === 'Quartet' && e.includeInSchedule === false).length === 0;
+    } 
+    return entrants.filter (e => e.includeInSchedule === false).length === 0;
+  }
+
+  // Helpter function to check all filtered entrants
+  const onCheckboxUpdate = (value: string | boolean | number | null | undefined | string[]) => {
+    if (groupFilter === 'Chorus') {
+      setEntrants(prev => prev.map(entrant => {
+        if (entrant.groupType === 'Chorus') {
+          entrant.includeInSchedule = value as boolean;
+        }
+        return entrant;
+      }));
+    } else if (groupFilter === 'Quartet') {
+      setEntrants(prev => prev.map(entrant => {
+        if (entrant.groupType === 'Quartet') {
+          entrant.includeInSchedule = value as boolean;
+        }
+        return entrant;
+      }));
+    } else {
+      setEntrants(prev => prev.map(entrant => ({
+        ...entrant, includeInSchedule: value as boolean 
+      })));
+    }
   };
 
   // Handle column header click for sorting
@@ -450,6 +485,15 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       onClick={() => handleSort('include')}
                     >
                       <div className="flex items-center space-x-1">
+
+                      <input
+                        type="checkbox"
+                        checked={areAllChecked()}
+                        onChange={(e) => onCheckboxUpdate(e.target.checked)}  
+                        onClick={(e) => e.stopPropagation()}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+
                         <span>Include</span>
                         {sortColumn === 'include' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
@@ -489,7 +533,15 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                     <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 1</th>
                     <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 2</th>
                     <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 3</th>
+                    
+                   {/*Render Room and POS columns only if moving judges*/}
+                    {settings.moving === 'judges' && (
+                     <>
                     <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
+                    <th className="px-2 py-2 w-32 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Performers</th>
+                    </>
+                    )}
+
                     <th
                       className={`px-2 py-2 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'overallSF' ? 'bg-gray-100' : ''
@@ -497,7 +549,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       onClick={() => handleSort('overallSF')}
                     >
                       <div className="flex items-center space-x-1">
-                        <span>O/A SF</span>
+                        <span>O/A Semi-Final</span>
                         {sortColumn === 'overallSF' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}
@@ -510,7 +562,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       onClick={() => handleSort('overallF')}
                     >
                       <div className="flex items-center space-x-1">
-                        <span>O/A F</span>
+                        <span>O/A Final</span>
                         {sortColumn === 'overallF' && (
                           <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
                         )}

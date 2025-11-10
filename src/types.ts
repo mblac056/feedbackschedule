@@ -19,6 +19,7 @@ export interface Entrant {
   overallF?: number;
   score?: number;
   groupType?: 'Chorus' | 'Quartet' | null;
+  pos?: number | null;
 }
 
 
