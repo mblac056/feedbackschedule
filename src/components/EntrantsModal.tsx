@@ -37,6 +37,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [groupFilter, setGroupFilter] = useState('All');
   const { settings } = useSettings();
+  
 
   useEffect(() => {
     if (isOpen) {
@@ -240,9 +241,10 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     });
   };
 
+
   // Helper function to check the status of checkbox
   const areAllChecked = () => {
-    if (groupFilter === 'Chorus') {
+    if (groupFilter === 'Chorus' ) {
       return entrants.filter (e => e.groupType === 'Chorus' && e.includeInSchedule === false).length === 0;
     } else if (groupFilter === 'Quartet') {
       return entrants.filter (e => e.groupType === 'Quartet' && e.includeInSchedule === false).length === 0;
@@ -254,14 +256,14 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const onCheckboxUpdate = (value: string | boolean | number | null | undefined | string[]) => {
     if (groupFilter === 'Chorus') {
       setEntrants(prev => prev.map(entrant => {
-        if (entrant.groupType === 'Chorus') {
+        if (entrant.groupType === 'Chorus' && entrant.preference !== 'None') {
           entrant.includeInSchedule = value as boolean;
         }
         return entrant;
       }));
     } else if (groupFilter === 'Quartet') {
       setEntrants(prev => prev.map(entrant => {
-        if (entrant.groupType === 'Quartet') {
+        if (entrant.groupType === 'Quartet' && entrant.preference !== 'None') {
           entrant.includeInSchedule = value as boolean;
         }
         return entrant;
@@ -394,8 +396,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-800">
               {entrants.filter(e => e.includeInSchedule).length > 0
-                ? `Selected Entrants (${entrants.filter(e => e.includeInSchedule).length}/${entrants.length})`
-                : `Entrants (${entrants.length})`}
+                ? `Selected Entrants (${entrants.filter(e => e.includeInSchedule).length}/${entrants.length - entrants.filter (e => e.preference === 'None').length})`
+                : `Entrants (${entrants.length - entrants.filter (e => e.preference === 'None').length} of ${entrants.length - entrants.filter (e => e.preference === 'None').length})`}
             </h3>
             <h3 className="text-lg font-semibold text-gray-800">
               Entrants to Display:

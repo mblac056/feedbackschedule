@@ -133,6 +133,7 @@ export default function EntrantRow({
             checked={entrant.includeInSchedule || false}
             onChange={(e) => onFieldUpdate(entrant.id, 'includeInSchedule', e.target.checked)}
             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            disabled={entrant.preference === 'None'}
           />
         </div>
       </td>
@@ -269,6 +270,7 @@ export default function EntrantRow({
           <option value="1xLong">1xLong</option>
           <option value="3x20">3x20</option>
           <option value="3x10">3x10</option>
+          <option value="None">None</option>
         </select>
       </td>
 
