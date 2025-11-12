@@ -52,9 +52,8 @@ export async function generateMatrixPage(
       h1 { font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #000; }
       table { width: 100%; border-collapse: collapse; font-size: 16px; }
       th { background-color: #d3d3d3; color: #000; padding: 8px; text-align: center; font-weight: bold; border: 1px solid #666; }
-      td { height: 24px; padding: 2px; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
-      .time-col { background-color: #d3d3d3; font-weight: bold; width: 50px; }
-      .time-col.quarter-hour { font-weight: bold; }
+      td { height: 18px; padding: 2px; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
+      .time-col { line-height: 0.8; padding-bottom: 10px; background-color: #d3d3d3; width: 50px; font-size: 12px;}
       .session-cell { background-color:#ffffff; }
       @media print {
         @page { size: legal landscape; margin: 0.4in; }
@@ -79,11 +78,10 @@ export async function generateMatrixPage(
 
   // Add rows with sessions
   intervals.forEach((time, rowIndex) => {
-    const isQuarterHour = ['00', '15', '30', '45'].includes(time.split(':')[1]);
     html += `<tr>`;
     
     // Time column
-    html += `<td class="time-col ${isQuarterHour ? 'quarter-hour' : ''}">${time}</td>`;
+    html += `<td class="time-col">${time}</td>`;
     
     // Judge columns
     judges.forEach((judge, colIndex) => {
