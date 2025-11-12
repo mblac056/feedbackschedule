@@ -1,5 +1,5 @@
 import type { Judge, SessionBlock } from '../types';
-import { getEntrants, getSettings } from './localStorage';
+import { getEntrants, getSettings, getPreferenceNotes } from './localStorage';
 import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '../config/timeConfig';
 import jsPDF from 'jspdf';
 import { generateMatrixPage } from './printTemplate-matrix';
@@ -609,7 +609,8 @@ export function generatePreferenceCheckData(
     allSessionBlocks: allSessionBlocks?.map(s => ({ entrantId: s.entrantId, type: s.type })),
     scheduleConflicts,
     pillCounts: getPillCounts(),
-    entrantByeLengths
+    entrantByeLengths,
+    preferenceNotes: getPreferenceNotes() || undefined
   };
 }
 

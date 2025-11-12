@@ -30,6 +30,7 @@ export interface PreferenceCheckData {
     grayCount: number;
   };
   entrantByeLengths?: { [entrantId: string]: number };
+  preferenceNotes?: string;
 }
 
 export async function generatePreferenceCheckPage(data: PreferenceCheckData): Promise<Blob> {
@@ -70,6 +71,9 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
       .pill.red { background: #fee2e2; color: #991b1b; }
       .pill.gray { background: #e5e7eb; color: #4b5563; }
       .pill-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+      .notes-section { margin-top: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }
+      .notes-section h3 { font-size: 14px; font-weight: 600; color: #374151; margin-bottom: 12px; }
+      .notes-content { font-size: 12px; color: #1f2937; white-space: pre-wrap; line-height: 1.5; }
       .footer { margin-top: 20px; font-size: 8px; color: #808080; text-align: center; }
       @media print {
         @page { size: letter portrait; margin: 0.5in; }
@@ -185,9 +189,26 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
     html += '</tr>';
   });
 
+  // Helper function to escape HTML and convert newlines to <br>
+  const escapeHtml = (text: string): string => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/\n/g, '<br>');
+  };
+
   html += `
       </tbody>
     </table>
+    ${data.preferenceNotes ? `
+    <div class="notes-section">
+      <h3>Notes</h3>
+      <div class="notes-content">${escapeHtml(data.preferenceNotes)}</div>
+    </div>
+    ` : ''}
     <div class="footer">
       Generated on ${new Date().toLocaleString()}
     </div>

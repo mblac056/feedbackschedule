@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   ENTRANTS: 'evalmatrix_entrants',
   SETTINGS: 'evalmatrix_settings',
   SESSION_BLOCKS: 'evalmatrix_session_blocks',
+  PREFERENCE_NOTES: 'evalmatrix_preference_notes',
 } as const;
 
 // Default settings - centralized and consistent
@@ -163,6 +164,25 @@ export class LocalStorageService {
     }
   }
 
+  // Preference Notes operations
+  static getPreferenceNotes(): string {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.PREFERENCE_NOTES);
+      return stored || '';
+    } catch (error) {
+      this.logError('getPreferenceNotes', error);
+      return '';
+    }
+  }
+
+  static savePreferenceNotes(notes: string): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PREFERENCE_NOTES, notes);
+    } catch (error) {
+      this.logError('savePreferenceNotes', error);
+    }
+  }
+
   // Utility methods
   static clearAll(): void {
     try {
@@ -251,6 +271,10 @@ export const saveSettings = (settings: SessionSettings): void => LocalStorageSer
 // Session Blocks functions
 export const getSessionBlocks = (): SessionBlock[] => LocalStorageService.getSessionBlocks();
 export const saveSessionBlocks = (sessionBlocks: SessionBlock[]): void => LocalStorageService.saveSessionBlocks(sessionBlocks);
+
+// Preference Notes functions
+export const getPreferenceNotes = (): string => LocalStorageService.getPreferenceNotes();
+export const savePreferenceNotes = (notes: string): void => LocalStorageService.savePreferenceNotes(notes);
 
 // Utility function to clear the grid by unscheduling all session blocks
 export const clearGrid = (sessionBlocks: SessionBlock[]): SessionBlock[] => {

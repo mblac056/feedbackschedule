@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Entrant, Judge, EntrantJudgeAssignments, SessionBlock } from '../types';
-import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants, getSettings } from '../utils/localStorage';
+import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants, getSettings, getPreferenceNotes, savePreferenceNotes } from '../utils/localStorage';
 import { useEntrant } from '../contexts/useEntrant.ts';
 import { getCategoryColor } from '../config/categoryConfig';
 import { calculateTotalByeLength } from '../utils/printFiles';
@@ -30,6 +30,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
   const [dragOverEntrantId, setDragOverEntrantId] = useState<string | null>(null);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
+  const [preferenceNotes, setPreferenceNotes] = useState<string>('');
   const { selectedEntrant } = useEntrant();
   const settings = getSettings();
 
@@ -40,6 +41,10 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     // Filter included entrants and maintain array order
     const included = storedEntrants.filter(e => e.includeInSchedule);
     setIncludedEntrants(included);
+    
+    // Load preference notes
+    const notes = getPreferenceNotes();
+    setPreferenceNotes(notes);
   }, []);
 
   // Update included entrants when entrants change
@@ -221,6 +226,12 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
 
   const togglePanel = () => {
     setIsPanelOpen(!isPanelOpen);
+  };
+
+  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newNotes = e.target.value;
+    setPreferenceNotes(newNotes);
+    savePreferenceNotes(newNotes);
   };
 
   if (includedEntrants.length === 0) {
@@ -514,13 +525,28 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                 </table>
               </div>
               <p className="text-gray-600 text-xs text-center">Drag rows to reorder entrants to more easily visualize preferences by group priority</p>
+              
+              {/* Notes Section */}
+                <label htmlFor="preference-notes" className="block text-sm font-medium text-gray-700 mb-2">
+                  Notes and Reminders
+                </label>
+                <p className="text-xs text-gray-500 mb-2">These notes will also be included in the Preference Check PDF.</p>
+                <textarea
+                  id="preference-notes"
+                  value={preferenceNotes}
+                  onChange={handleNotesChange}
+                  placeholder="Add any notes, reminders, or considerations for the feedback schedule..."
+                  className="w-full px-3 py-2 border border-gray-300 text-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-y min-h-[100px]"
+                  rows={4}
+                />
+              </div>
+              
               <div className="flex justify-center">
               <p className="text-gray-600 text-xs text-center bg-yellow-100 p-2 rounded-lg">Tip: Toggle this panel using the "P" key.</p>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* Dark overlay - only show when panel is open */}
       {isPanelOpen && (

@@ -1,5 +1,5 @@
 import type { Judge, Entrant, SessionBlock } from '../types';
-import { getJudges, getEntrants, getSessionBlocks, saveJudges, saveEntrants, saveSessionBlocks, getSettings, saveSettings } from './localStorage';
+import { getJudges, getEntrants, getSessionBlocks, saveJudges, saveEntrants, saveSessionBlocks, getSettings, saveSettings, getPreferenceNotes, savePreferenceNotes } from './localStorage';
 
 export interface ExportData {
   judges: Judge[];
@@ -12,6 +12,7 @@ export interface ExportData {
     threeX10Length: number;
     moving: 'judges' | 'groups';
   };
+  preferenceNotes?: string;
   exportDate: string;
   version: string;
 }
@@ -42,6 +43,7 @@ export const generateExportData = (): ExportData => {
     judges: getJudges(),
     entrants: getEntrants(),
     sessionBlocks: getSessionBlocks(),
+    preferenceNotes: getPreferenceNotes() || undefined,
   };
 };
 
@@ -96,15 +98,21 @@ export const importData = (jsonString: string): { success: boolean; message: str
     saveJudges(cleanJudges);
     saveEntrants(cleanEntrants);
     saveSessionBlocks(cleanSessionBlocks);
+    
+    // Import preference notes if present
+    if (parsedData.preferenceNotes !== undefined) {
+      savePreferenceNotes(parsedData.preferenceNotes || '');
+    }
 
     return { 
       success: true, 
-      message: `Successfully imported ${cleanJudges.length} judges, ${cleanEntrants.length} entrants, ${cleanSessionBlocks.length} session blocks, and settings. Please refresh the page to see changes.`,
+      message: `Successfully imported ${cleanJudges.length} judges, ${cleanEntrants.length} entrants, ${cleanSessionBlocks.length} session blocks, settings${parsedData.preferenceNotes !== undefined ? ', and preference notes' : ''}. Please refresh the page to see changes.`,
       data: {
         judges: cleanJudges,
         entrants: cleanEntrants,
         sessionBlocks: cleanSessionBlocks,
-        settings: cleanSettings
+        settings: cleanSettings,
+        preferenceNotes: parsedData.preferenceNotes
       }
     };
   } catch (error) {
