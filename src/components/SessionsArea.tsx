@@ -220,7 +220,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                           <button
                             key={option.id}
                             onClick={() => handleGenerateReport(option.id)}
-                            className="w-full text-left px-3 py-0 text-sm text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                            className="w-full text-left px-3 my-1 py-0 text-gray-700 hover:bg-gray-100 rounded transition-colors"
                           >
                             {option.label}
                           </button>

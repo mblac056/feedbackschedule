@@ -49,8 +49,8 @@ export async function generateMatrixPage(
   let html = `
     <style>
       body { margin: 0; padding: 20px; font-family: Arial, sans-serif; color: #000; }
-      h1 { font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #000; }
-      table { width: 100%; border-collapse: collapse; font-size: 10px; }
+      h1 { font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #000; }
+      table { width: 100%; border-collapse: collapse; font-size: 16px; }
       th { background-color: #d3d3d3; color: #000; padding: 8px; text-align: center; font-weight: bold; border: 1px solid #666; }
       td { height: 24px; padding: 2px; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
       .time-col { background-color: #d3d3d3; font-weight: bold; width: 50px; }
@@ -154,8 +154,10 @@ export async function generateMatrixPage(
   html += `
       </tbody>
     </table>
-    <div style="margin-top: 20px; font-size: 10px; color: #808080; text-align: center;">
+    <div style="margin-top: 20px; font-size: 12px; color: #808080; text-align: center;">
       Generated on ${new Date().toLocaleString()}
+      <br>
+      -
     </div>
   `;
 

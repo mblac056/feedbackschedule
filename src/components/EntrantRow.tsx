@@ -175,11 +175,17 @@ export default function EntrantRow({
       {/* Score */}
       <td className="px-2 py-2 w-10 border-b">
         <input
-          type="number"
-          min="0"
-          step="1"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={entrant.score ?? ''}
-          onChange={(e) => onFieldUpdate(entrant.id, 'score', e.target.value === '' ? undefined : Number(e.target.value))}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Only allow digits or empty string
+            if (value === '' || /^\d+$/.test(value)) {
+              onFieldUpdate(entrant.id, 'score', value === '' ? undefined : Number(value));
+            }
+          }}
           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="0"
         />
@@ -355,11 +361,17 @@ export default function EntrantRow({
       {/* O/A SF */}
       <td className="px-2 py-2 border-b">
         <input
-          type="number"
-          min="0"
-          step="1"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={entrant.overallSF ?? ''}
-          onChange={(e) => onFieldUpdate(entrant.id, 'overallSF', e.target.value === '' ? undefined : Number(e.target.value))}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Only allow digits or empty string
+            if (value === '' || /^\d+$/.test(value)) {
+              onFieldUpdate(entrant.id, 'overallSF', value === '' ? undefined : Number(value));
+            }
+          }}
           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="0"
         />
@@ -368,11 +380,17 @@ export default function EntrantRow({
       {/* O/A F */}
       <td className="px-2 py-2 border-b">
         <input
-          type="number"
-          min="0"
-          step="1"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={entrant.overallF ?? ''}
-          onChange={(e) => onFieldUpdate(entrant.id, 'overallF', e.target.value === '' ? undefined : Number(e.target.value))}
+          onChange={(e) => {
+            const value = e.target.value;
+            // Only allow digits or empty string
+            if (value === '' || /^\d+$/.test(value)) {
+              onFieldUpdate(entrant.id, 'overallF', value === '' ? undefined : Number(value));
+            }
+          }}
           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="0"
         />

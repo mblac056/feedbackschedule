@@ -127,8 +127,8 @@ export const parseSimpleCSV = (csvText: string, delimiter: string = ','): Record
     return [];
   }
 
-  // Parse header row
-  const originalHeaders = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+  // Parse header row using proper CSV parsing to handle quoted fields with commas
+  const originalHeaders = parseCSVLine(lines[0], delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
   
   // Create unique headers by appending numbers to duplicates
   const headers: string[] = [];
@@ -145,14 +145,14 @@ export const parseSimpleCSV = (csvText: string, delimiter: string = ','): Record
     }
   });
   
-  // Parse data rows (simple line-by-line)
+  // Parse data rows (simple line-by-line) using proper CSV parsing to handle quoted fields with commas
   const rows: Record<string, string>[] = [];
   
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue; // Skip empty lines
     
-    const values = line.split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+    const values = parseCSVLine(line, delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
     const row: Record<string, string> = {};
     
     headers.forEach((header, index) => {
