@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type { DragEvent as ReactDragEvent } from 'react';
 import type { Judge, Entrant, SessionBlock, DraggedSessionData } from '../types';
 import { getEntrants, saveSettings } from '../utils/localStorage';
 import SessionBlockComponent from './SessionBlock';
@@ -6,6 +7,14 @@ import { TIME_CONFIG, getSessionHeight } from '../config/timeConfig';
 import { useSettings } from '../contexts/useSettings';
 import { useEntrant } from '../contexts/useEntrant';
 import { getCategoryColor } from '../config/categoryConfig';
+import {
+  buildSessionSwapUpdates,
+  buildEntrantSwapUpdates,
+  getConflictDetails,
+  getJudgeAssignedTime,
+  hasSessionConflict,
+  hasTimeConflict
+} from '../utils/scheduleHelpers';
 interface GridScheduleProps {
   judges: Judge[];
   onJudgesReorder?: (reorderedJudges: Judge[]) => void;
@@ -36,6 +45,10 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [isEditingStartTime, setIsEditingStartTime] = useState(false);
   const [tempStartTime, setTempStartTime] = useState(settings.startTime);
+  const [swapCandidateSessionId, setSwapCandidateSessionId] = useState<string | null>(null);
+  const swapHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingSwapSessionIdRef = useRef<string | null>(null);
+  const SWAP_HOVER_TIMEOUT = 1000; // 1 second
 
   useEffect(() => {
     const storedEntrants = getEntrants();
@@ -88,8 +101,59 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
   useEffect(() => {
     if (!draggedSessionData) {
       setDragPreview(null);
+      setSwapCandidateSessionId(null);
+      if (swapHoverTimeoutRef.current) {
+        clearTimeout(swapHoverTimeoutRef.current);
+        swapHoverTimeoutRef.current = null;
+      }
+      pendingSwapSessionIdRef.current = null;
     }
   }, [draggedSessionData]);
+
+  useEffect(() => {
+    return () => {
+      if (swapHoverTimeoutRef.current) {
+        clearTimeout(swapHoverTimeoutRef.current);
+      }
+      swapHoverTimeoutRef.current = null;
+      pendingSwapSessionIdRef.current = null;
+    };
+  }, []);
+
+  const startSwapHoverTimer = (sessionId: string) => {
+    setSwapCandidateSessionId((current) => (current === sessionId ? current : null));
+
+    if (swapHoverTimeoutRef.current) {
+      if (pendingSwapSessionIdRef.current === sessionId) {
+        return;
+      }
+      clearTimeout(swapHoverTimeoutRef.current);
+      swapHoverTimeoutRef.current = null;
+      pendingSwapSessionIdRef.current = null;
+    }
+
+    pendingSwapSessionIdRef.current = sessionId;
+    swapHoverTimeoutRef.current = setTimeout(() => {
+      setSwapCandidateSessionId(sessionId);
+      swapHoverTimeoutRef.current = null;
+      pendingSwapSessionIdRef.current = null;
+    }, SWAP_HOVER_TIMEOUT);
+  };
+
+  const cancelSwapHover = (sessionId?: string) => {
+    if (swapHoverTimeoutRef.current) {
+      if (!sessionId || pendingSwapSessionIdRef.current === sessionId) {
+        clearTimeout(swapHoverTimeoutRef.current);
+        swapHoverTimeoutRef.current = null;
+        pendingSwapSessionIdRef.current = null;
+      }
+    }
+    if (!sessionId) {
+      setSwapCandidateSessionId(null);
+    } else {
+      setSwapCandidateSessionId((current) => (current === sessionId ? null : current));
+    }
+  };
 
   const generateTimeSlots = () => {
     const slots = [];
@@ -114,13 +178,13 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
   };
 
   // Judge column reordering
-  const handleDragStart = (e: React.DragEvent, judgeId: string) => {
+  const handleDragStart = (e: ReactDragEvent, judgeId: string) => {
     setDraggedJudgeId(judgeId);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', judgeId);
   };
 
-  const handleDragOver = (e: React.DragEvent, judgeId: string) => {
+  const handleDragOver = (e: ReactDragEvent, judgeId: string) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     if (draggedJudgeId && draggedJudgeId !== judgeId) {
@@ -132,7 +196,7 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
     setDragOverJudgeId(null);
   };
 
-  const handleDrop = (e: React.DragEvent, targetJudgeId: string) => {
+  const handleDrop = (e: ReactDragEvent, targetJudgeId: string) => {
     e.preventDefault();
     if (!draggedJudgeId || draggedJudgeId === targetJudgeId) return;
 
@@ -159,8 +223,9 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
   };
 
   // Session handling
-  const handleSessionDrop = (e: React.DragEvent, judgeId: string, timeSlot: number) => {
+  const handleSessionDrop = (e: ReactDragEvent, judgeId: string, timeSlot: number) => {
     e.preventDefault();
+    cancelSwapHover();
     
     try {
       const sessionData = e.dataTransfer.getData('application/json');
@@ -168,7 +233,7 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
         const draggedSession: DraggedSessionData = JSON.parse(sessionData);
         
         // Check for time conflicts before allowing the drop
-        if (hasTimeConflict(judgeId, timeSlot, draggedSession.type, draggedSession)) {
+        if (hasTimeConflict(scheduledSessions, judgeId, timeSlot, draggedSession.type, settings, draggedSession)) {
           console.warn('Cannot drop session: time conflict detected');
           return; // Prevent the drop
         }
@@ -202,7 +267,8 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
   };
 
   // Handle drag enter to show preview
-  const handleSessionDragEnter = (e: React.DragEvent, judgeId: string, timeSlot: number) => {
+  const handleSessionDragEnter = (e: ReactDragEvent, judgeId: string, timeSlot: number) => {
+    cancelSwapHover();
     // Always prevent default for drag operations and show preview
     if (draggedSessionData) {
       e.preventDefault();
@@ -211,13 +277,13 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
         judgeId,
         timeSlot,
         sessionType: draggedSessionData.type,
-        isValid: !hasTimeConflict(judgeId, timeSlot, draggedSessionData.type, draggedSessionData)
+        isValid: !hasTimeConflict(scheduledSessions, judgeId, timeSlot, draggedSessionData.type, settings, draggedSessionData)
       });
     }
   };
 
   // Handle drag over to continuously update preview position
-  const handleSessionDragOverWithPreview = (e: React.DragEvent, judgeId: string, timeSlot: number) => {
+  const handleSessionDragOverWithPreview = (e: ReactDragEvent, judgeId: string, timeSlot: number) => {
     // Always prevent default for drag operations and show preview
     if (draggedSessionData) {
       e.preventDefault();
@@ -227,158 +293,109 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
         judgeId,
         timeSlot,
         sessionType: draggedSessionData.type,
-        isValid: !hasTimeConflict(judgeId, timeSlot, draggedSessionData.type, draggedSessionData)
+        isValid: !hasTimeConflict(scheduledSessions, judgeId, timeSlot, draggedSessionData.type, settings, draggedSessionData)
       });
     }
   };
 
 // Handle drag leave to clear preview
-const handleSessionDragLeave = () => setDragPreview(null);
+const handleSessionDragLeave = () => {
+  setDragPreview(null);
+  cancelSwapHover();
+};
 
+  const handleScheduledBlockDragEnter = (_e: ReactDragEvent, targetSession: SessionBlock) => {
+    if (!draggedSessionData || draggedSessionData.isRemoving !== true || !draggedSessionData.sessionId) {
+      cancelSwapHover(targetSession.id);
+      return;
+    }
+    if (draggedSessionData.sessionId === targetSession.id) {
+      cancelSwapHover(targetSession.id);
+      return;
+    }
+    if (draggedSessionData.type !== targetSession.type) {
+      cancelSwapHover(targetSession.id);
+      return;
+    }
+    startSwapHoverTimer(targetSession.id);
+  };
 
+  const handleScheduledBlockDragOver = (e: ReactDragEvent, targetSession: SessionBlock) => {
+    if (!draggedSessionData || draggedSessionData.isRemoving !== true || !draggedSessionData.sessionId) return;
+    if (draggedSessionData.sessionId === targetSession.id) return;
+    if (draggedSessionData.type !== targetSession.type) return;
+    e.preventDefault();
+    startSwapHoverTimer(targetSession.id);
+  };
 
-  // Check if a session would overlap with existing sessions for a judge
-  const hasTimeConflict = (judgeId: string, startRowIndex: number, sessionType: string, excludeSession?: DraggedSessionData) => {
-    // Calculate how many row slots this session will occupy using settings
-    const sessionDuration = getSessionDurationInSlots(sessionType);
-    const proposedEndRow = startRowIndex + sessionDuration - 1;
-    
-    // Check if any existing sessions for this judge overlap with the proposed row range
-    return scheduledSessions.some(session => {
-      if (session.judgeId !== judgeId) return false;
-      
-      // Skip conflicts with the same session (it will replace itself)
-      if (excludeSession && 
-          session.entrantId === excludeSession.entrantId && 
-          session.type === excludeSession.type && 
-          session.sessionIndex === excludeSession.sessionIndex) {
-        return false;
-      }
-      
-      const existingStartRow = session.startRowIndex!;
-      const existingDuration = getSessionDurationInSlots(session.type);
-      const existingEndRow = existingStartRow + existingDuration - 1;
-      
-      return doTimeRangesOverlap(startRowIndex, proposedEndRow, existingStartRow, existingEndRow);
+  const handleScheduledBlockDragEnd = () => {
+    cancelSwapHover();
+  };
+
+  const handleSessionBlockSwapDrop = (e: ReactDragEvent, targetSession: SessionBlock) => {
+    if (!draggedSessionData || draggedSessionData.isRemoving !== true || !draggedSessionData.sessionId) return;
+    if (swapCandidateSessionId !== targetSession.id) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const sourceSession = scheduledSessions.find(session => session.id === draggedSessionData.sessionId);
+    if (!sourceSession) {
+      cancelSwapHover();
+      return;
+    }
+
+    const fullTargetSession = scheduledSessions.find(session => session.id === targetSession.id);
+    if (!fullTargetSession) {
+      cancelSwapHover();
+      return;
+    }
+
+    if (sourceSession.type !== fullTargetSession.type) {
+      cancelSwapHover();
+      return;
+    }
+
+    const sourceEntrantSessions = allSessionBlocks.filter(
+      session => session.entrantId === sourceSession.entrantId && session.type === sourceSession.type
+    );
+
+    const targetEntrantSessions = allSessionBlocks.filter(
+      session => session.entrantId === fullTargetSession.entrantId && session.type === fullTargetSession.type
+    );
+
+    let updatedBlocks = buildEntrantSwapUpdates(
+      sourceEntrantSessions,
+      targetEntrantSessions,
+      settings
+    );
+
+    if (updatedBlocks.length === 0) {
+      const [updatedSource, updatedTarget] = buildSessionSwapUpdates(
+        sourceSession,
+        fullTargetSession,
+        settings
+      );
+      updatedBlocks = [updatedSource, updatedTarget];
+    }
+
+    updatedBlocks.forEach(updatedSession => {
+      onSessionBlockUpdate(updatedSession);
     });
-  };
-
-  // Helper function to calculate session duration in row slots
-  const getSessionDurationInSlots = (sessionType: string): number => {
-    const sessionDurationMinutes = sessionType === '1xLong' ? settings.oneXLongLength : 
-                                   sessionType === '3x20' ? settings.threeX20Length : 
-                                   settings.threeX10Length;
-    return Math.ceil(sessionDurationMinutes / TIME_CONFIG.MINUTES_PER_SLOT);
-  };
-
-  // Helper function to check if two time ranges overlap
-  const doTimeRangesOverlap = (start1: number, end1: number, start2: number, end2: number, requireTimePadding?: boolean): boolean => {
-    if (requireTimePadding) {
-      return !(start1 > end2 + 2 || end1 + 2 < start2);
-    } else {
-      return !(start1 > end2 || end1 < start2);
-    }
-    
-  };
-
-  // Check if a session block has conflicts
-  const hasSessionConflict = (session: SessionBlock) => {
-    // Check 1: Multiple blocks with the same category for the same entrant
-    const currentJudge = judges.find(j => j.id === session.judgeId);
-    const currentJudgeCategory = currentJudge?.category;
-    
-    if (currentJudgeCategory) {
-      const sameCategorySameEntrant = scheduledSessions.some(otherSession => {
-        if (otherSession.id === session.id || 
-            otherSession.entrantId !== session.entrantId) {
-          return false;
-        }
-        
-        const otherJudge = judges.find(j => j.id === otherSession.judgeId);
-        const otherJudgeCategory = otherJudge?.category;
-        
-        return otherJudgeCategory === currentJudgeCategory;
-      });
-      
-      if (sameCategorySameEntrant) return true;
-    }
-    
-    // Check 2: Overlapping row indices for the same entrant
-    const sessionStartRow = session.startRowIndex!;
-    const sessionDuration = getSessionDurationInSlots(session.type);
-    const sessionEndRow = sessionStartRow + sessionDuration - 1;
-    
-    // Check for overlap with other sessions from the same entrant
-    const hasEntrantOverlap = scheduledSessions.some(otherSession => {
-      if (otherSession.id === session.id || otherSession.entrantId !== session.entrantId) return false;
-      
-      const otherStartRow = otherSession.startRowIndex!;
-      const otherDuration = getSessionDurationInSlots(otherSession.type);
-      const otherEndRow = otherStartRow + otherDuration - 1;
-      
-      return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
-    });
-
-    if (hasEntrantOverlap) return true;
-
-    // Check 3: Overlapping row indices for the same room (if moving judges)
-    if (settings.moving === "judges") {
-      const currentEntrant = entrants.find(e => e.id === session.entrantId);
-      const currentEntrantRoom = currentEntrant?.roomNumber;
-      
-      if (currentEntrantRoom) {
-        const hasRoomOverlap = scheduledSessions.some(otherSession => {
-          if (otherSession.id === session.id) return false;
-          
-          const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
-          const otherEntrantRoom = otherEntrant?.roomNumber;
-          
-          // Only check room overlap if both entrants have the same room number
-          if (otherEntrantRoom !== currentEntrantRoom) return false;
-          
-          const otherStartRow = otherSession.startRowIndex!;
-          const otherDuration = getSessionDurationInSlots(otherSession.type);
-          const otherEndRow = otherStartRow + otherDuration - 1;
-
-          // If same entrant, no padding required; if different entrant, require padding
-          if (otherSession.entrantId === session.entrantId) {
-            return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
-          } else {
-            return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow, true);
-          }
-
-        });
-        
-        if (hasRoomOverlap) return true;
-      }
-    }
-    
-    return false;
-  };
-
-  // Calculate total assigned time for each judge
-  const getJudgeAssignedTime = (judgeId: string): number => {
-    const judgeSessions = scheduledSessions.filter(session => session.judgeId === judgeId);
-    return judgeSessions.reduce((total, session) => {
-      const sessionDurationMinutes = session.type === '1xLong' ? settings.oneXLongLength : 
-                                    session.type === '3x20' ? settings.threeX20Length : 
-                                    settings.threeX10Length;
-      return total + sessionDurationMinutes;
-    }, 0);
+    setSwapCandidateSessionId(null);
+    cancelSwapHover();
+    setDragPreview(null);
   };
 
   const handleSessionTypeChange = (entrantId: string, oldType: '1xLong' | '3x20' | '3x10', newType: '1xLong' | '3x20' | '3x10') => {
-    // Find all session blocks for this entrant with the old type
     const entrantSessionBlocks = allSessionBlocks.filter(block => 
       block.entrantId === entrantId && block.type === oldType
     );
     
-    // Remove all old session blocks
     entrantSessionBlocks.forEach(block => {
       onSessionBlockRemove(block.id);
     });
     
-    // Create new session blocks with the new type
     const entrant = entrants.find(e => e.id === entrantId);
     if (entrant) {
       if (newType === '1xLong') {
@@ -420,15 +437,13 @@ const handleSessionDragLeave = () => setDragPreview(null);
     console.log(`Removed ${entrantSessionBlocks.length} old session blocks and created new ${newType} blocks for entrant ${entrantId}`);
   };
 
-  // Get judge background styling (category color or default)
   const getJudgeBackgroundStyle = (judgeCategory?: 'SNG' | 'MUS' | 'PER') => {
     if (judgeCategory) {
       return { backgroundColor: getCategoryColor(judgeCategory) };
     }
-    return { backgroundColor: '#374151' }; // bg-gray-700
+    return { backgroundColor: '#374151' };
   };
 
-  // Get judge preference indicator (circle with number)
   const getJudgePreferenceIndicator = (judgeId: string) => {
     if (!selectedEntrant) {
       return null;
@@ -439,183 +454,18 @@ const handleSessionDragLeave = () => setDragPreview(null);
       return null;
     }
 
-    // Check if this judge is in the entrant's preferences
     if (entrant.judgePreference1 === judgeId) {
-      return { number: '1', color: '#d97706' }; // Gold
+      return { number: '1', color: '#d97706' };
     } else if (entrant.judgePreference2 === judgeId) {
-      return { number: '2', color: '#4b5563' }; // Silver
+      return { number: '2', color: '#4b5563' };
     } else if (entrant.judgePreference3 === judgeId) {
-      return { number: '3', color: '#92400e' }; // Bronze
+      return { number: '3', color: '#92400e' };
     }
 
     return null;
   };
 
-  // Helper function to calculate session end time
-  const getSessionEndTime = (session: SessionBlock): string => {
-    const startTime = settings.startTime;
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const sessionDurationMinutes = session.type === '1xLong' ? settings.oneXLongLength : 
-                                   session.type === '3x20' ? settings.threeX20Length : 
-                                   settings.threeX10Length;
-    const startRowIndex = session.startRowIndex!;
-    const totalMinutes = startMinute + (startRowIndex * TIME_CONFIG.MINUTES_PER_SLOT) + sessionDurationMinutes;
-    const hour = (startHour + Math.floor(totalMinutes / 60));
-    const minute = totalMinutes % 60;
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-  };
-
-  // Check if a session ends after 1am (25:00)
-  const isSessionEndingAfter1AM = (session: SessionBlock): boolean => {
-    const endTime = getSessionEndTime(session);
-    const [endHour, endMinute] = endTime.split(':').map(Number);
-    return endHour > 25 || (endHour === 25 && endMinute > 0);
-  };
-
-  // Get conflict details for display
-  const getConflictDetails = () => {
-    const conflicts = new Set<string>();
-    const conflictList: Array<{
-      type: 'category' | 'entrant' | 'room' | 'late' | 'unpaddedChorusChange';
-      entrantName?: string;
-      category?: string;
-      roomNumber?: string;
-    }> = [];
-    
-    // Check for sessions ending after 1am
-    const lateSessions = scheduledSessions.filter(session => isSessionEndingAfter1AM(session));
-    if (lateSessions.length > 0) {
-      conflictList.push({
-        type: 'late',
-        entrantName: lateSessions.map(s => s.entrantName).join(', ')
-      });
-    }
-    
-    scheduledSessions.forEach(session => {
-      if (hasSessionConflict(session)) {
-        const currentJudge = judges.find(j => j.id === session.judgeId);
-        const currentJudgeCategory = currentJudge?.category;
-        const currentEntrant = entrants.find(e => e.id === session.entrantId);
-        const currentEntrantRoom = currentEntrant?.roomNumber;
-        
-        // Check 1: Multiple blocks with the same category for the same entrant
-        if (currentJudgeCategory) {
-          const sameCategorySameEntrant = scheduledSessions.some(otherSession => {
-            if (otherSession.id === session.id || 
-                otherSession.entrantId !== session.entrantId) {
-              return false;
-            }
-            
-            const otherJudge = judges.find(j => j.id === otherSession.judgeId);
-            const otherJudgeCategory = otherJudge?.category;
-            
-            return otherJudgeCategory === currentJudgeCategory;
-          });
-          
-          if (sameCategorySameEntrant) {
-            const conflictKey = `category-${session.entrantId}-${currentJudgeCategory}`;
-            if (!conflicts.has(conflictKey)) {
-              conflicts.add(conflictKey);
-              conflictList.push({
-                type: 'category',
-                entrantName: session.entrantName,
-                category: currentJudgeCategory
-              });
-            }
-          }
-        }
-        
-        // Check 2: Overlapping row indices for the same entrant
-        const sessionStartRow = session.startRowIndex!;
-        const sessionDuration = getSessionDurationInSlots(session.type);
-        const sessionEndRow = sessionStartRow + sessionDuration - 1;
-        
-        const hasEntrantOverlap = scheduledSessions.some(otherSession => {
-          if (otherSession.id === session.id || otherSession.entrantId !== session.entrantId) return false;
-          
-          const otherStartRow = otherSession.startRowIndex!;
-          const otherDuration = getSessionDurationInSlots(otherSession.type);
-          const otherEndRow = otherStartRow + otherDuration - 1;
-          
-          return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
-        });
-
-        if (hasEntrantOverlap) {
-          const conflictKey = `entrant-${session.entrantId}`;
-          if (!conflicts.has(conflictKey)) {
-            conflicts.add(conflictKey);
-            conflictList.push({
-              type: 'entrant',
-              entrantName: session.entrantName
-            });
-          }
-        }
-
-        // Check 3: Overlapping row indices for the same room (if moving judges)
-        if (settings.moving === "judges" && currentEntrantRoom) {
-          const hasRoomOverlap = scheduledSessions.some(otherSession => {
-            if (otherSession.id === session.id) return false;
-            
-            const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
-            const otherEntrantRoom = otherEntrant?.roomNumber;
-            
-            if (otherEntrantRoom !== currentEntrantRoom) return false;
-            
-            const otherStartRow = otherSession.startRowIndex!;
-            const otherDuration = getSessionDurationInSlots(otherSession.type);
-            const otherEndRow = otherStartRow + otherDuration - 1;
-            
-            return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
-          });
-          
-          if (hasRoomOverlap) {
-            const conflictKey = `room-${currentEntrantRoom}`;
-            if (!conflicts.has(conflictKey)) {
-              conflicts.add(conflictKey);
-              conflictList.push({
-                type: 'room',
-                roomNumber: currentEntrantRoom
-              });
-            }
-          }
-
-          if (!hasRoomOverlap) {
-            const hasUnpaddedChorusChange = scheduledSessions.some(otherSession => {
-              if (otherSession.id === session.id) return false;
-              
-              const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
-              const otherEntrantRoom = otherEntrant?.roomNumber;
-              
-              if (otherEntrantRoom !== currentEntrantRoom) return false;
-              
-              const otherStartRow = otherSession.startRowIndex!;
-              const otherDuration = getSessionDurationInSlots(otherSession.type);
-              const otherEndRow = otherStartRow + otherDuration - 1;
-              
-              return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow, true);
-            });
-            if (hasUnpaddedChorusChange) {
-              const conflictKey = `unpaddedChorusChange-${currentEntrantRoom}`;
-              if (!conflicts.has(conflictKey)) {
-                conflicts.add(conflictKey);
-                conflictList.push({
-                  type: 'unpaddedChorusChange',
-                  roomNumber: currentEntrantRoom,
-                  entrantName: session.entrantName 
-
-                });
-              }
-            }
-          }
-          
-        }
-      }
-    });
-    
-    return conflictList;
-  };
-
-  const conflictDetails = getConflictDetails();
+  const conflictDetails = getConflictDetails(scheduledSessions, judges, entrants, settings);
   const hasConflicts = conflictDetails.length > 0;
 
   const timeSlots = generateTimeSlots();
@@ -724,7 +574,7 @@ const handleSessionDragLeave = () => setDragPreview(null);
                   )}
                   <div className="text-xs opacity-90 mt-1">
                     {(() => {
-                      const totalMinutes = getJudgeAssignedTime(judge.id);
+                      const totalMinutes = getJudgeAssignedTime(judge.id, scheduledSessions, settings);
                       if (totalMinutes === 0) return 'No sessions';
                       const hours = Math.floor(totalMinutes / 60);
                       const minutes = totalMinutes % 60;
@@ -815,9 +665,15 @@ const handleSessionDragLeave = () => setDragPreview(null);
                             entrant={entrants.find(e => e.id === session.entrantId)!}
                             type={session.type}
                             index={session.sessionIndex}
+                            sessionId={session.id}
                             useAbsolutePositioning={true}
-                            hasConflict={hasSessionConflict(session)}
+                            hasConflict={hasSessionConflict(session, scheduledSessions, judges, entrants, settings)}
+                            isDragOver={swapCandidateSessionId === session.id}
                             onSessionTypeChange={handleSessionTypeChange}
+                            onDragEnter={(e) => handleScheduledBlockDragEnter(e, session)}
+                            onDragOver={(e) => handleScheduledBlockDragOver(e, session)}
+                            onDragEnd={handleScheduledBlockDragEnd}
+                            onDrop={(e) => handleSessionBlockSwapDrop(e, session)}
                             onDragStart={() => {
                               // Create session data and notify parent
                               const sessionData = {
@@ -825,6 +681,7 @@ const handleSessionDragLeave = () => setDragPreview(null);
                                 entrantName: session.entrantName,
                                 type: session.type,
                                 sessionIndex: session.sessionIndex,
+                                sessionId: session.id,
                                 isRemoving: true // This session is in the grid and can be moved
                               };
                               if (onSessionDragStart) {

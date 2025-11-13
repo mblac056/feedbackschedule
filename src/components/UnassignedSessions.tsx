@@ -199,6 +199,7 @@ export default function UnassignedSessions({ refreshKey, allSessionBlocks, onSes
                 entrant={entrantData}
                 type={sessionBlock.type}
                 index={sessionBlock.sessionIndex}
+                sessionId={sessionBlock.id}
                 useAbsolutePositioning={false}
                 onSessionTypeChange={handleSessionTypeChange}
               />

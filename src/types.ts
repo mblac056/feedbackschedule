@@ -45,6 +45,7 @@ export interface SessionBlock {
     entrantName: string;
     type:  '1xLong' | '3x20' | '3x10';
     sessionIndex?: number;
+    sessionId?: string;
     isRemoving?: boolean;
   }
 

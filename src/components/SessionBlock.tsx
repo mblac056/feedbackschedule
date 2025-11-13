@@ -8,6 +8,7 @@ interface SessionBlockProps {
   entrant: Entrant;
   type: '1xLong' | '3x20' | '3x10';
   index?: number; // For 3X blocks to show which one of the three
+  sessionId?: string;
   isDragging?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onDragEnd?: (e: React.DragEvent) => void;
@@ -25,6 +26,7 @@ export default function SessionBlock({
   entrant, 
   type, 
   index, 
+  sessionId,
   isDragging, 
   onDragStart, 
   onDragEnd,
@@ -63,6 +65,7 @@ export default function SessionBlock({
       entrantName: entrant.name,
       type,
       sessionIndex: index,
+      sessionId,
       isRemoving: useAbsolutePositioning // If useAbsolutePositioning is true, this session is in the grid and can be removed
     };
     e.dataTransfer.setData('application/json', JSON.stringify(sessionData));
@@ -118,7 +121,7 @@ export default function SessionBlock({
     ${hasConflict ? 'bg-red-600' : entrant.id === selectedEntrant ? 'bg-blue-800' : selectedGroupsToAvoid.includes(entrant.id) ? 'bg-blue-500' : 'bg-gray-500'} text-white p-1 rounded-lg shadow-md
     cursor-move transition-all duration-200 hover:shadow-lg
     ${isDragging || isDragged ? 'opacity-50 scale-95' : ''}
-    ${isDragOverProp ? 'ring-2 ring-blue-400 ring-opacity-75' : ''}
+    ${isDragOverProp ? 'ring-4 ring-amber-300 ring-opacity-80 animate-pulse shadow-xl' : ''}
     ${selectedEntrant === entrant.id ? 'bg-blue-200' : ''}
     relative z-10
   `;
@@ -146,6 +149,7 @@ export default function SessionBlock({
             border: '1px solid #fff'
           })
         }}
+        data-session-id={sessionId}
         data-entrant-id={entrant.id}
         data-session-type={type}
         data-session-index={index}
