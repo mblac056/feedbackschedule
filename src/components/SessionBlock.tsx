@@ -44,6 +44,7 @@ export default function SessionBlock({
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { selectedEntrant, setSelectedEntrant, selectedGroupsToAvoid } = useEntrant();
   const { settings } = useSettings();
+  const [isHiddenDuringDrag, setIsHiddenDuringDrag] = useState(false);
 
   const handleToggleSessionSelection = (entrant: Entrant) => {
     if (entrant.id === selectedEntrant) {
@@ -65,11 +66,18 @@ export default function SessionBlock({
       isRemoving: useAbsolutePositioning // If useAbsolutePositioning is true, this session is in the grid and can be removed
     };
     e.dataTransfer.setData('application/json', JSON.stringify(sessionData));
+    if (useAbsolutePositioning) {
+      // Defer hiding until after drag image is created
+      requestAnimationFrame(() => setIsHiddenDuringDrag(true));
+    }
     if (onDragStart) onDragStart(e);
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
     setIsDragged(false);
+    if (useAbsolutePositioning) {
+      setIsHiddenDuringDrag(false);
+    }
     setSelectedEntrant(null);
     if (onDragEnd) onDragEnd(e);
   };
@@ -128,6 +136,7 @@ export default function SessionBlock({
         onContextMenu={handleContextMenu}
         style={{ 
           height: getSessionHeightCSS(type, settings),
+          ...(isHiddenDuringDrag && useAbsolutePositioning ? { visibility: 'hidden' } : {}),
           ...(useAbsolutePositioning && {
             position: 'absolute',
             top: '0',
