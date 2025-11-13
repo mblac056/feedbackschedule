@@ -483,7 +483,7 @@ const handleSessionDragLeave = () => {
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">
-                Scheduling Conflicts Detected
+                Scheduling Issues Detected
               </h3>
               <div className="mt-2 text-sm text-red-700">
                 <ul className="list-disc list-inside space-y-1">
@@ -516,6 +516,12 @@ const handleSessionDragLeave = () => {
                       return (
                         <li key={index}>
                           Room <strong>{conflict.roomNumber}</strong> may need transition time added before group <strong>{conflict.entrantName}</strong>
+                        </li>
+                      );
+                    } else if (conflict.type === 'judgeLong') {
+                      return (
+                        <li key={index}>
+                          Judge(s) with over 2 hours of assigned sessions: <strong>{conflict.judgeNames}</strong>
                         </li>
                       );
                     }
