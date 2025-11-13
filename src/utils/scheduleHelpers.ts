@@ -180,6 +180,10 @@ export type ConflictDetail =
     type: 'unpaddedChorusChange';
     roomNumber: string;
     entrantName: string;
+  }
+  | {
+    type: 'judgeLong';
+    judgeNames: string;
   };
 
 export const getConflictDetails = (
@@ -200,6 +204,14 @@ export const getConflictDetails = (
       type: 'late',
       entrantName: lateSessions.map(s => s.entrantName).join(', ')
     });
+  }
+
+  const longJudges = judges.filter(judge => getJudgeAssignedTime(judge.id, scheduledSessions, settings) > 120);
+  if (longJudges.length > 0) {
+    conflictList.push({
+      type: 'judgeLong',
+      judgeNames: longJudges.map(j => j.name).join(', ')
+    })
   }
 
   scheduledSessions.forEach(session => {
