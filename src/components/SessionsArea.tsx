@@ -191,7 +191,10 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                     Clear Grid
                   </button>) : (
                   <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
-                    populateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
+                    const reordered = populateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
+                    if (reordered && reordered.length > 0) {
+                      handleJudgesReorder(reordered);
+                    }
                     //handlePopulateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
                   }}>
                     Populate Grid

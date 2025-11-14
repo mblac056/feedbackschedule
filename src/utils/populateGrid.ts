@@ -4,7 +4,12 @@ import { getEntrants } from "./localStorage";
 import type { SessionSettings } from "../config/timeConfig";
 
 
-export const populateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void, sessionSettings?: SessionSettings) => {
+export const populateGrid = (
+  allSessionBlocks: SessionBlock[],
+  judges: Judge[],
+  onSessionBlockUpdate: (sessionBlock: SessionBlock) => void,
+  sessionSettings?: SessionSettings
+): Judge[] => {
   // First, clear all scheduled sessions to avoid conflicts
   allSessionBlocks.forEach(block => {
     if (block.isScheduled) {
@@ -27,8 +32,20 @@ export const populateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], 
   const threeX20Count = allSessionBlocks.filter(block => block.type === '3x20').length;
   const oneXLongCount = allSessionBlocks.filter(block => block.type === '1xLong').length;
 
-  const [judgeNumberToJudge, groupNumberToGroup, judgeSchedules] = createMatrix(threeX10Count, threeX20Count, oneXLongCount, getSessionDurationSlots('3x10', sessionSettings), getSessionDurationSlots('3x20', sessionSettings), getSessionDurationSlots('1xLong', sessionSettings), judges, entrants, allSessionBlocks);
+  const [judgeNumberToJudge, groupNumberToGroup, judgeSchedules] = createMatrix(
+    threeX10Count,
+    threeX20Count,
+    oneXLongCount,
+    getSessionDurationSlots('3x10', sessionSettings),
+    getSessionDurationSlots('3x20', sessionSettings),
+    getSessionDurationSlots('1xLong', sessionSettings),
+    judges,
+    entrants,
+    allSessionBlocks
+  );
   assignSessionBlocksToGrid(judgeNumberToJudge, groupNumberToGroup, judgeSchedules, allSessionBlocks, onSessionBlockUpdate);
+
+  return reorderJudgesByPods(judgeNumberToJudge, judges.length);
 };
 
 const assignSessionBlocksToGrid = (judgeNumberToJudge: Map<number, Judge>, groupNumberToGroup: Map<number, Entrant>, judgeSchedules: number[][], allSessionBlocks: SessionBlock[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void) => {
@@ -97,6 +114,50 @@ const assignSessionBlocksToGrid = (judgeNumberToJudge: Map<number, Judge>, group
   
   console.log(`✓ Assigned ${assignedBlocks.size} session blocks to grid`);
 }
+
+const CATEGORY_ORDER: Record<'SNG' | 'MUS' | 'PER', number> = {
+  SNG: 0,
+  MUS: 1,
+  PER: 2
+};
+
+const reorderJudgesByPods = (judgeNumberToJudge: Map<number, Judge>, totalJudges: number): Judge[] => {
+  const reorderedJudges: Judge[] = [];
+  const numPods = Math.floor(totalJudges / 3);
+
+  for (let podIndex = 0; podIndex < numPods; podIndex++) {
+    const baseJudgeNumber = podIndex * 3;
+    const podJudges = [1, 2, 3]
+      .map(offset => judgeNumberToJudge.get(baseJudgeNumber + offset))
+      .filter((judge): judge is Judge => Boolean(judge));
+
+    podJudges.sort((a, b) => {
+      const aRank = a.category ? CATEGORY_ORDER[a.category] ?? Number.POSITIVE_INFINITY : Number.POSITIVE_INFINITY;
+      const bRank = b.category ? CATEGORY_ORDER[b.category] ?? Number.POSITIVE_INFINITY : Number.POSITIVE_INFINITY;
+      return aRank - bRank;
+    });
+
+    reorderedJudges.push(...podJudges);
+  }
+
+  const remainingStart = numPods * 3 + 1;
+  for (let judgeNumber = remainingStart; judgeNumber <= totalJudges; judgeNumber++) {
+    const judge = judgeNumberToJudge.get(judgeNumber);
+    if (judge) {
+      reorderedJudges.push(judge);
+    }
+  }
+
+  // Ensure all judges from the map are included even if judge numbering exceeds totalJudges
+  const includedJudgeIds = new Set(reorderedJudges.map(judge => judge.id));
+  judgeNumberToJudge.forEach(judge => {
+    if (!includedJudgeIds.has(judge.id)) {
+      reorderedJudges.push(judge);
+    }
+  });
+
+  return reorderedJudges;
+};
 
 
 const createMatrix = (threeX10Count: number, threeX20Count: number, oneXLongCount: number, threeX10Height: number, threeX20Height: number, oneXLongHeight: number, judges: Judge[], entrants: Entrant[], allSessionBlocks: SessionBlock[]): [Map<number, Judge>, Map<number, Entrant>, number[][]] => {
