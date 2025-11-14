@@ -1,15 +1,16 @@
 import UnassignedSessions from "./UnassignedSessions";
 import GridSchedule from "./GridSchedule";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { Judge, SessionBlock } from "../types";
 //import { saveJudges, clearGrid, saveSettings } from "../utils/localStorage";
-import { saveJudges, clearGrid } from "../utils/localStorage";
+import { saveJudges, clearGrid, getEntrants } from "../utils/localStorage";
 import type { DraggedSessionData } from "../types";
 import { generatePDF } from "../utils/printFiles";
 import { FaChevronDown } from "react-icons/fa";
 import { useSettings } from "../contexts/useSettings";
 import { getSessionDurationMinutes } from "../config/timeConfig";
 import { populateGrid } from "../utils/populateGrid";
+import { getConflictDetails } from "../utils/scheduleHelpers";
 //import type { SessionSettings } from "../config/timeConfig";
 
 
@@ -39,6 +40,15 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
     const [draggedSessionData, setDraggedSessionData] = useState<DraggedSessionData | null>(null);
     const [totalDuration, setTotalDuration] = useState<number>(0);
     const [showPrintDropdown, setShowPrintDropdown] = useState<boolean>(false);
+  const entrants = useMemo(() => getEntrants(), [refreshKey]);
+  const conflictDetails = useMemo(
+    () => getConflictDetails(scheduledSessions, judges, entrants, settings),
+    [scheduledSessions, judges, entrants, settings]
+  );
+  const hasRedConflicts = useMemo(
+    () => conflictDetails.some(conflict => conflict.severity === 'red'),
+    [conflictDetails]
+  );
 
     useEffect(() => {
         if (scheduledSessions.length === 0) {
@@ -78,6 +88,12 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
             onScheduledSessionsChange(scheduledSessions);
         }
     }, [scheduledSessions, onScheduledSessionsChange]);
+
+  useEffect(() => {
+    if (hasRedConflicts) {
+      setShowPrintDropdown(false);
+    }
+  }, [hasRedConflicts]);
     
       const handleJudgesReorder = (reorderedJudges: Judge[]) => {
         setJudges(reorderedJudges);
@@ -203,14 +219,30 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                 <div className="relative print-dropdown-container">
                   <div className="flex">
                     <button 
-                      className="bg-[var(--secondary-color)] px-4 py-2 rounded-l-md hover:bg-[var(--secondary-color-dark)] transition-colors" 
-                      onClick={handlePrintMatrix}
+                      className={`px-4 py-2 rounded-l-md transition-colors ${
+                        hasRedConflicts
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70'
+                          : 'bg-[var(--secondary-color)] hover:bg-[var(--secondary-color-dark)] text-white'
+                      }`} 
+                      onClick={() => {
+                        if (hasRedConflicts) return;
+                        void handlePrintMatrix();
+                      }}
+                      disabled={hasRedConflicts}
                     >
                       Print
                     </button>
                     <button 
-                      className="bg-[var(--secondary-color)] px-2 py-2 rounded-r-md hover:bg-[var(--secondary-color-dark)] transition-colors border-l border-gray-300"
-                      onClick={() => setShowPrintDropdown(!showPrintDropdown)}
+                      className={`px-2 py-2 rounded-r-md transition-colors border-l ${
+                        hasRedConflicts
+                          ? 'bg-gray-300 text-gray-500 border-gray-200 cursor-not-allowed opacity-70'
+                          : 'bg-[var(--secondary-color)] hover:bg-[var(--secondary-color-dark)] text-white border-gray-300'
+                      }`}
+                      onClick={() => {
+                        if (hasRedConflicts) return;
+                        setShowPrintDropdown(!showPrintDropdown);
+                      }}
+                      disabled={hasRedConflicts}
                     >
                       <FaChevronDown className={`transition-transform ${showPrintDropdown ? 'rotate-180' : ''}`} />
                     </button>

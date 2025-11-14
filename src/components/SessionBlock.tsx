@@ -20,6 +20,7 @@ interface SessionBlockProps {
   isDragOver?: boolean;
   hasConflict?: boolean; // Add this prop to indicate conflicts
   onSessionTypeChange?: (entrantId: string, oldType: '1xLong' | '3x20' | '3x10', newType: '1xLong' | '3x20' | '3x10') => void;
+  conflictSeverity?: 'red' | 'yellow';
 }
 
 export default function SessionBlock({ 
@@ -38,6 +39,7 @@ export default function SessionBlock({
   isDragOver: isDragOverProp = false,
   hasConflict = false,
   onSessionTypeChange,
+  conflictSeverity,
 
 }: SessionBlockProps) {
   const [isDragged, setIsDragged] = useState(false);
@@ -47,6 +49,37 @@ export default function SessionBlock({
   const { selectedEntrant, setSelectedEntrant, selectedGroupsToAvoid } = useEntrant();
   const { settings } = useSettings();
   const [isHiddenDuringDrag, setIsHiddenDuringDrag] = useState(false);
+  const resolvedConflictSeverity = conflictSeverity ?? (hasConflict ? 'red' : null);
+  const isSelected = selectedEntrant === entrant.id;
+
+  const baseBackgroundClass =
+    resolvedConflictSeverity === 'red'
+      ? 'bg-red-600'
+      : resolvedConflictSeverity === 'yellow'
+        ? 'bg-yellow-400'
+        : isSelected
+          ? 'bg-blue-700'
+          : selectedGroupsToAvoid.includes(entrant.id)
+            ? 'bg-blue-400'
+            : 'bg-gray-500';
+
+  const textColorClass =
+    resolvedConflictSeverity === 'yellow' || (resolvedConflictSeverity || isSelected || selectedGroupsToAvoid.includes(entrant.id))
+      ? 'text-gray-900'
+      : 'text-white';
+
+  const indicatorColorClass =
+    resolvedConflictSeverity === 'red'
+      ? 'bg-red-500'
+      : resolvedConflictSeverity === 'yellow'
+        ? 'bg-yellow-500'
+        : isSelected
+          ? 'bg-blue-500'
+          : 'bg-gray-500';
+  const indicatorTextClass =
+    resolvedConflictSeverity === 'yellow' || (!resolvedConflictSeverity && isSelected)
+      ? 'text-gray-900'
+      : 'text-white';
 
   const handleToggleSessionSelection = (entrant: Entrant) => {
     if (entrant.id === selectedEntrant) {
@@ -118,11 +151,10 @@ export default function SessionBlock({
   }, [showContextMenu]);
 
   const className = `
-    ${hasConflict ? 'bg-red-600' : entrant.id === selectedEntrant ? 'bg-blue-800' : selectedGroupsToAvoid.includes(entrant.id) ? 'bg-blue-500' : 'bg-gray-500'} text-white p-1 rounded-lg shadow-md
+    ${baseBackgroundClass} ${textColorClass} p-1 rounded-lg shadow-md
     cursor-move transition-all duration-200 hover:shadow-lg
     ${isDragging || isDragged ? 'opacity-50 scale-95' : ''}
     ${isDragOverProp ? 'ring-4 ring-amber-300 ring-opacity-80 animate-pulse shadow-xl' : ''}
-    ${selectedEntrant === entrant.id ? 'bg-blue-200' : ''}
     relative z-10
   `;
 
@@ -161,7 +193,7 @@ export default function SessionBlock({
               e.stopPropagation();
               handleToggleSessionSelection(entrant);
             }}
-            className={`absolute -top-1 -left-1 w-4 h-4 rounded-full text-xs flex items-center justify-center ${hasConflict ? 'bg-red-500' : 'bg-gray-500'} text-white`}
+          className={`absolute -top-1 -left-1 w-4 h-4 rounded-full text-xs flex items-center justify-center ${indicatorColorClass} ${indicatorTextClass}`}
           >
             •
           </button>

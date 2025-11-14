@@ -12,7 +12,7 @@ import {
   buildEntrantSwapUpdates,
   getConflictDetails,
   getJudgeAssignedTime,
-  hasSessionConflict,
+  getSessionConflictSeverity,
   hasTimeConflict
 } from '../utils/scheduleHelpers';
 interface GridScheduleProps {
@@ -466,15 +466,16 @@ const handleSessionDragLeave = () => {
   };
 
   const conflictDetails = getConflictDetails(scheduledSessions, judges, entrants, settings);
-  const hasConflicts = conflictDetails.length > 0;
+  const redConflicts = conflictDetails.filter(conflict => conflict.severity === 'red');
+  const yellowConflicts = conflictDetails.filter(conflict => conflict.severity === 'yellow');
 
   const timeSlots = generateTimeSlots();
 
   return (
     <div>      
-      {/* Conflict Warning */}
-      {hasConflicts && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+      {/* Conflict Warnings */}
+      {redConflicts.length > 0 && (
+        <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -483,42 +484,91 @@ const handleSessionDragLeave = () => {
             </div>
             <div className="ml-3">
               <h3 className="text-sm font-medium text-red-800">
-                Scheduling Conflicts Detected
+                Critical Scheduling Conflicts
               </h3>
               <div className="mt-2 text-sm text-red-700">
                 <ul className="list-disc list-inside space-y-1">
-                  {conflictDetails.map((conflict, index) => {
-                    if (conflict.type === 'category') {
+                  {redConflicts.map((conflict, index) => {
+                    if (conflict.type === 'entrant') {
                       return (
-                        <li key={index}>
-                          <strong>{conflict.entrantName}</strong> is receiving multiple feedback sessions in the same category ({conflict.category})
-                        </li>
-                      );
-                    } else if (conflict.type === 'entrant') {
-                      return (
-                        <li key={index}>
+                        <li key={`red-entrant-${index}`}>
                           <strong>{conflict.entrantName}</strong> has overlapping sessions
                         </li>
                       );
-                    } else if (conflict.type === 'room') {
+                    }
+                    if (conflict.type === 'room') {
                       return (
-                        <li key={index}>
+                        <li key={`red-room-${index}`}>
                           Room <strong>{conflict.roomNumber}</strong> has overlapping sessions
                         </li>
                       );
-                    } else if (conflict.type === 'late') {
+                    }
+                    return null;
+                  })}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {yellowConflicts.length > 0 && (
+        <div className="mb-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-yellow-800">
+                Scheduling Alerts
+              </h3>
+              <div className="mt-2 text-sm text-yellow-700">
+                <ul className="list-disc list-inside space-y-1">
+                  {yellowConflicts.map((conflict, index) => {
+                    if (conflict.type === 'category') {
                       return (
-                        <li key={index}>
+                        <li key={`yellow-category-${index}`}>
+                          <strong>{conflict.entrantName}</strong> is receiving multiple feedback sessions in the same category ({conflict.category})
+                        </li>
+                      );
+                    }
+                    if (conflict.type === 'late') {
+                      return (
+                        <li key={`yellow-late-${index}`}>
                           Sessions ending after 1am for: <strong>{conflict.entrantName}</strong>
                         </li>
                       );
-                    } else if (conflict.type === 'unpaddedChorusChange') {
+                  }
+                  if (conflict.type === 'room') {
+                    return (
+                      <li key={`yellow-room-${index}`}>
+                        Room <strong>{conflict.roomNumber}</strong> has overlapping 3×10 sessions
+                      </li>
+                    );
+                    }
+                    if (conflict.type === 'unpaddedChorusChange') {
                       return (
-                        <li key={index}>
+                        <li key={`yellow-unpadded-${index}`}>
                           Room <strong>{conflict.roomNumber}</strong> may need transition time added before group <strong>{conflict.entrantName}</strong>
                         </li>
                       );
                     }
+                  if (conflict.type === 'judgeOvertime') {
+                    const hours = Math.floor(conflict.totalMinutes / 60);
+                    const minutes = conflict.totalMinutes % 60;
+                    const formattedDuration = [
+                      hours > 0 ? `${hours}h` : null,
+                      minutes > 0 ? `${minutes}m` : null
+                    ]
+                      .filter(Boolean)
+                      .join(' ');
+                    return (
+                      <li key={`yellow-judgeOvertime-${index}`}>
+                        Judge <strong>{conflict.judgeName}</strong> is scheduled for {formattedDuration || `${conflict.totalMinutes}m`} of sessions
+                      </li>
+                    );
+                  }
                     return null;
                   })}
                 </ul>
@@ -659,37 +709,51 @@ const handleSessionDragLeave = () => {
                          // Only render sessions for entrants that still exist
                          return entrants.find(e => e.id === session.entrantId) !== undefined;
                        })
-                                               .map(session => (
-                          <SessionBlockComponent
-                            key={`${session.id}`}
-                            entrant={entrants.find(e => e.id === session.entrantId)!}
-                            type={session.type}
-                            index={session.sessionIndex}
-                            sessionId={session.id}
-                            useAbsolutePositioning={true}
-                            hasConflict={hasSessionConflict(session, scheduledSessions, judges, entrants, settings)}
-                            isDragOver={swapCandidateSessionId === session.id}
-                            onSessionTypeChange={handleSessionTypeChange}
-                            onDragEnter={(e) => handleScheduledBlockDragEnter(e, session)}
-                            onDragOver={(e) => handleScheduledBlockDragOver(e, session)}
-                            onDragEnd={handleScheduledBlockDragEnd}
-                            onDrop={(e) => handleSessionBlockSwapDrop(e, session)}
-                            onDragStart={() => {
-                              // Create session data and notify parent
-                              const sessionData = {
-                                entrantId: session.entrantId,
-                                entrantName: session.entrantName,
-                                type: session.type,
-                                sessionIndex: session.sessionIndex,
-                                sessionId: session.id,
-                                isRemoving: true // This session is in the grid and can be moved
-                              };
-                              if (onSessionDragStart) {
-                                onSessionDragStart(sessionData);
-                              }
-                            }}
-                          />
-                        ))}
+                       .map(session => {
+                          const entrantData = entrants.find(e => e.id === session.entrantId);
+                          if (!entrantData) return null;
+
+                          const conflictSeverity = getSessionConflictSeverity(
+                            session,
+                            scheduledSessions,
+                            judges,
+                            entrants,
+                            settings
+                          );
+
+                          return (
+                            <SessionBlockComponent
+                              key={`${session.id}`}
+                              entrant={entrantData}
+                              type={session.type}
+                              index={session.sessionIndex}
+                              sessionId={session.id}
+                              useAbsolutePositioning={true}
+                              hasConflict={Boolean(conflictSeverity)}
+                              conflictSeverity={conflictSeverity ?? undefined}
+                              isDragOver={swapCandidateSessionId === session.id}
+                              onSessionTypeChange={handleSessionTypeChange}
+                              onDragEnter={(e) => handleScheduledBlockDragEnter(e, session)}
+                              onDragOver={(e) => handleScheduledBlockDragOver(e, session)}
+                              onDragEnd={handleScheduledBlockDragEnd}
+                              onDrop={(e) => handleSessionBlockSwapDrop(e, session)}
+                              onDragStart={() => {
+                                // Create session data and notify parent
+                                const sessionData = {
+                                  entrantId: session.entrantId,
+                                  entrantName: session.entrantName,
+                                  type: session.type,
+                                  sessionIndex: session.sessionIndex,
+                                  sessionId: session.id,
+                                  isRemoving: true // This session is in the grid and can be moved
+                                };
+                                if (onSessionDragStart) {
+                                  onSessionDragStart(sessionData);
+                                }
+                              }}
+                            />
+                          );
+                        })}
                        {/* Show drag preview indicator */}
 {dragPreview && 
  dragPreview.judgeId === judge.id && 

@@ -85,13 +85,14 @@ export const isSessionEndingAfter1AM = (
   return endHour > 25 || (endHour === 25 && endMinute > 0);
 };
 
-export const hasSessionConflict = (
+export const getSessionConflictSeverity = (
   session: SessionBlock,
   scheduledSessions: SessionBlock[],
   judges: Judge[],
   entrants: Entrant[],
   settings: SessionSettings
-): boolean => {
+): 'red' | 'yellow' | null => {
+  let severity: 'red' | 'yellow' | null = null;
   const currentJudge = judges.find(j => j.id === session.judgeId);
   const currentJudgeCategory = currentJudge?.category;
 
@@ -104,7 +105,9 @@ export const hasSessionConflict = (
       return otherJudge?.category === currentJudgeCategory;
     });
 
-    if (sameCategorySameEntrant) return true;
+    if (sameCategorySameEntrant && severity !== 'red') {
+      severity = 'yellow';
+    }
   }
 
   const sessionStartRow = session.startRowIndex ?? 0;
@@ -121,65 +124,96 @@ export const hasSessionConflict = (
     return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
   });
 
-  if (hasEntrantOverlap) return true;
+  if (hasEntrantOverlap) return 'red';
 
   if (settings.moving === 'judges') {
     const currentEntrant = entrants.find(e => e.id === session.entrantId);
     const currentEntrantRoom = currentEntrant?.roomNumber;
 
     if (currentEntrantRoom) {
-      const hasRoomOverlap = scheduledSessions.some(otherSession => {
-        if (otherSession.id === session.id) return false;
+      let roomOverlapSeverity: 'red' | 'yellow' | null = null;
+
+      for (const otherSession of scheduledSessions) {
+        if (otherSession.id === session.id) continue;
 
         const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
-        if (otherEntrant?.roomNumber !== currentEntrantRoom) return false;
+        if (otherEntrant?.roomNumber !== currentEntrantRoom) continue;
 
         const otherStartRow = otherSession.startRowIndex ?? 0;
         const otherDuration = getSessionDurationInSlots(otherSession.type, settings);
         const otherEndRow = otherStartRow + otherDuration - 1;
+        const requirePadding = otherSession.entrantId !== session.entrantId;
 
-        if (otherSession.entrantId === session.entrantId) {
-          return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
-        }
-
-        return doTimeRangesOverlap(
+        const overlaps = doTimeRangesOverlap(
           sessionStartRow,
           sessionEndRow,
           otherStartRow,
           otherEndRow,
-          true
+          requirePadding
         );
-      });
 
-      if (hasRoomOverlap) return true;
+        if (!overlaps) {
+          continue;
+        }
+
+        const bothThreeByTen = session.type === '3x10' && otherSession.type === '3x10';
+        if (bothThreeByTen) {
+          if (roomOverlapSeverity === null) {
+            roomOverlapSeverity = 'yellow';
+          }
+        } else {
+          roomOverlapSeverity = 'red';
+          break;
+        }
+      }
+
+      if (roomOverlapSeverity) {
+        if (roomOverlapSeverity === 'red') {
+          return 'red';
+        }
+        severity = severity ?? 'yellow';
+      }
     }
   }
 
-  return false;
+  return severity;
 };
+
+export type ConflictSeverity = 'red' | 'yellow';
 
 export type ConflictDetail =
   | {
       type: 'category';
       entrantName: string;
       category: string;
+      severity: ConflictSeverity;
     }
   | {
       type: 'entrant';
       entrantName: string;
+      severity: ConflictSeverity;
     }
   | {
       type: 'room';
       roomNumber: string;
+      severity: ConflictSeverity;
     }
   | {
     type: 'late';
     entrantName: string;
+    severity: ConflictSeverity;
   }
+  | {
+      type: 'judgeOvertime';
+      judgeName: string;
+      totalMinutes: number;
+      severity: ConflictSeverity;
+    }
   | {
     type: 'unpaddedChorusChange';
     roomNumber: string;
     entrantName: string;
+    severity: ConflictSeverity;
   };
 
 export const getConflictDetails = (
@@ -198,12 +232,20 @@ export const getConflictDetails = (
   if (lateSessions.length > 0) {
     conflictList.push({
       type: 'late',
-      entrantName: lateSessions.map(s => s.entrantName).join(', ')
+      entrantName: lateSessions.map(s => s.entrantName).join(', '),
+      severity: 'yellow'
     });
   }
 
   scheduledSessions.forEach(session => {
-    if (!hasSessionConflict(session, scheduledSessions, judges, entrants, settings)) {
+    const sessionConflictSeverity = getSessionConflictSeverity(
+      session,
+      scheduledSessions,
+      judges,
+      entrants,
+      settings
+    );
+    if (!sessionConflictSeverity) {
       return;
     }
 
@@ -228,7 +270,8 @@ export const getConflictDetails = (
           conflictList.push({
             type: 'category',
             entrantName: session.entrantName,
-            category: currentJudgeCategory
+            category: currentJudgeCategory,
+            severity: 'yellow'
           });
         }
       }
@@ -254,24 +297,41 @@ export const getConflictDetails = (
         conflicts.add(conflictKey);
         conflictList.push({
           type: 'entrant',
-          entrantName: session.entrantName
+          entrantName: session.entrantName,
+          severity: 'red'
         });
       }
     }
 
     if (settings.moving === 'judges' && currentEntrantRoom) {
-      const hasRoomOverlap = scheduledSessions.some(otherSession => {
-        if (otherSession.id === session.id) return false;
+      let hasRoomOverlap = false;
+      let roomOverlapSeverity: ConflictSeverity | null = null;
+
+      for (const otherSession of scheduledSessions) {
+        if (otherSession.id === session.id) continue;
 
         const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
-        if (otherEntrant?.roomNumber !== currentEntrantRoom) return false;
+        if (otherEntrant?.roomNumber !== currentEntrantRoom) continue;
 
         const otherStartRow = otherSession.startRowIndex ?? 0;
         const otherDuration = getSessionDurationInSlots(otherSession.type, settings);
         const otherEndRow = otherStartRow + otherDuration - 1;
 
-        return doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow);
-      });
+        if (!doTimeRangesOverlap(sessionStartRow, sessionEndRow, otherStartRow, otherEndRow)) {
+          continue;
+        }
+
+        hasRoomOverlap = true;
+        const bothThreeByTen = session.type === '3x10' && otherSession.type === '3x10';
+        if (bothThreeByTen) {
+          if (roomOverlapSeverity === null) {
+            roomOverlapSeverity = 'yellow';
+          }
+        } else {
+          roomOverlapSeverity = 'red';
+          break;
+        }
+      }
 
       if (hasRoomOverlap) {
         const conflictKey = `room-${currentEntrantRoom}`;
@@ -279,7 +339,8 @@ export const getConflictDetails = (
           conflicts.add(conflictKey);
           conflictList.push({
             type: 'room',
-            roomNumber: currentEntrantRoom
+            roomNumber: currentEntrantRoom,
+            severity: roomOverlapSeverity ?? 'red'
           });
         }
       }
@@ -311,10 +372,28 @@ export const getConflictDetails = (
             conflictList.push({
               type: 'unpaddedChorusChange',
               roomNumber: currentEntrantRoom,
-              entrantName: session.entrantName
+              entrantName: session.entrantName,
+              severity: 'yellow'
             });
           }
         }
+      }
+    }
+  });
+
+  const OVERTIME_THRESHOLD_MINUTES = 120;
+  judges.forEach(judge => {
+    const totalMinutes = getJudgeAssignedTime(judge.id, scheduledSessions, settings);
+    if (totalMinutes > OVERTIME_THRESHOLD_MINUTES) {
+      const conflictKey = `judgeOvertime-${judge.id}`;
+      if (!conflicts.has(conflictKey)) {
+        conflicts.add(conflictKey);
+        conflictList.push({
+          type: 'judgeOvertime',
+          judgeName: judge.name,
+          totalMinutes,
+          severity: 'yellow'
+        });
       }
     }
   });
