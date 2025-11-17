@@ -64,7 +64,7 @@ export default function SessionBlock({
             : 'bg-gray-500';
 
   const textColorClass =
-    resolvedConflictSeverity === 'yellow' || (resolvedConflictSeverity || isSelected || selectedGroupsToAvoid.includes(entrant.id))
+    resolvedConflictSeverity === 'yellow' || selectedGroupsToAvoid.includes(entrant.id)
       ? 'text-gray-900'
       : 'text-white';
 
