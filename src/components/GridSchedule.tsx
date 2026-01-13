@@ -38,7 +38,7 @@ interface DragPreview {
 
 export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigned, refreshKey, draggedSessionData, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlockRemove, onSessionDragStart }: GridScheduleProps) {
   const { settings, setSettings } = useSettings();
-  const { selectedEntrant, entrants: contextEntrants } = useEntrant();
+  const { selectedEntrant, setSelectedEntrant, entrants: contextEntrants } = useEntrant();
   const [draggedJudgeId, setDraggedJudgeId] = useState<string | null>(null);
   const [dragOverJudgeId, setDragOverJudgeId] = useState<string | null>(null);
   const [entrants, setEntrants] = useState<Entrant[]>([]);
@@ -92,6 +92,20 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
       setIsEditingStartTime(false);
     }
   };
+
+  useEffect(() => {
+    if (!selectedEntrant) {
+      return;
+    }
+
+    const entrantHasSessions = scheduledSessions.some(
+      session => session.entrantId === selectedEntrant
+    );
+
+    if (!entrantHasSessions) {
+      setSelectedEntrant(null);
+    }
+  }, [selectedEntrant, scheduledSessions, setSelectedEntrant]);
 
   // Note: Session type validation is now handled at the App.tsx level when regenerating session blocks
   // The GridSchedule component now relies entirely on the SessionBlocks provided to it

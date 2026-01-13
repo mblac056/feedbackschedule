@@ -713,6 +713,83 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
   
   // Track which groups have been assigned
   const assignedGroups = new Set<Entrant>();
+  const findJudgeNumberById = (judgeId: string): number | null => {
+    for (const [judgeNum, judge] of judgeNumberToJudge) {
+      if (judge.id === judgeId) {
+        return judgeNum;
+      }
+    }
+    return null;
+  };
+
+  const getPodIndexForJudgeNumber = (judgeNumber: number): number => Math.floor((judgeNumber - 1) / 3);
+
+  const getJudgeNumbersForPod = (podIndex: number): number[] => {
+    const judgeNumbers: number[] = [];
+    for (let offset = 0; offset < 3; offset++) {
+      const judgeNumber = podIndex * 3 + offset + 1;
+      if (judgeNumberToJudge.has(judgeNumber)) {
+        judgeNumbers.push(judgeNumber);
+      }
+    }
+    return judgeNumbers;
+  };
+
+  const isPodUnlocked = (podIndex: number): boolean => {
+    if (podIndex < 0 || podIndex >= numPods) {
+      return false;
+    }
+
+    const judgeNumbers = getJudgeNumbersForPod(podIndex);
+    if (judgeNumbers.length === 0) {
+      return false;
+    }
+
+    return judgeNumbers.every(judgeNumber => {
+      const assignedGroupNumbers = judgeGroups.get(judgeNumber);
+      if (!assignedGroupNumbers) {
+        return true;
+      }
+      for (const groupNumber of assignedGroupNumbers) {
+        if (groupNumberToGroup.has(groupNumber)) {
+          return false;
+        }
+      }
+      return true;
+    });
+  };
+
+  const swapPods = (podIndexA: number, podIndexB: number): boolean => {
+    if (podIndexA === podIndexB) {
+      return false;
+    }
+
+    if (!isPodUnlocked(podIndexA) || !isPodUnlocked(podIndexB)) {
+      return false;
+    }
+
+    for (let offset = 0; offset < 3; offset++) {
+      const judgeNumberA = podIndexA * 3 + offset + 1;
+      const judgeNumberB = podIndexB * 3 + offset + 1;
+      const judgeA = judgeNumberToJudge.get(judgeNumberA);
+      const judgeB = judgeNumberToJudge.get(judgeNumberB);
+
+      if (judgeA) {
+        judgeNumberToJudge.set(judgeNumberB, judgeA);
+      } else {
+        judgeNumberToJudge.delete(judgeNumberB);
+      }
+
+      if (judgeB) {
+        judgeNumberToJudge.set(judgeNumberA, judgeB);
+      } else {
+        judgeNumberToJudge.delete(judgeNumberA);
+      }
+    }
+
+    console.log(`↔ Swapped pods ${podIndexA + 1} and ${podIndexB + 1} to honor first preference`);
+    return true;
+  };
   
   // Helper function to check if a group can be assigned to a judge (no conflicts)
   const canAssignGroupToJudge = (group: Entrant, judgeNumber: number): boolean => {
@@ -760,21 +837,41 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
     
     // PRIORITY 1: Find all groupNumbers where first preferred judge is available
     if (group.judgePreference1) {
-      // Find which judge number corresponds to first preference
-      let firstPreferenceJudgeNum: number | null = null;
-      for (const [judgeNum, judge] of judgeNumberToJudge) {
-        if (judge.id === group.judgePreference1) {
-          firstPreferenceJudgeNum = judgeNum;
+      for (const groupNumber of availableGroupNumbers) {
+        let firstPreferenceJudgeNum = findJudgeNumberById(group.judgePreference1);
+        if (firstPreferenceJudgeNum === null) {
           break;
         }
-      }
-      
-      if (firstPreferenceJudgeNum !== null) {
-        // Check all available groupNumbers to see if first preference judge evaluates them
-        for (const groupNumber of availableGroupNumbers) {
-          const evaluatingJudges = getEvaluatingJudges(groupNumber);
-          if (evaluatingJudges.has(firstPreferenceJudgeNum)) {
-            // Check if conflicts exist (for logging)
+
+        const evaluatingJudges = getEvaluatingJudges(groupNumber);
+        if (evaluatingJudges.has(firstPreferenceJudgeNum)) {
+          const hasConflicts = group.groupsToAvoid && Array.isArray(group.groupsToAvoid) && 
+            Array.from(judgeGroups.get(firstPreferenceJudgeNum) || [])
+              .filter(gn => gn !== groupNumber)
+              .some(gn => {
+                const otherGroup = groupNumberToGroup.get(gn);
+                return otherGroup && group.groupsToAvoid!.includes(otherGroup.id);
+              });
+          const reason = hasConflicts ? '1st preference (conflicts ignored)' : '1st preference';
+          return { groupNumber, judgeNumber: firstPreferenceJudgeNum, reason };
+        }
+
+        if (evaluatingJudges.size === 0) {
+          continue;
+        }
+
+        const targetJudgeNumber = Array.from(evaluatingJudges)[0];
+        const preferredPodIndex = getPodIndexForJudgeNumber(firstPreferenceJudgeNum);
+        const targetPodIndex = getPodIndexForJudgeNumber(targetJudgeNumber);
+
+        if (
+          preferredPodIndex < numPods &&
+          targetPodIndex < numPods &&
+          swapPods(preferredPodIndex, targetPodIndex)
+        ) {
+          firstPreferenceJudgeNum = findJudgeNumberById(group.judgePreference1);
+          const updatedEvaluatingJudges = getEvaluatingJudges(groupNumber);
+          if (firstPreferenceJudgeNum !== null && updatedEvaluatingJudges.has(firstPreferenceJudgeNum)) {
             const hasConflicts = group.groupsToAvoid && Array.isArray(group.groupsToAvoid) && 
               Array.from(judgeGroups.get(firstPreferenceJudgeNum) || [])
                 .filter(gn => gn !== groupNumber)
@@ -782,7 +879,9 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
                   const otherGroup = groupNumberToGroup.get(gn);
                   return otherGroup && group.groupsToAvoid!.includes(otherGroup.id);
                 });
-            const reason = hasConflicts ? '1st preference (conflicts ignored)' : '1st preference';
+            const reason = hasConflicts
+              ? '1st preference (conflicts ignored after pod reassignment)'
+              : '1st preference (pod reassigned)';
             return { groupNumber, judgeNumber: firstPreferenceJudgeNum, reason };
           }
         }

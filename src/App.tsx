@@ -40,11 +40,6 @@ function App() {
     setEntrants(storedEntrants);
   }, [setEntrants]);
 
-
-
-
-
-
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
