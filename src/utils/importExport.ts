@@ -11,11 +11,22 @@ export interface ExportData {
     threeX20Length: number;
     threeX10Length: number;
     moving: 'judges' | 'groups';
+    exportName?: string;
   };
   preferenceNotes?: string;
   exportDate: string;
   version: string;
 }
+
+export interface ImportResultData {
+  judges: Judge[];
+  entrants: Entrant[];
+  sessionBlocks: SessionBlock[];
+  settings: ExportData['settings'];
+  preferenceNotes?: string;
+}
+
+export type ImportResult = { success: boolean; message: string; data?: ImportResultData };
 
 // Convert object to JSON string (more reliable than YAML)
 export const convertToJSON = (data: ExportData): string => {
@@ -48,7 +59,7 @@ export const generateExportData = (): ExportData => {
 };
 
 // Import data from JSON string
-export const importData = (jsonString: string): { success: boolean; message: string; data?: any } => {
+export const importData = (jsonString: string): ImportResult => {
   try {
     if (!jsonString.trim()) {
       return { success: false, message: 'Please paste JSON data to import' };
@@ -88,6 +99,7 @@ export const importData = (jsonString: string): { success: boolean; message: str
       threeX20Length: parsedData.settings?.threeX20Length || 20,
       threeX10Length: parsedData.settings?.threeX10Length || 10,
       moving: parsedData.settings?.moving || 'judges' as 'judges' | 'groups',
+      exportName: parsedData.settings?.exportName ?? '',
     };
     
     console.log('Clean settings:', cleanSettings);
@@ -171,4 +183,12 @@ export const quickExportToFile = (): { success: boolean; message: string } => {
       message: `Export failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
     };
   }
+};
+
+//export time in format YYYYMMDD-HHMM (local timezone, military time)
+ export const getExportFileName = (): string => {
+  const settings = getSettings();
+  const base = (settings.exportName && settings.exportName.trim()) ? settings.exportName.trim() : 'evalmatrix-export';
+  const dateTime = new Date().toLocaleDateString('en-CA').replace(/-/g, '') + '-' + new Date().toLocaleTimeString('en-CA', { hour12: false }  ).replace(/:/g, '').substring(0, 4);
+  return `${base}-${dateTime}.json`;
 };

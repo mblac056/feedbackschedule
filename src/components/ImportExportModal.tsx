@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { generateExportData, convertToJSON, importData } from '../utils/importExport';
+import { generateExportData, convertToJSON, importData, getExportFileName } from '../utils/importExport';
 
 interface ImportExportModalProps {
   isOpen: boolean;
@@ -21,7 +21,7 @@ export default function ImportExportModal({ isOpen, onClose }: ImportExportModal
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `evalmatrix-export-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = getExportFileName();
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

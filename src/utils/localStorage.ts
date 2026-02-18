@@ -17,6 +17,7 @@ const DEFAULT_SETTINGS: SessionSettings = {
   threeX20Length: 20,
   threeX10Length: 10,
   moving: 'groups',
+  exportName: '',
 };
 
 // Enhanced localStorage service with consistent error handling and logging

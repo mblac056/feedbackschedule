@@ -25,6 +25,7 @@ const DEFAULT_SETTINGS: Settings = {
   threeX10Length: 10,
   startTime: '09:00',
   moving: 'groups',
+  exportName: '',
 };
 
 
@@ -44,6 +45,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       const settingsWithFeedback: Settings = {
         ...loadedSettings,
         feedbackStart: '21:00', // Default feedback start time
+        exportName: loadedSettings.exportName ?? '',
       };
       setSettings(settingsWithFeedback);
       // Store the original settings to detect changes
@@ -88,16 +90,18 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       threeX10Length: settings.threeX10Length,
       startTime: settings.startTime,
       moving: settings.moving,
+      exportName: settings.exportName ?? '',
     };
     LocalStorageService.saveSettings(sessionSettings);
     
-    // Update the context settings with all settings
+    // Update the context settings with all settings (include exportName so context save doesn't overwrite it)
     setContextSettings({
       oneXLongLength: settings.oneXLongLength,
       threeX20Length: settings.threeX20Length,
       threeX10Length: settings.threeX10Length,
       startTime: settings.startTime,
       moving: settings.moving as 'judges' | 'groups',
+      exportName: settings.exportName ?? '',
     });
     
     setShowResetWarning(false);
@@ -128,6 +132,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       threeX10Length: DEFAULT_SETTINGS.threeX10Length,
       startTime: DEFAULT_SETTINGS.startTime,
       moving: DEFAULT_SETTINGS.moving as 'judges' | 'groups',
+      exportName: DEFAULT_SETTINGS.exportName ?? '',
     });
     
     // Reset all warning states
@@ -187,6 +192,24 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
         
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
           <div className="space-y-6 text-gray-700">
+
+            
+            {/* Export file name */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Export file name
+              </label>
+              <input
+                type="text"
+                value={settings.exportName ?? ''}
+                onChange={(e) => handleInputChange('exportName', e.target.value)}
+                placeholder="ONT-S26-QF"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                If set, export files use this name plus date-time (e.g. ONT-S26-QF-20260218-1430.json).
+              </p>
+            </div>
             {/* Travel Directions */}
             <div>
               <label className="block text-sm font-medium  mb-2">
@@ -213,6 +236,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
               />
             </div>
+
 
             {/* 1XLong Length */}
             <div>

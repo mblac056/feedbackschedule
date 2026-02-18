@@ -26,6 +26,8 @@ export interface SessionSettings {
   threeX10Length: number;
   startTime: string;
   moving: 'judges' | 'groups';
+  /** If set, used as the base name for export files instead of "evalmatrix-export". */
+  exportName?: string;
 }
 
 // Helper function to get session duration in minutes from settings
