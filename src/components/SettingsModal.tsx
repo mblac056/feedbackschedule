@@ -171,12 +171,11 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-gray-600 to-gray-700 text-white p-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Settings</h2>
-            <p className="text-gray-200">Configure competition timing</p>
           </div>
           <button
             onClick={onClose}

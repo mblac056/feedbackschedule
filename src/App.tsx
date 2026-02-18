@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useEntrant, SettingsProvider } from './contexts'
 import { useSessionManagement } from './hooks/useSessionManagement'
 import { getEntrants, getJudges } from './utils/localStorage'
@@ -33,6 +33,7 @@ function App() {
   const [isEntrantsModalOpen, setIsEntrantsModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isImportExportModalOpen, setIsImportExportModalOpen] = useState(false);
+  const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
   // Initialize entrants when the hook loads data
   useEffect(() => {
@@ -82,6 +83,10 @@ function App() {
     window.location.reload();
   };
 
+  const handlePreferencesToggle = useCallback(() => {
+    setIsPreferencesOpen(prev => !prev);
+  }, []);
+
   return (
     <SettingsProvider>
       <div 
@@ -98,19 +103,21 @@ function App() {
           {judges.length === 0 ? (
             <EmptyState onJudgesImported={(importedJudges) => setJudges(importedJudges)} />
           ) : (
-            <>
-              <SessionsArea 
-                judges={judges} 
-                setJudges={setJudges}
-                refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
-                onScheduledSessionsChange={handleScheduledSessionsChange}
-                scheduledSessions={scheduledSessions}
-                allSessionBlocks={allSessionBlocks}
-                onSessionBlockUpdate={handleSessionBlockUpdate}
-                onSessionBlockRemove={handleSessionBlockRemove}
-                entrantJudgeAssignments={entrantJudgeAssignments}
-                scheduleConflicts={scheduleConflicts}
-              />
+            <div className="relative flex h-full">
+              <div className="flex-1 min-w-0 overflow-x-auto">
+                <SessionsArea 
+                  judges={judges} 
+                  setJudges={setJudges}
+                  refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
+                  onScheduledSessionsChange={handleScheduledSessionsChange}
+                  scheduledSessions={scheduledSessions}
+                  allSessionBlocks={allSessionBlocks}
+                  onSessionBlockUpdate={handleSessionBlockUpdate}
+                  onSessionBlockRemove={handleSessionBlockRemove}
+                  entrantJudgeAssignments={entrantJudgeAssignments}
+                  scheduleConflicts={scheduleConflicts}
+                />
+              </div>
               
               <PreferencesPanel 
                 judges={judges} 
@@ -119,8 +126,10 @@ function App() {
                 allSessionBlocks={allSessionBlocks}
                 scheduleConflicts={scheduleConflicts}
                 onSessionBlocksChange={handleSessionBlocksChange}
+                isOpen={isPreferencesOpen}
+                onToggle={handlePreferencesToggle}
               />
-            </>
+            </div>
           )}
         </div>
 

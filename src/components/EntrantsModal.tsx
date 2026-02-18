@@ -452,7 +452,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         </div>
       )}
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={handleCloseClick}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[95vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gray-600 text-white p-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Manage Entrants</h2>
@@ -474,7 +474,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
           </div>
         </div>
 
-        <div className="p-6 overflow-y-auto overflow-x-auto max-h-[calc(90vh-200px)]">
+        <div className="p-6 overflow-y-auto overflow-x-auto max-h-[calc(95vh-200px)]">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-lg font-semibold text-gray-800">
               {selectedVisibleCount > 0
@@ -563,7 +563,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                 <thead className="bg-gray-50">
                   <tr>
                     <th
-                      className={`px-2 py-2 min-w-[6rem] w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-0 bg-gray-50 z-10 cursor-pointer hover:bg-gray-100 select-none ${
+                      className={`px-2 py-1.5 min-w-[6rem] w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-0 bg-gray-50 z-10 cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'include' ? 'bg-gray-100' : ''
                       }`}
                       onClick={() => handleSort('include')}
@@ -586,7 +586,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                     </th>
 
                     <th
-                      className={`px-2 py-2 min-w-[12rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-24 bg-gray-50 z-10 cursor-pointer hover:bg-gray-100 select-none ${
+                      className={`px-2 py-1.5 min-w-[12rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-24 bg-gray-50 z-10 cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'name' ? 'bg-gray-100' : ''
                       }`}
                       onClick={() => handleSort('name')}
@@ -598,9 +598,9 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
-                    <th className="px-2 py-2 min-w-[6rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Group Type</th>
+                    <th className="px-2 py-1.5 min-w-[6rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Group Type</th>
                     <th
-                      className={`px-2 py-2 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
+                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'score' ? 'bg-gray-100' : ''
                       }`}
                       onClick={() => handleSort('score')}
@@ -612,22 +612,22 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
-                    <th className="px-2 py-2 min-w-[14rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Groups to Avoid</th>
-                    <th className="px-2 py-2 w-26 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Preference</th>
-                    <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 1</th>
-                    <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 2</th>
-                    <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 3</th>
+                    <th className="px-2 py-1.5 min-w-[14rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Groups to Avoid</th>
+                    <th className="px-2 py-1.5 w-26 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Preference</th>
+                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 1</th>
+                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 2</th>
+                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 3</th>
                     
                    {/*Render Room and POS columns only if moving judges*/}
                     {settings.moving === 'judges' && (
                      <>
-                    <th className="px-2 py-2 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
-                    <th className="px-2 py-2 w-32 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Performers</th>
+                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
+                    <th className="px-2 py-1.5 w-32 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Performers</th>
                     </>
                     )}
 
                     <th
-                      className={`px-2 py-2 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
+                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'overallSF' ? 'bg-gray-100' : ''
                       }`}
                       onClick={() => handleSort('overallSF')}
@@ -640,7 +640,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       </div>
                     </th>
                     <th
-                      className={`px-2 py-2 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
+                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
                         sortColumn === 'overallF' ? 'bg-gray-100' : ''
                       }`}
                       onClick={() => handleSort('overallF')}
@@ -652,7 +652,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
-                    <th className="px-2 py-2 w-10 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"></th>
+                    <th className="px-2 py-1.5 w-10 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">

@@ -29,6 +29,8 @@ body {
 
   /* Ensure horizontal scrolling for main content */
   .mobile-scroll-container {
+    width: 100%;
+    max-width: 100%;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
