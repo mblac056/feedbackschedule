@@ -43,13 +43,25 @@ export const populateGrid = (
     entrants,
     allSessionBlocks
   );
-  assignSessionBlocksToGrid(judgeNumberToJudge, groupNumberToGroup, judgeSchedules, allSessionBlocks, onSessionBlockUpdate);
+  let assignments = assignSessionBlocksToGrid(judgeNumberToJudge, groupNumberToGroup, judgeSchedules, allSessionBlocks, sessionSettings);
+
+  if (sessionSettings?.moving === 'judges' && assignments.length > 0) {
+    assignments = applyRoomBuffer(assignments, entrants);
+  }
+
+  assignments.forEach(block => onSessionBlockUpdate(block));
+  console.log(`✓ Assigned ${assignments.length} session blocks to grid`);
 
   return reorderJudgesByPods(judgeNumberToJudge, judges.length);
 };
 
-const assignSessionBlocksToGrid = (judgeNumberToJudge: Map<number, Judge>, groupNumberToGroup: Map<number, Entrant>, judgeSchedules: number[][], allSessionBlocks: SessionBlock[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void) => {
-  // Group session blocks by entrant for easier lookup
+const assignSessionBlocksToGrid = (
+  judgeNumberToJudge: Map<number, Judge>,
+  groupNumberToGroup: Map<number, Entrant>,
+  judgeSchedules: number[][],
+  allSessionBlocks: SessionBlock[],
+  sessionSettings?: SessionSettings
+): SessionBlock[] => {
   const sessionBlocksByEntrant = new Map<string, SessionBlock[]>();
   allSessionBlocks.forEach(block => {
     if (!sessionBlocksByEntrant.has(block.entrantId)) {
@@ -57,22 +69,17 @@ const assignSessionBlocksToGrid = (judgeNumberToJudge: Map<number, Judge>, group
     }
     sessionBlocksByEntrant.get(block.entrantId)!.push(block);
   });
-  
-  // Track which session blocks have been assigned
+
   const assignedBlocks = new Set<SessionBlock>();
-  
-  // For each judge, find the first occurrence of each group number
+  const result: SessionBlock[] = [];
+
   for (let judgeIndex = 0; judgeIndex < judgeSchedules.length; judgeIndex++) {
     const judgeSchedule = judgeSchedules[judgeIndex];
     const judgeNumber = judgeIndex + 1;
     const judge = judgeNumberToJudge.get(judgeNumber);
-    
-    if (!judge) {
-      console.warn(`No judge found for judge number ${judgeNumber}`);
-      continue;
-    }
-    
-    // Find first occurrence of each group number in this judge's schedule
+
+    if (!judge) continue;
+
     const groupFirstOccurrence = new Map<number, number>();
     for (let slotIndex = 0; slotIndex < judgeSchedule.length; slotIndex++) {
       const groupNumber = judgeSchedule[slotIndex];
@@ -80,39 +87,91 @@ const assignSessionBlocksToGrid = (judgeNumberToJudge: Map<number, Judge>, group
         groupFirstOccurrence.set(groupNumber, slotIndex);
       }
     }
-    
-    // Update session blocks for each group this judge evaluates
+
     for (const [groupNumber, startRowIndex] of groupFirstOccurrence) {
       const group = groupNumberToGroup.get(groupNumber);
-      if (!group) {
-        console.warn(`No group found for group number ${groupNumber}`);
-        continue;
-      }
-      
-      // Find an unassigned session block for this group
+      if (!group) continue;
+
       const groupBlocks = sessionBlocksByEntrant.get(group.id) || [];
       const unassignedBlock = groupBlocks.find(block => !assignedBlocks.has(block));
-      
-      if (unassignedBlock) {
-        // Create updated session block
-        const updatedBlock: SessionBlock = {
-          ...unassignedBlock,
-          isScheduled: true,
-          startRowIndex: startRowIndex,
-          endRowIndex: startRowIndex, // Will be updated by the grid component based on duration
-          judgeId: judge.id
-        };
-        
-        // Update the session block
-        onSessionBlockUpdate(updatedBlock);
-        assignedBlocks.add(unassignedBlock);
-      } else {
-        console.warn(`No unassigned session block found for group ${group.name}`);
-      }
+      if (!unassignedBlock) continue;
+
+      const durationSlots = getSessionDurationSlots(unassignedBlock.type, sessionSettings);
+      const endRowIndex = startRowIndex + durationSlots - 1;
+
+      const updatedBlock: SessionBlock = {
+        ...unassignedBlock,
+        isScheduled: true,
+        startRowIndex,
+        endRowIndex,
+        judgeId: judge.id,
+      };
+      result.push(updatedBlock);
+      assignedBlocks.add(unassignedBlock);
     }
   }
-  
-  console.log(`✓ Assigned ${assignedBlocks.size} session blocks to grid`);
+
+  return result;
+};
+
+/** 10-minute buffer in slots (2 x 5-min slots). */
+const ROOM_BUFFER_SLOTS = 2;
+
+/**
+ * When moving === 'judges', same room can host different groups. Only add a 10-minute buffer
+ * when the room is actually changing from one group to another at that time (sessions
+ * back-to-back with no gap). Do not add buffer between every session in the same room.
+ */
+function applyRoomBuffer(assignments: SessionBlock[], entrants: Entrant[]): SessionBlock[] {
+  const entrantById = new Map(entrants.map(e => [e.id, e]));
+  const roomToSessions = new Map<string, SessionBlock[]>();
+
+  for (const block of assignments) {
+    const entrant = entrantById.get(block.entrantId);
+    const room = (entrant?.roomNumber ?? '').trim() || null;
+    if (room == null) continue;
+    if (!roomToSessions.has(room)) roomToSessions.set(room, []);
+    roomToSessions.get(room)!.push(block);
+  }
+
+  let changed = true;
+  const mutable = assignments.map(b => ({ ...b }));
+
+  while (changed) {
+    changed = false;
+    for (const [, roomBlocks] of roomToSessions) {
+      if (roomBlocks.length < 2) continue;
+      const byStart = [...roomBlocks].sort(
+        (a, b) => (mutable.find(m => m.id === a.id)!.startRowIndex ?? 0) - (mutable.find(m => m.id === b.id)!.startRowIndex ?? 0)
+      );
+      for (let i = 0; i < byStart.length - 1; i++) {
+        const earlier = mutable.find(m => m.id === byStart[i].id)!;
+        const later = mutable.find(m => m.id === byStart[i + 1].id)!;
+        // Only add buffer when the room is changing from one group to a different group.
+        // Same group (e.g. Circle City Sound) having multiple sessions in the same room needs no buffer.
+        if (earlier.entrantId === later.entrantId) continue;
+        const firstSlotAfterEarlier = (earlier.endRowIndex ?? earlier.startRowIndex!) + 1;
+        const laterStart = later.startRowIndex ?? 0;
+        // Only when different group takes over and sessions are back-to-back (no gap)
+        if (laterStart <= firstSlotAfterEarlier) {
+          const needStart = firstSlotAfterEarlier + ROOM_BUFFER_SLOTS;
+          const delta = needStart - laterStart;
+          for (const m of mutable) {
+            const s = m.startRowIndex ?? -1;
+            if (s >= laterStart) {
+              m.startRowIndex = s + delta;
+              m.endRowIndex = (m.endRowIndex ?? s) + delta;
+            }
+          }
+          changed = true;
+          break;
+        }
+      }
+      if (changed) break;
+    }
+  }
+
+  return mutable;
 }
 
 const CATEGORY_ORDER: Record<'SNG' | 'MUS' | 'PER', number> = {
