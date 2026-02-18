@@ -31,12 +31,14 @@ export class LocalStorageService {
     }
   }*/
 
-  // Judges operations
+  // Judges operations (active defaults to true when missing for backward compatibility)
   static getJudges(): Judge[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.JUDGES);
-      const judges = stored ? JSON.parse(stored) : [];
-      //this.logSuccess('getJudges', judges);
+      const raw = stored ? JSON.parse(stored) : [];
+      const judges = Array.isArray(raw)
+        ? raw.map((j: Judge) => ({ ...j, active: j.active !== false }))
+        : [];
       return judges;
     } catch (error) {
       this.logError('getJudges', error);

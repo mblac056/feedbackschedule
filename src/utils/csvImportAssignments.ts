@@ -95,7 +95,8 @@ export const importAssignmentsCSV = (csvText: string): ImportResult<AssignmentsI
       const judge: Judge = {
         id: generateId(shortenedName),
         name: shortenedName,
-        category: category as 'SNG' | 'MUS' | 'PER'
+        category: category as 'SNG' | 'MUS' | 'PER',
+        active: true,
       };
 
       judges.push(judge);

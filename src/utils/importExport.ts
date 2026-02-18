@@ -73,7 +73,9 @@ export const importData = (jsonString: string): { success: boolean; message: str
     console.log('Raw entrants:', parsedData.entrants);
     console.log('Raw sessionBlocks:', parsedData.sessionBlocks);
     
-    const cleanJudges = parsedData.judges.filter(judge => judge && judge.id && judge.name);
+    const cleanJudges = parsedData.judges
+      .filter(judge => judge && judge.id && judge.name)
+      .map(judge => ({ ...judge, active: judge.active !== false }));
     const cleanEntrants = parsedData.entrants.filter(entrant => entrant && entrant.id && entrant.name);
     const cleanSessionBlocks = (parsedData.sessionBlocks || []).filter(block => 
       block && block.id && block.entrantId && block.entrantName && block.type

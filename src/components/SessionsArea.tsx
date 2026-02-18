@@ -40,10 +40,11 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
     const [draggedSessionData, setDraggedSessionData] = useState<DraggedSessionData | null>(null);
     const [totalDuration, setTotalDuration] = useState<number>(0);
     const [showPrintDropdown, setShowPrintDropdown] = useState<boolean>(false);
+  const activeJudges = useMemo(() => judges.filter(j => j.active !== false), [judges]);
   const entrants = useMemo(() => getEntrants(), [refreshKey]);
   const conflictDetails = useMemo(
-    () => getConflictDetails(scheduledSessions, judges, entrants, settings),
-    [scheduledSessions, judges, entrants, settings]
+    () => getConflictDetails(scheduledSessions, activeJudges, entrants, settings),
+    [scheduledSessions, activeJudges, entrants, settings]
   );
   const hasRedConflicts = useMemo(
     () => conflictDetails.some(conflict => conflict.severity === 'red'),
@@ -95,9 +96,11 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
     }
   }, [hasRedConflicts]);
     
-      const handleJudgesReorder = (reorderedJudges: Judge[]) => {
-        setJudges(reorderedJudges);
-        saveJudges(reorderedJudges);
+      const handleJudgesReorder = (reorderedActiveJudges: Judge[]) => {
+        const inactiveJudges = judges.filter(j => j.active === false);
+        const merged = [...reorderedActiveJudges, ...inactiveJudges];
+        setJudges(merged);
+        saveJudges(merged);
       };
     
         // Global variable to store drag data
@@ -139,12 +142,12 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
     ];
 
     const handlePrintMatrix = async () => {
-        await generatePDF(scheduledSessions, judges, ['matrix'], entrantJudgeAssignments, allSessionBlocks, scheduleConflicts);
+        await generatePDF(scheduledSessions, activeJudges, ['matrix'], entrantJudgeAssignments, allSessionBlocks, scheduleConflicts);
     };
 
     const handleGenerateReport = async (reportId: string) => {
         setShowPrintDropdown(false);
-        await generatePDF(scheduledSessions, judges, [reportId], entrantJudgeAssignments, allSessionBlocks, scheduleConflicts);
+        await generatePDF(scheduledSessions, activeJudges, [reportId], entrantJudgeAssignments, allSessionBlocks, scheduleConflicts);
     };
 
     /*const handlePopulateGrid = (allSessionBlocks: SessionBlock[], judges: Judge[], onSessionBlockUpdate: (sessionBlock: SessionBlock) => void, sessionSettings?: SessionSettings) => {
@@ -207,7 +210,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                     Clear Grid
                   </button>) : (
                   <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
-                    const reordered = populateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
+                    const reordered = populateGrid(allSessionBlocks, activeJudges, onSessionBlockUpdate, settings);
                     if (reordered && reordered.length > 0) {
                       handleJudgesReorder(reordered);
                     }
@@ -282,7 +285,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
           </div>
         <div className="mobile-scroll-container">
           <GridSchedule 
-            judges={judges} 
+            judges={activeJudges} 
             onJudgesReorder={handleJudgesReorder}
             refreshKey={refreshKey}
             draggedSessionData={draggedSessionData}

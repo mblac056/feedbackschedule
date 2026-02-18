@@ -3,6 +3,8 @@ export interface Judge {
   category?: 'SNG' | 'MUS' | 'PER'
   name: string;
   roomNumber?: string;
+  /** If false, judge is excluded from session grid and assignments; still appears in preference dropdown and judges modal. Default true. */
+  active?: boolean;
 }
 
 export interface Entrant {

@@ -62,10 +62,23 @@ function App() {
   }, []);
 
   const handleJudgesModalClose = () => {
-    // Refresh judges data when modal closes
     const updatedJudges = getJudges();
+    const inactiveJudgeIds = new Set(updatedJudges.filter(j => j.active === false).map(j => j.id));
+    // Unschedule any sessions assigned to judges that are now inactive
+    allSessionBlocks.forEach(block => {
+      if (block.judgeId && inactiveJudgeIds.has(block.judgeId)) {
+        handleSessionBlockUpdate({
+          ...block,
+          isScheduled: false,
+          startRowIndex: undefined,
+          endRowIndex: undefined,
+          judgeId: undefined,
+        });
+      }
+    });
     setJudges(updatedJudges);
   };
+
 
   const handleEntrantsModalClose = () => {
     // This will trigger a refresh of the PreferenceCheckTable

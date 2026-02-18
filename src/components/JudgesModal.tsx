@@ -29,6 +29,7 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
       name: '',
       roomNumber: '',
       category: undefined,
+      active: true,
     };
     
     setJudges(prev => [...prev, newJudge]);
@@ -74,10 +75,9 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
     }
   };
 
-  const handleFieldUpdate = (judgeId: string, field: keyof Judge, value: string | undefined) => {
-    // For all fields, only update local state
-    setJudges(prev => prev.map(judge => 
-      judge.id === judgeId 
+  const handleFieldUpdate = (judgeId: string, field: keyof Judge, value: string | undefined | boolean) => {
+    setJudges(prev => prev.map(judge =>
+      judge.id === judgeId
         ? { ...judge, [field]: value }
         : judge
     ));
@@ -171,6 +171,7 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Name</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Category</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Active</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Actions</th>
                   </tr>
                 </thead>
@@ -208,7 +209,16 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
                           className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </td>
-
+                      <td className="px-4 py-3 border-b">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={judge.active !== false}
+                            onChange={(e) => handleFieldUpdate(judge.id, 'active', e.target.checked)}
+                            className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                          />
+                        </label>
+                      </td>
                       <td className="px-4 py-3 border-b">
                         <button
                           onClick={() => handleRemove(judge.id)}
