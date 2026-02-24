@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useEntrant, SettingsProvider } from './contexts'
 import { useSessionManagement } from './hooks/useSessionManagement'
 import { getEntrants, getJudges } from './utils/localStorage'
@@ -79,6 +79,7 @@ function App() {
     setJudges(updatedJudges);
   };
 
+  const activeJudges = useMemo(() => judges.filter(j => j.active !== false), [judges]);
 
   const handleEntrantsModalClose = () => {
     // This will trigger a refresh of the PreferenceCheckTable
@@ -116,10 +117,10 @@ function App() {
           {judges.length === 0 ? (
             <EmptyState onJudgesImported={(importedJudges) => setJudges(importedJudges)} />
           ) : (
-            <div className="relative flex h-full">
+            <div className="relative flex h-full items-stretch">
               <div className="flex-1 min-w-0 overflow-x-auto">
                 <SessionsArea 
-                  judges={judges} 
+                  judges={activeJudges} 
                   setJudges={setJudges}
                   refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
                   onScheduledSessionsChange={handleScheduledSessionsChange}

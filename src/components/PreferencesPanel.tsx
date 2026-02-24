@@ -38,11 +38,11 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   useEffect(() => {
     const storedEntrants = getEntrants();
     setEntrants(storedEntrants);
-    
+
     // Filter included entrants and maintain array order
     const included = storedEntrants.filter(e => e.includeInSchedule);
     setIncludedEntrants(included);
-    
+
     // Load preference notes
     const notes = getPreferenceNotes();
     setPreferenceNotes(notes);
@@ -76,7 +76,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     };
 
     document.addEventListener('keydown', handleKeyPress);
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
@@ -106,19 +106,19 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
 
     const draggedIndex = includedEntrants.findIndex(e => e.id === draggedEntrantId);
     const targetIndex = includedEntrants.findIndex(e => e.id === targetEntrantId);
-    
+
     if (draggedIndex === -1 || targetIndex === -1) return;
 
     // Get all entrants and reorder them
     const allEntrants = getEntrants();
     const draggedEntrant = allEntrants.find(e => e.id === draggedEntrantId);
     const targetEntrant = allEntrants.find(e => e.id === targetEntrantId);
-    
+
     if (!draggedEntrant || !targetEntrant) return;
 
     const draggedAllIndex = allEntrants.findIndex(e => e.id === draggedEntrantId);
     const targetAllIndex = allEntrants.findIndex(e => e.id === targetEntrantId);
-    
+
     const newAllEntrants = [...allEntrants];
     const [movedEntrant] = newAllEntrants.splice(draggedAllIndex, 1);
     newAllEntrants.splice(targetAllIndex, 0, movedEntrant);
@@ -129,19 +129,19 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     // Get current session blocks and reorder them based on new entrant order
     const currentSessionBlocks = getSessionBlocks();
     const reorderedSessionBlocks = reorderSessionBlocksByEntrants(currentSessionBlocks, newAllEntrants);
-    
+
     // Save reordered session blocks to localStorage
     saveSessionBlocks(reorderedSessionBlocks);
 
     // Update local state
     setEntrants(newAllEntrants);
     setIncludedEntrants(newAllEntrants.filter(e => e.includeInSchedule));
-    
+
     // Notify parent component that session blocks have changed
     if (onSessionBlocksChange) {
       onSessionBlocksChange();
     }
-    
+
     setDraggedEntrantId(null);
     setDragOverEntrantId(null);
   };
@@ -154,7 +154,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   // Helper function to check if a group has conflicts for a specific entrant
   const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
     if (!scheduleConflicts) return false;
-    return scheduleConflicts.some(conflict => 
+    return scheduleConflicts.some(conflict =>
       conflict.entrantId === entrantId && conflict.conflictingEntrantId === groupId
     );
   };
@@ -204,7 +204,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
         // Check if any session blocks (scheduled or unscheduled) match their preference
         const entrantSessionBlocks = allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
         const hasMatchingSessionType = entrantSessionBlocks.some(block => block.type === entrant.preference);
-        
+
         if (hasMatchingSessionType) {
           greenCount++;
         } else {
@@ -301,15 +301,12 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
           </thead>
           <tbody className="divide-y divide-gray-200">
             {includedEntrants.map((entrant, index) => (
-              <tr 
-                key={entrant.id} 
-                className={`transition-all duration-200 ${
-                  draggedEntrantId === entrant.id ? 'opacity-50 scale-95' : ''
-                } ${
-                  dragOverEntrantId === entrant.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
-                } ${
-                  selectedEntrant === entrant.id ? 'bg-[var(--primary-color)] text-white' : 'text-gray-600'
-                }`}
+              <tr
+                key={entrant.id}
+                className={`transition-all duration-200 ${draggedEntrantId === entrant.id ? 'opacity-50 scale-95' : ''
+                  } ${dragOverEntrantId === entrant.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
+                  } ${selectedEntrant === entrant.id ? 'bg-[var(--primary-color)] text-white' : 'text-gray-600'
+                  }`}
                 draggable
                 onDragStart={(e) => handleDragStart(e, entrant.id)}
                 onDragOver={(e) => handleDragOver(e, entrant.id)}
@@ -332,11 +329,10 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                         return (
                           <span
                             key={groupIndex}
-                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${
-                              hasGroupConflict(entrant.id, groupId)
-                                ? 'bg-red-200 text-red-800'
-                                : 'bg-green-200 text-green-800'
-                            }`}
+                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${hasGroupConflict(entrant.id, groupId)
+                              ? 'bg-red-200 text-red-800'
+                              : 'bg-green-200 text-green-800'
+                              }`}
                           >
                             {groupName}
                           </span>
@@ -348,18 +344,17 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                 <td className="px-3 py-2 border-b">
                   {entrant.preference && (
                     <span
-                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${
-                        (() => {
-                          const entrantSessionBlocks =
-                            allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
-                          const hasMatchingSessionType = entrantSessionBlocks.some(
-                            block => block.type === entrant.preference
-                          );
-                          return hasMatchingSessionType
-                            ? 'bg-green-200 text-green-800'
-                            : 'bg-red-200 text-red-800';
-                        })()
-                      }`}
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${(() => {
+                        const entrantSessionBlocks =
+                          allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
+                        const hasMatchingSessionType = entrantSessionBlocks.some(
+                          block => block.type === entrant.preference
+                        );
+                        return hasMatchingSessionType
+                          ? 'bg-green-200 text-green-800'
+                          : 'bg-red-200 text-red-800';
+                      })()
+                        }`}
                     >
                       {entrant.preference}
                     </span>
@@ -368,11 +363,10 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                 <td className="px-3 py-2 border-b">
                   {judges.find(j => j.id === entrant.judgePreference1) && (
                     <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
-                        entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference1)
-                          ? 'bg-green-200 text-green-800'
-                          : 'bg-gray-200 text-gray-600'
-                      }`}
+                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference1)
+                        ? 'bg-green-200 text-green-800'
+                        : 'bg-gray-200 text-gray-600'
+                        }`}
                     >
                       {(() => {
                         const judge = judges.find(j => j.id === entrant.judgePreference1);
@@ -390,11 +384,10 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                 <td className="px-3 py-2 border-b">
                   {judges.find(j => j.id === entrant.judgePreference2) && (
                     <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
-                        entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference2)
-                          ? 'bg-green-200 text-green-800'
-                          : 'bg-gray-200 text-gray-600'
-                      }`}
+                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference2)
+                        ? 'bg-green-200 text-green-800'
+                        : 'bg-gray-200 text-gray-600'
+                        }`}
                     >
                       {(() => {
                         const judge = judges.find(j => j.id === entrant.judgePreference2);
@@ -412,11 +405,10 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                 <td className="px-3 py-2 border-b">
                   {judges.find(j => j.id === entrant.judgePreference3) && (
                     <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
-                        entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference3)
-                          ? 'bg-green-200 text-green-800'
-                          : 'bg-gray-200 text-gray-600'
-                      }`}
+                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference3)
+                        ? 'bg-green-200 text-green-800'
+                        : 'bg-gray-200 text-gray-600'
+                        }`}
                     >
                       {(() => {
                         const judge = judges.find(j => j.id === entrant.judgePreference3);
@@ -466,51 +458,11 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     </div>
   );
 
-  const panelContent = (
-    <div className="h-full flex flex-col">
-      <div className="bg-[var(--primary-color)] text-white px-6 py-4 flex items-center justify-between">
-        <h2 className="text-lg font-semibold">Evaluation Preferences</h2>
-        <button
-          onClick={togglePanel}
-          className="text-white hover:text-blue-200 transition-colors"
-          aria-label="Close preference panel"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto overflow-x-auto p-6 flyout-panel">
-        {panelBodyContent}
-      </div>
-    </div>
-  );
-
-  const desktopToggleButton = (
+  const toggleBadge = (
     <button
       onClick={togglePanel}
-      className={`hidden lg:flex items-center gap-2 absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-l-lg shadow-lg transition-opacity duration-300 ${
-        isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
-      }`}
-      aria-label="Open preference panel"
-    >
-      <span className="text-xs font-semibold">Preferences</span>
-      <span className="flex items-center gap-1 text-xs">
-        <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-        <span>{pillCounts.greenCount}</span>
-      </span>
-    </button>
-  );
-
-const PANEL_WIDTH_DESKTOP = 'w-[800px]';
-const PANEL_WIDTH_MOBILE = 'max-w-[800px]';
-
-const toggleBadge = (
-    <button
-      onClick={togglePanel}
-      className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white border border-gray-200 border-r-0 rounded-l-lg shadow px-3 py-2 text-xs font-semibold text-gray-600 flex flex-col items-center gap-2 transition-opacity duration-300 ${
-        isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
-      }`}
+      className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white border border-gray-200 border-r-0 rounded-l-lg shadow px-3 py-2 text-xs font-semibold text-gray-600 flex flex-col items-center gap-2 transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        }`}
       aria-label="Open preference panel"
     >
       <span className="flex items-center gap-1">
@@ -531,38 +483,27 @@ const toggleBadge = (
   return (
     <>
       {toggleBadge}
-      <div className="hidden lg:flex lg:relative lg:h-full lg:flex-shrink-0">
-        {desktopToggleButton}
-        <div
-          className={`overflow-hidden bg-white border-l border-gray-200 shadow-lg transition-[width] duration-300 ease-in-out ${
-            isOpen ? PANEL_WIDTH_DESKTOP : 'w-0'
-          }`}
-        >
-          <div
-            className={`h-full flex flex-col transition-opacity duration-200 ${
-              isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-          >
-            {panelContent}
+
+      <div className={`flex-shrink-0 self-stretch z-50 transition-[width] duration-300 ease-in-out ${isOpen ? 'w-[100vw] lg:max-w-[800px] min-h-full' : 'w-0 h-0'}`}>
+        {isOpen &&
+          <div className="flex h-full min-h-full flex-col bg-white border-l border-gray-200 shadow-lg ">
+            <div className="bg-[var(--primary-color)] text-white px-6 py-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold">Evaluation Preferences</h2>
+              <button
+                onClick={togglePanel}
+                aria-label="Close preference panel"
+              >
+                <svg className="w-5 h-5 hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto overflow-x-auto p-6 flyout-panel">
+              {panelBodyContent}
+            </div>
           </div>
-        </div>
+        }
       </div>
-
-      <div
-        className={`lg:hidden fixed right-0 top-0 h-full w-full ${PANEL_WIDTH_MOBILE} bg-white shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-      >
-        {panelContent}
-      </div>
-
-      {isOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/70 z-40 transition-opacity duration-300"
-          onClick={togglePanel}
-          aria-label="Close preference panel"
-        />
-      )}
     </>
   );
 }
