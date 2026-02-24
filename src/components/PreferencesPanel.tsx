@@ -66,6 +66,10 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   // Add keyboard shortcut for toggling preferences panel
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return;
+      }
       if (event.key.toLowerCase() === 'p') {
         onToggle();
       }
