@@ -651,7 +651,17 @@ const handleSessionDragLeave = () => {
           </div>
           
           {/* Time Grid */}
-          <div className="flex">
+          <div className="relative flex">
+            {draggedSessionData && dragPreview && (
+              <div
+                className={`absolute left-0 right-0 border-t-2 pointer-events-none z-30 ${
+                  dragPreview.isValid ? 'border-green-500' : 'border-red-500'
+                }`}
+                style={{
+                  top: `${dragPreview.timeSlot * TIME_CONFIG.SLOT_HEIGHT_PX}px`
+                }}
+              />
+            )}
             {/* Time Column */}
             <div className="w-12 flex-shrink-0">
               {timeSlots.map((slot, index) => (

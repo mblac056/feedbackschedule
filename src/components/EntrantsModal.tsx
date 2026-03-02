@@ -389,6 +389,17 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const eligibleVisibleEntrants = visibleEntrants.filter(entrant => entrant.preference !== 'None');
   const selectedVisibleCount = eligibleVisibleEntrants.filter(entrant => entrant.includeInSchedule).length;
   const totalVisibleEligible = eligibleVisibleEntrants.length;
+  const judgesSortedByLastName = [...judges].sort((a, b) => {
+    const aParts = a.name.trim().split(/\s+/);
+    const bParts = b.name.trim().split(/\s+/);
+    const aLastName = aParts[aParts.length - 1]?.toLowerCase() ?? '';
+    const bLastName = bParts[bParts.length - 1]?.toLowerCase() ?? '';
+
+    const lastNameComparison = aLastName.localeCompare(bLastName);
+    if (lastNameComparison !== 0) return lastNameComparison;
+
+    return a.name.localeCompare(b.name);
+  });
 
   if (!isOpen) return null;
 
@@ -660,7 +671,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       <EntrantRow
                         key={entrant.id}
                         entrant={entrant}
-                        judges={judges}
+                        judges={judgesSortedByLastName}
                         allEntrants={entrants}
                         draggedEntrantId={draggedEntrantId}
                         dragOverEntrantId={dragOverEntrantId}
