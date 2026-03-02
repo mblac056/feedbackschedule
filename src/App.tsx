@@ -35,10 +35,26 @@ function App() {
   const [isImportExportModalOpen, setIsImportExportModalOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
 
-  // Initialize entrants when the hook loads data
+  // Keep entrant context synced with localStorage updates.
   useEffect(() => {
-    const storedEntrants = getEntrants();
-    setEntrants(storedEntrants);
+    const syncEntrants = () => {
+      setEntrants(getEntrants());
+    };
+
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'evalmatrix_entrants') {
+        syncEntrants();
+      }
+    };
+
+    syncEntrants();
+    window.addEventListener('entrantsUpdated', syncEntrants);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('entrantsUpdated', syncEntrants);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, [setEntrants]);
 
   // Handle keyboard shortcuts

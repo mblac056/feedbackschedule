@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { DragEvent as ReactDragEvent } from 'react';
 import type { Judge, Entrant, SessionBlock, DraggedSessionData } from '../types';
-import { getEntrants, saveSettings } from '../utils/localStorage';
+import { saveSettings } from '../utils/localStorage';
 import SessionBlockComponent from './SessionBlock';
 import { TIME_CONFIG, getSessionHeight } from '../config/timeConfig';
 import { useSettings } from '../contexts/useSettings';
@@ -19,7 +19,6 @@ interface GridScheduleProps {
   judges: Judge[];
   onJudgesReorder?: (reorderedJudges: Judge[]) => void;
   onSessionAssigned?: (sessionData: DraggedSessionData) => void;
-  refreshKey?: string;
   draggedSessionData?: DraggedSessionData | null; 
   scheduledSessions: SessionBlock[];
   allSessionBlocks: SessionBlock[];
@@ -36,12 +35,11 @@ interface DragPreview {
   isValid: boolean;
 }
 
-export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigned, refreshKey, draggedSessionData, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlockRemove, onSessionDragStart }: GridScheduleProps) {
+export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigned, draggedSessionData, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlockRemove, onSessionDragStart }: GridScheduleProps) {
   const { settings, setSettings } = useSettings();
   const { selectedEntrant, setSelectedEntrant, entrants: contextEntrants } = useEntrant();
   const [draggedJudgeId, setDraggedJudgeId] = useState<string | null>(null);
   const [dragOverJudgeId, setDragOverJudgeId] = useState<string | null>(null);
-  const [entrants, setEntrants] = useState<Entrant[]>([]);
   const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
   const [isEditingStartTime, setIsEditingStartTime] = useState(false);
   const [tempStartTime, setTempStartTime] = useState(settings.startTime);
@@ -50,10 +48,7 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
   const pendingSwapSessionIdRef = useRef<string | null>(null);
   const SWAP_HOVER_TIMEOUT = 1000; // 1 second
 
-  useEffect(() => {
-    const storedEntrants = getEntrants();
-    setEntrants(storedEntrants);
-  }, [refreshKey]);
+  const entrants: Entrant[] = contextEntrants;
 
   // Update temp start time when settings change
   useEffect(() => {
@@ -98,6 +93,11 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
       return;
     }
 
+    const isSelectedEntrantBeingDragged = draggedSessionData?.entrantId === selectedEntrant;
+    if (isSelectedEntrantBeingDragged) {
+      return;
+    }
+
     const entrantHasSessions = scheduledSessions.some(
       session => session.entrantId === selectedEntrant
     );
@@ -105,7 +105,7 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
     if (!entrantHasSessions) {
       setSelectedEntrant(null);
     }
-  }, [selectedEntrant, scheduledSessions, setSelectedEntrant]);
+  }, [selectedEntrant, draggedSessionData, scheduledSessions, setSelectedEntrant]);
 
   // Note: Session type validation is now handled at the App.tsx level when regenerating session blocks
   // The GridSchedule component now relies entirely on the SessionBlocks provided to it

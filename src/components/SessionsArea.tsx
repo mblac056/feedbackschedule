@@ -41,7 +41,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
     const [totalDuration, setTotalDuration] = useState<number>(0);
     const [showPrintDropdown, setShowPrintDropdown] = useState<boolean>(false);
   const activeJudges = useMemo(() => judges.filter(j => j.active !== false), [judges]);
-  const entrants = useMemo(() => getEntrants(), [refreshKey]);
+  const entrants = useMemo(() => getEntrants(), []);
   const conflictDetails = useMemo(
     () => getConflictDetails(scheduledSessions, activeJudges, entrants, settings),
     [scheduledSessions, activeJudges, entrants, settings]
@@ -287,7 +287,6 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
           <GridSchedule 
             judges={activeJudges} 
             onJudgesReorder={handleJudgesReorder}
-            refreshKey={refreshKey}
             draggedSessionData={draggedSessionData}
             scheduledSessions={scheduledSessions}
             allSessionBlocks={allSessionBlocks}
