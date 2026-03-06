@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Entrant, Judge, EntrantJudgeAssignments, SessionBlock } from '../types';
 import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants, getSettings, getPreferenceNotes, savePreferenceNotes } from '../utils/localStorage';
 import { useEntrant } from '../contexts/useEntrant.ts';
@@ -24,6 +24,11 @@ interface PreferencesPanelProps {
   onToggle: () => void;
 }
 
+const DEFAULT_PANEL_WIDTH = 800;
+const MIN_PANEL_WIDTH = 520;
+const MAX_PANEL_WIDTH = 1200;
+const DESKTOP_BREAKPOINT = 1024;
+
 
 
 export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssignments, allSessionBlocks, scheduleConflicts, onSessionBlocksChange, isOpen, onToggle }: PreferencesPanelProps) {
@@ -32,8 +37,22 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
   const [dragOverEntrantId, setDragOverEntrantId] = useState<string | null>(null);
   const [preferenceNotes, setPreferenceNotes] = useState<string>('');
+  const [panelWidth, setPanelWidth] = useState<number>(DEFAULT_PANEL_WIDTH);
+  const [isDesktopView, setIsDesktopView] = useState<boolean>(window.innerWidth >= DESKTOP_BREAKPOINT);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const resizeStartXRef = useRef<number>(0);
+  const resizeStartWidthRef = useRef<number>(DEFAULT_PANEL_WIDTH);
   const { selectedEntrant, setSelectedEntrant } = useEntrant();
   const settings = getSettings();
+
+  const getMaxPanelWidth = useCallback(
+    () => Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, window.innerWidth - 80)),
+    []
+  );
+  const clampPanelWidth = useCallback(
+    (width: number) => Math.min(getMaxPanelWidth(), Math.max(MIN_PANEL_WIDTH, width)),
+    [getMaxPanelWidth]
+  );
 
   useEffect(() => {
     const storedEntrants = getEntrants();
@@ -46,7 +65,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     // Load preference notes
     const notes = getPreferenceNotes();
     setPreferenceNotes(notes);
-  }, []);
+  }, [clampPanelWidth]);
 
   // Update included entrants when entrants change
   useEffect(() => {
@@ -61,6 +80,22 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
       setEntrants(storedEntrants);
     }
   }, [refreshKey]);
+
+  useEffect(() => {
+    const handleWindowResize = () => {
+      const desktop = window.innerWidth >= DESKTOP_BREAKPOINT;
+      setIsDesktopView(desktop);
+      if (desktop) {
+        setPanelWidth(prevWidth => clampPanelWidth(prevWidth));
+      }
+    };
+
+    handleWindowResize();
+    window.addEventListener('resize', handleWindowResize);
+    return () => {
+      window.removeEventListener('resize', handleWindowResize);
+    };
+  }, [clampPanelWidth]);
 
 
   // Add keyboard shortcut for toggling preferences panel
@@ -238,6 +273,45 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     setPreferenceNotes(newNotes);
     savePreferenceNotes(newNotes);
   };
+
+  const handleResizePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isDesktopView) return;
+
+    e.preventDefault();
+    resizeStartXRef.current = e.clientX;
+    resizeStartWidthRef.current = panelWidth;
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const originalCursor = document.body.style.cursor;
+    const originalUserSelect = document.body.style.userSelect;
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const deltaX = resizeStartXRef.current - e.clientX;
+      const nextWidth = resizeStartWidthRef.current + deltaX;
+      setPanelWidth(clampPanelWidth(nextWidth));
+    };
+
+    const handlePointerUp = () => {
+      setIsResizing(false);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+
+    return () => {
+      document.body.style.cursor = originalCursor;
+      document.body.style.userSelect = originalUserSelect;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [isResizing, clampPanelWidth]);
 
   const isEmpty = includedEntrants.length === 0;
 
@@ -485,9 +559,24 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     <>
       {toggleBadge}
 
-      <div className={`flex-shrink-0 self-stretch z-50 transition-[width] duration-300 ease-in-out ${isOpen ? 'w-[100vw] lg:max-w-[800px] min-h-full' : 'w-0 h-0'}`}>
+      <div
+        className={`flex-shrink-0 self-stretch z-50 transition-[width] ease-in-out ${isResizing ? 'duration-0' : 'duration-300'} ${isOpen ? 'min-h-full' : 'h-0'}`}
+        style={{
+          width: isOpen ? (isDesktopView ? `${panelWidth}px` : '100vw') : '0px',
+        }}
+      >
         {isOpen &&
-          <div className="flex h-full min-h-full flex-col bg-white border-l border-gray-200 shadow-lg ">
+          <div className="relative flex h-full min-h-full flex-col bg-white border-l border-gray-200 shadow-lg">
+            {isDesktopView && (
+              <button
+                type="button"
+                onPointerDown={handleResizePointerDown}
+                className="absolute left-0 top-0 z-10 hidden h-full w-3 -translate-x-1/2 cursor-col-resize items-center justify-center lg:flex"
+                aria-label="Resize preference panel"
+              >
+                <span className={`h-16 w-1 rounded-full transition-colors ${isResizing ? 'bg-[var(--primary-color)]' : 'bg-gray-300 hover:bg-gray-400'}`} />
+              </button>
+            )}
             <div className="bg-[var(--primary-color)] text-white px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold">Evaluation Preferences</h2>
               <button
