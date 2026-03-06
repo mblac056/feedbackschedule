@@ -32,7 +32,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
   const [dragOverEntrantId, setDragOverEntrantId] = useState<string | null>(null);
   const [preferenceNotes, setPreferenceNotes] = useState<string>('');
-  const { selectedEntrant } = useEntrant();
+  const { selectedEntrant, setSelectedEntrant } = useEntrant();
   const settings = getSettings();
 
   useEffect(() => {
@@ -308,6 +308,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                   } ${selectedEntrant === entrant.id ? 'bg-[var(--primary-color)] text-white' : 'text-gray-600'
                   }`}
                 draggable
+                onClick={() => setSelectedEntrant(entrant.id)}
                 onDragStart={(e) => handleDragStart(e, entrant.id)}
                 onDragOver={(e) => handleDragOver(e, entrant.id)}
                 onDragLeave={handleDragLeave}
