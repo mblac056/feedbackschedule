@@ -7,6 +7,11 @@ import { TIME_CONFIG, getSessionHeight } from '../config/timeConfig';
 import { useSettings } from '../contexts/useSettings';
 import { useEntrant } from '../contexts/useEntrant';
 import { getCategoryColor } from '../config/categoryConfig';
+import ConflictBanners from './grid/components/ConflictBanners';
+import DragPreviewOverlay from './grid/components/DragPreviewOverlay';
+import { useGroupSessionDrag } from './grid/hooks/useGroupSessionDrag';
+import { useSessionMultiSelect } from './grid/hooks/useSessionMultiSelect';
+import type { DragPreview } from './grid/types';
 import {
   buildSessionSwapUpdates,
   buildEntrantSwapUpdates,
@@ -28,13 +33,6 @@ interface GridScheduleProps {
 }
 
 
-interface DragPreview {
-  judgeId: string;
-  timeSlot: number;
-  sessionType: '1xLong' | '3x20' | '3x10';
-  isValid: boolean;
-}
-
 export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigned, draggedSessionData, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlockRemove, onSessionDragStart }: GridScheduleProps) {
   const { settings, setSettings } = useSettings();
   const { selectedEntrant, setSelectedEntrant, entrants: contextEntrants } = useEntrant();
@@ -46,9 +44,27 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
   const [swapCandidateSessionId, setSwapCandidateSessionId] = useState<string | null>(null);
   const swapHoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingSwapSessionIdRef = useRef<string | null>(null);
+  const gridBodyRef = useRef<HTMLDivElement>(null);
   const SWAP_HOVER_TIMEOUT = 1000; // 1 second
 
   const entrants: Entrant[] = contextEntrants;
+  const {
+    selectedSessionIds,
+    selectionRect,
+    isSelectingBlocks,
+    handleGridMouseDown
+  } = useSessionMultiSelect({ scheduledSessions, gridBodyRef });
+  const {
+    isGroupDragActive,
+    getGroupDragPreview,
+    applyGroupDrop
+  } = useGroupSessionDrag({
+    judges,
+    scheduledSessions,
+    settings,
+    gridBodyRef,
+    onSessionBlockUpdate
+  });
 
   // Update temp start time when settings change
   useEffect(() => {
@@ -245,6 +261,15 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
       const sessionData = e.dataTransfer.getData('application/json');
       if (sessionData) {
         const draggedSession: DraggedSessionData = JSON.parse(sessionData);
+
+        if (draggedSession.groupSessionIds && draggedSession.groupSessionIds.length > 1) {
+          const wasGroupApplied = applyGroupDrop(judgeId, timeSlot, draggedSession);
+          if (!wasGroupApplied) {
+            console.warn('Cannot drop session group: invalid location or conflict detected');
+          }
+          setDragPreview(null);
+          return;
+        }
         
         // Check for time conflicts before allowing the drop
         if (hasTimeConflict(scheduledSessions, judgeId, timeSlot, draggedSession.type, settings, draggedSession)) {
@@ -287,11 +312,18 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
     if (draggedSessionData) {
       e.preventDefault();
       // Use the stored dragged session data instead of trying to get it from the event
+      const groupPreview = isGroupDragActive(draggedSessionData)
+        ? getGroupDragPreview(judgeId, timeSlot, draggedSessionData)
+        : null;
+      const isValid = groupPreview
+        ? groupPreview.isValid
+        : !hasTimeConflict(scheduledSessions, judgeId, timeSlot, draggedSessionData.type, settings, draggedSessionData);
       setDragPreview({
         judgeId,
         timeSlot,
         sessionType: draggedSessionData.type,
-        isValid: !hasTimeConflict(scheduledSessions, judgeId, timeSlot, draggedSessionData.type, settings, draggedSessionData)
+        isValid,
+        groupShadowFrame: groupPreview?.groupShadowFrame
       });
     }
   };
@@ -303,11 +335,18 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       // Update preview position as user drags around
+      const groupPreview = isGroupDragActive(draggedSessionData)
+        ? getGroupDragPreview(judgeId, timeSlot, draggedSessionData)
+        : null;
+      const isValid = groupPreview
+        ? groupPreview.isValid
+        : !hasTimeConflict(scheduledSessions, judgeId, timeSlot, draggedSessionData.type, settings, draggedSessionData);
       setDragPreview({
         judgeId,
         timeSlot,
         sessionType: draggedSessionData.type,
-        isValid: !hasTimeConflict(scheduledSessions, judgeId, timeSlot, draggedSessionData.type, settings, draggedSessionData)
+        isValid,
+        groupShadowFrame: groupPreview?.groupShadowFrame
       });
     }
   };
@@ -319,6 +358,10 @@ const handleSessionDragLeave = () => {
 };
 
   const handleScheduledBlockDragEnter = (_e: ReactDragEvent, targetSession: SessionBlock) => {
+    if (isGroupDragActive(draggedSessionData)) {
+      cancelSwapHover(targetSession.id);
+      return;
+    }
     if (!draggedSessionData || draggedSessionData.isRemoving !== true || !draggedSessionData.sessionId) {
       cancelSwapHover(targetSession.id);
       return;
@@ -335,6 +378,7 @@ const handleSessionDragLeave = () => {
   };
 
   const handleScheduledBlockDragOver = (e: ReactDragEvent, targetSession: SessionBlock) => {
+    if (isGroupDragActive(draggedSessionData)) return;
     if (!draggedSessionData || draggedSessionData.isRemoving !== true || !draggedSessionData.sessionId) return;
     if (draggedSessionData.sessionId === targetSession.id) return;
     if (draggedSessionData.type !== targetSession.type) return;
@@ -487,110 +531,7 @@ const handleSessionDragLeave = () => {
 
   return (
     <div>      
-      {/* Conflict Warnings */}
-      {redConflicts.length > 0 && (
-        <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
-                Critical Scheduling Conflicts
-              </h3>
-              <div className="mt-2 text-sm text-red-700">
-                <ul className="list-disc list-inside space-y-1">
-                  {redConflicts.map((conflict, index) => {
-                    if (conflict.type === 'entrant') {
-                      return (
-                        <li key={`red-entrant-${index}`}>
-                          <strong>{conflict.entrantName}</strong> has overlapping sessions
-                        </li>
-                      );
-                    }
-                    if (conflict.type === 'room') {
-                      return (
-                        <li key={`red-room-${index}`}>
-                          Room <strong>{conflict.roomNumber}</strong> has overlapping sessions
-                        </li>
-                      );
-                    }
-                    return null;
-                  })}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      {yellowConflicts.length > 0 && (
-        <div className="mb-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Scheduling Alerts
-              </h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <ul className="list-disc list-inside space-y-1">
-                  {yellowConflicts.map((conflict, index) => {
-                    if (conflict.type === 'category') {
-                      return (
-                        <li key={`yellow-category-${index}`}>
-                          <strong>{conflict.entrantName}</strong> is receiving multiple feedback sessions in the same category ({conflict.category})
-                        </li>
-                      );
-                    }
-                    if (conflict.type === 'late') {
-                      return (
-                        <li key={`yellow-late-${index}`}>
-                          Sessions ending after 1am for: <strong>{conflict.entrantName}</strong>
-                        </li>
-                      );
-                  }
-                  if (conflict.type === 'room') {
-                    return (
-                      <li key={`yellow-room-${index}`}>
-                        Room <strong>{conflict.roomNumber}</strong> has overlapping 3×10 sessions
-                      </li>
-                    );
-                    }
-                    if (conflict.type === 'unpaddedChorusChange') {
-                      return (
-                        <li key={`yellow-unpadded-${index}`}>
-                          Room <strong>{conflict.roomNumber}</strong> may need transition time added before group <strong>{conflict.entrantName}</strong>
-                        </li>
-                      );
-                    }
-                  if (conflict.type === 'judgeOvertime') {
-                    const hours = Math.floor(conflict.totalMinutes / 60);
-                    const minutes = conflict.totalMinutes % 60;
-                    const formattedDuration = [
-                      hours > 0 ? `${hours}h` : null,
-                      minutes > 0 ? `${minutes}m` : null
-                    ]
-                      .filter(Boolean)
-                      .join(' ');
-                    return (
-                      <li key={`yellow-judgeOvertime-${index}`}>
-                        Judge <strong>{conflict.judgeName}</strong> is scheduled for {formattedDuration || `${conflict.totalMinutes}m`} of sessions
-                      </li>
-                    );
-                  }
-                    return null;
-                  })}
-                </ul>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConflictBanners redConflicts={redConflicts} yellowConflicts={yellowConflicts} />
       
       <div>
         <div className="min-w-max mt-4">
@@ -651,14 +592,20 @@ const handleSessionDragLeave = () => {
           </div>
           
           {/* Time Grid */}
-          <div className="relative flex">
-            {draggedSessionData && dragPreview && (
+          <div
+            ref={gridBodyRef}
+            className={`relative flex ${isSelectingBlocks ? 'select-none' : ''}`}
+            onMouseDown={handleGridMouseDown}
+          >
+            <DragPreviewOverlay draggedSessionData={draggedSessionData} dragPreview={dragPreview} />
+            {selectionRect && (
               <div
-                className={`absolute left-0 right-0 border-t-2 pointer-events-none z-30 ${
-                  dragPreview.isValid ? 'border-green-500' : 'border-red-500'
-                }`}
+                className="absolute border-2 border-sky-500 bg-sky-200 bg-opacity-30 pointer-events-none z-40"
                 style={{
-                  top: `${dragPreview.timeSlot * TIME_CONFIG.SLOT_HEIGHT_PX}px`
+                  left: `${Math.min(selectionRect.startX, selectionRect.currentX)}px`,
+                  top: `${Math.min(selectionRect.startY, selectionRect.currentY)}px`,
+                  width: `${Math.abs(selectionRect.currentX - selectionRect.startX)}px`,
+                  height: `${Math.abs(selectionRect.currentY - selectionRect.startY)}px`
                 }}
               />
             )}
@@ -710,6 +657,7 @@ const handleSessionDragLeave = () => {
               <div 
                 key={judge.id} 
                 className="flex-1 border-r-2 border-gray-300"
+                data-judge-column={judge.id}
               >
                 {timeSlots.map((_, index) => (
                   <div 
@@ -761,16 +709,32 @@ const handleSessionDragLeave = () => {
                               onDragOver={(e) => handleScheduledBlockDragOver(e, session)}
                               onDragEnd={handleScheduledBlockDragEnd}
                               onDrop={(e) => handleSessionBlockSwapDrop(e, session)}
-                              onDragStart={() => {
+                              isMultiSelected={selectedSessionIds.includes(session.id)}
+                              suppressEntrantSelectionOnDrag={
+                                selectedSessionIds.length > 1 && selectedSessionIds.includes(session.id)
+                              }
+                              onDragStart={(e) => {
+                                const shouldGroupDrag =
+                                  selectedSessionIds.length > 1 && selectedSessionIds.includes(session.id);
+
                                 // Create session data and notify parent
-                                const sessionData = {
+                                const sessionData: DraggedSessionData = {
                                   entrantId: session.entrantId,
                                   entrantName: session.entrantName,
                                   type: session.type,
                                   sessionIndex: session.sessionIndex,
                                   sessionId: session.id,
-                                  isRemoving: true // This session is in the grid and can be moved
+                                  isRemoving: true, // This session is in the grid and can be moved
+                                  ...(shouldGroupDrag
+                                    ? {
+                                        groupSessionIds: [...selectedSessionIds],
+                                        groupAnchorSessionId: session.id
+                                      }
+                                    : {})
                                 };
+                                if (shouldGroupDrag) {
+                                  e.dataTransfer.setData('application/json', JSON.stringify(sessionData));
+                                }
                                 if (onSessionDragStart) {
                                   onSessionDragStart(sessionData);
                                 }
@@ -780,6 +744,7 @@ const handleSessionDragLeave = () => {
                         })}
                        {/* Show drag preview indicator */}
 {dragPreview && 
+ !dragPreview.groupShadowFrame &&
  dragPreview.judgeId === judge.id && 
  dragPreview.timeSlot === index && (
   <div

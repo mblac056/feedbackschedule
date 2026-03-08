@@ -49,6 +49,9 @@ export interface SessionBlock {
     sessionIndex?: number;
     sessionId?: string;
     isRemoving?: boolean;
+    // Optional metadata for multi-session group moves in the grid.
+    groupSessionIds?: string[];
+    groupAnchorSessionId?: string;
   }
 
 export interface EntrantJudgeAssignments {

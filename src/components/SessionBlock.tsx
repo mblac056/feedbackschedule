@@ -21,6 +21,8 @@ interface SessionBlockProps {
   hasConflict?: boolean; // Add this prop to indicate conflicts
   onSessionTypeChange?: (entrantId: string, oldType: '1xLong' | '3x20' | '3x10', newType: '1xLong' | '3x20' | '3x10') => void;
   conflictSeverity?: 'red' | 'yellow';
+  isMultiSelected?: boolean;
+  suppressEntrantSelectionOnDrag?: boolean;
 }
 
 export default function SessionBlock({ 
@@ -40,6 +42,8 @@ export default function SessionBlock({
   hasConflict = false,
   onSessionTypeChange,
   conflictSeverity,
+  isMultiSelected = false,
+  suppressEntrantSelectionOnDrag = false,
 
 }: SessionBlockProps) {
   const [isDragged, setIsDragged] = useState(false);
@@ -91,7 +95,9 @@ export default function SessionBlock({
 
   const handleDragStart = (e: React.DragEvent) => {
     setIsDragged(true);
-    setSelectedEntrant(entrant.id);
+    if (!suppressEntrantSelectionOnDrag) {
+      setSelectedEntrant(entrant.id);
+    }
     // Set drag data for the session block
     const sessionData = {
       entrantId: entrant.id,
@@ -114,7 +120,9 @@ export default function SessionBlock({
     if (useAbsolutePositioning) {
       setIsHiddenDuringDrag(false);
     }
-    setSelectedEntrant(null);
+    if (!suppressEntrantSelectionOnDrag) {
+      setSelectedEntrant(null);
+    }
     if (onDragEnd) onDragEnd(e);
   };
 
@@ -155,6 +163,7 @@ export default function SessionBlock({
     cursor-move transition-all duration-200 hover:shadow-lg
     ${isDragging || isDragged ? 'opacity-50 scale-95' : ''}
     ${isDragOverProp ? 'ring-4 ring-amber-300 ring-opacity-80 animate-pulse shadow-xl' : ''}
+    ${isMultiSelected ? 'ring-4 ring-sky-300 ring-opacity-90' : ''}
     relative z-10
   `;
 
