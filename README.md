@@ -16,6 +16,7 @@ A comprehensive feedback scheduling system designed for barbershop singing compe
 
 ### Core Functionality
 - **Drag & Drop Scheduling** - Intuitive visual scheduling interface
+- **Advanced Drag Operations** - Multi-select, group move, and swap support for session blocks
 - **BHS Session Types** - Support for 1xLong, 3x20min, and 3x10min feedback sessions (BHS contest format)
 - **Conflict Detection** - Automatic detection of scheduling conflicts
 - **Judge Preferences** - Manage judge preferences and assignments
@@ -52,7 +53,7 @@ A comprehensive feedback scheduling system designed for barbershop singing compe
 ## Quick Start
 
 ### Prerequisites
-- Node.js 18 or higher
+- Node.js 20.19+ (or 22.12+)
 - npm
 
 ### Installation
@@ -100,7 +101,6 @@ The built files will be in the `dist` directory.
 
 - `E` - Open Import/Export modal
 - `P` - Open / close preferences panel
-- `Esc` - Close modals
 
 ### CSV Import Format
 
@@ -132,7 +132,7 @@ Help me build handy sh*t for the BHS! See the [Contributing Guidelines](CONTRIBU
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests: `npm run lint`
+4. Run lint checks: `npm run lint`
 5. Submit a pull request
 
 ## License
