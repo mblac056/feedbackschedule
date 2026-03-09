@@ -509,7 +509,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                 <>
                   <button
                     onClick={() => setShowImport(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                    className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                   >
                     Import Entrants
                   </button>
@@ -519,7 +519,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                     className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-offset-2 transition-colors ${
                       judges.length === 0
                         ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
-                        : 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500'
+                        : 'bg-[var(--primary-color)] text-white hover:bg-purple-700 focus:ring-purple-500'
                     }`}
                     title={judges.length === 0 ? 'No judges in the system yet' : ''}
                   >

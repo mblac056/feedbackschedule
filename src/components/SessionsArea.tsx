@@ -225,7 +225,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                       className={`px-4 py-2 rounded-l-md transition-colors ${
                         hasRedConflicts
                           ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70'
-                          : 'bg-[var(--secondary-color)] hover:bg-[var(--secondary-color-dark)] text-white'
+                          : 'bg-gray-600 hover:bg-[var(--secondary-color-dark)] text-white'
                       }`} 
                       onClick={() => {
                         if (hasRedConflicts) return;
@@ -239,7 +239,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                       className={`px-2 py-2 rounded-r-md transition-colors border-l ${
                         hasRedConflicts
                           ? 'bg-gray-300 text-gray-500 border-gray-200 cursor-not-allowed opacity-70'
-                          : 'bg-[var(--secondary-color)] hover:bg-[var(--secondary-color-dark)] text-white border-gray-300'
+                          : 'bg-gray-600 hover:bg-[var(--secondary-color-dark)] text-white border-gray-300'
                       }`}
                       onClick={() => {
                         if (hasRedConflicts) return;

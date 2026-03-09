@@ -196,13 +196,13 @@ export default function SessionBlock({
         data-session-index={index}
         className={className}
       >
-      <div className="text-center relative">
+      <div className="text-center relative h-full">
       <button
             onClick={(e) => {
               e.stopPropagation();
               handleToggleSessionSelection(entrant);
             }}
-          className={`absolute -top-1 -left-1 w-4 h-4 rounded-full text-xs flex items-center justify-center ${indicatorColorClass} ${indicatorTextClass}`}
+          className={`absolute -bottom-1 -left-1 w-3 h-3 rounded-full text-xs flex items-center justify-center ${indicatorColorClass} ${indicatorTextClass}`}
           >
             •
           </button>
