@@ -43,11 +43,7 @@ export const populateGrid = (
     entrants,
     allSessionBlocks
   );
-  let assignments = assignSessionBlocksToGrid(judgeNumberToJudge, groupNumberToGroup, judgeSchedules, allSessionBlocks, sessionSettings);
-
-  if (sessionSettings?.moving === 'judges' && assignments.length > 0) {
-    assignments = applyRoomBuffer(assignments, entrants);
-  }
+  const assignments = assignSessionBlocksToGrid(judgeNumberToJudge, groupNumberToGroup, judgeSchedules, allSessionBlocks, sessionSettings);
 
   assignments.forEach(block => onSessionBlockUpdate(block));
   console.log(`✓ Assigned ${assignments.length} session blocks to grid`);
@@ -113,66 +109,6 @@ const assignSessionBlocksToGrid = (
 
   return result;
 };
-
-/** 10-minute buffer in slots (2 x 5-min slots). */
-const ROOM_BUFFER_SLOTS = 2;
-
-/**
- * When moving === 'judges', same room can host different groups. Only add a 10-minute buffer
- * when the room is actually changing from one group to another at that time (sessions
- * back-to-back with no gap). Do not add buffer between every session in the same room.
- */
-function applyRoomBuffer(assignments: SessionBlock[], entrants: Entrant[]): SessionBlock[] {
-  const entrantById = new Map(entrants.map(e => [e.id, e]));
-  const roomToSessions = new Map<string, SessionBlock[]>();
-
-  for (const block of assignments) {
-    const entrant = entrantById.get(block.entrantId);
-    const room = (entrant?.roomNumber ?? '').trim() || null;
-    if (room == null) continue;
-    if (!roomToSessions.has(room)) roomToSessions.set(room, []);
-    roomToSessions.get(room)!.push(block);
-  }
-
-  let changed = true;
-  const mutable = assignments.map(b => ({ ...b }));
-
-  while (changed) {
-    changed = false;
-    for (const [, roomBlocks] of roomToSessions) {
-      if (roomBlocks.length < 2) continue;
-      const byStart = [...roomBlocks].sort(
-        (a, b) => (mutable.find(m => m.id === a.id)!.startRowIndex ?? 0) - (mutable.find(m => m.id === b.id)!.startRowIndex ?? 0)
-      );
-      for (let i = 0; i < byStart.length - 1; i++) {
-        const earlier = mutable.find(m => m.id === byStart[i].id)!;
-        const later = mutable.find(m => m.id === byStart[i + 1].id)!;
-        // Only add buffer when the room is changing from one group to a different group.
-        // Same group (e.g. Circle City Sound) having multiple sessions in the same room needs no buffer.
-        if (earlier.entrantId === later.entrantId) continue;
-        const firstSlotAfterEarlier = (earlier.endRowIndex ?? earlier.startRowIndex!) + 1;
-        const laterStart = later.startRowIndex ?? 0;
-        // Only when different group takes over and sessions are back-to-back (no gap)
-        if (laterStart <= firstSlotAfterEarlier) {
-          const needStart = firstSlotAfterEarlier + ROOM_BUFFER_SLOTS;
-          const delta = needStart - laterStart;
-          for (const m of mutable) {
-            const s = m.startRowIndex ?? -1;
-            if (s >= laterStart) {
-              m.startRowIndex = s + delta;
-              m.endRowIndex = (m.endRowIndex ?? s) + delta;
-            }
-          }
-          changed = true;
-          break;
-        }
-      }
-      if (changed) break;
-    }
-  }
-
-  return mutable;
-}
 
 const CATEGORY_ORDER: Record<'SNG' | 'MUS' | 'PER', number> = {
   SNG: 0,
