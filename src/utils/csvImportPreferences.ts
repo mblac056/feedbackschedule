@@ -151,35 +151,47 @@ export const importEvalPreferencesCSV = (
         warnings.push(`Row ${index + 2}: Group "${groupName}" has mismatched preferences - Semifinals: "${semifinalsPref}", Finals: "${finalsPref}"`);
       }
       
-      // Find first non-blank preference by checking all columns in order
+      // Prioritize Semifinals column, then fall back to Finals or other eval type columns
+      const applyPreference = (prefValue: string) => {
+        if (prefValue.includes('3x20')) {
+          existingEntrant.preference = '3x20';
+          console.log(`  Set preference to: "3x20"`);
+        } else if (prefValue.includes('3x10')) {
+          existingEntrant.preference = '3x10';
+          console.log(`  Set preference to: "3x10"`);
+        } else if (prefValue.includes('1xLong')) {
+          existingEntrant.preference = '1xLong';
+          console.log(`  Set preference to: "1xLong"`);
+        } else if (prefValue.includes('None')) {
+          existingEntrant.preference = 'None';
+          console.log(`  Set preference to: "None"`);
+        } else {
+          console.log(`  Preference value "${prefValue}" did not match any known patterns`);
+        }
+      };
+
       let preferenceSet = false;
-      for (const [columnName, value] of Object.entries(row)) {
-        // Check if this column is an eval type column (including numbered duplicates)
-        const isEvalTypeColumn = columnName.toLowerCase().includes('eval type');
-        if (isEvalTypeColumn) {
-          const prefValue = value?.trim();
-          console.log(`  Checking column "${columnName}": "${prefValue}"`);
-          
-          if (prefValue && prefValue !== '' ) {
-            console.log(`  Found preference value: "${prefValue}"`);
-            // Map the preference values
-            if (prefValue.includes('3x20')) {
-              existingEntrant.preference = '3x20';
-              console.log(`  Set preference to: "3x20"`);
-            } else if (prefValue.includes('3x10')) {
-              existingEntrant.preference = '3x10';
-              console.log(`  Set preference to: "3x10"`);
-            } else if (prefValue.includes('1xLong')) {
-              existingEntrant.preference = '1xLong';
-              console.log(`  Set preference to: "1xLong"`);
-            } else if (prefValue.includes('None')) {
-              existingEntrant.preference = 'None';
-              console.log(`  Set preference to: "None"`);
-            } else {
-              console.log(`  Preference value "${prefValue}" did not match any known patterns`);
+      // First: use Semifinals if it has a value
+      const semifinalsValue = row['Eval Type Semifinals']?.trim();
+      if (semifinalsValue) {
+        console.log(`  Using preference from Eval Type Semifinals: "${semifinalsValue}"`);
+        applyPreference(semifinalsValue);
+        preferenceSet = true;
+      }
+      // Fallback: first non-blank value from other eval type columns (Finals, etc.)
+      if (!preferenceSet) {
+        for (const [columnName, value] of Object.entries(row)) {
+          if (columnName === 'Eval Type Semifinals') continue; // already checked
+          const isEvalTypeColumn = columnName.toLowerCase().includes('eval type');
+          if (isEvalTypeColumn) {
+            const prefValue = value?.trim();
+            console.log(`  Checking column "${columnName}": "${prefValue}"`);
+            if (prefValue) {
+              console.log(`  Found preference value: "${prefValue}"`);
+              applyPreference(prefValue);
+              preferenceSet = true;
+              break;
             }
-            preferenceSet = true;
-            break; // Take the first non-blank preference and ignore everything after
           }
         }
       }
