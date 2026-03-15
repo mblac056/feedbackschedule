@@ -460,7 +460,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
       }
       const room = settings.moving === 'judges' ? entrant.roomNumber : judge.roomNumber;
       const roomText = room ? ` (${room})` : ' (ROOM MISSING)';
-      timeGroups.get(warningTime)!.push(`Five minute notice to ${judge.name} with ${entrant.name}${roomText}`);
+      timeGroups.get(warningTime)!.push(`Five-minute notice to ${judge.name} with ${entrant.name}${roomText}`);
     }
   });
 
