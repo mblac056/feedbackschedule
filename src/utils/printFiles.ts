@@ -4,7 +4,8 @@ import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '..
 import jsPDF from 'jspdf';
 import { generateMatrixPage } from './printTemplate-matrix';
 import { generateJudgeSchedulePages, type JudgeSchedule } from './printTemplate-judgeSchedules';
-import { generateEntrantSchedulePages, type EntrantSchedule } from './printTemplate-entrantSchedules';
+import { generateEntrantScheduleSummaryPages, type EntrantSchedule } from './printTemplate-entrantSchedules';
+import { generateEntrantSchedulePages } from './printTemplate-entrantSchedLabels';
 import { generateFlowDocumentPage } from './printTemplate-flowDocument';
 import { generateFeedbackAnnouncementsPage } from './printTemplate-feedbackAnnouncements';
 import { generatePreferenceCheckPage, type PreferenceCheckData } from './printTemplate-preferenceCheck';
@@ -689,6 +690,9 @@ export async function generatePDF(
     generateJudgeSchedulePages(doc, printData.judgeSchedules);
   }
   if (reports.includes('entrantSchedules')) {
+    generateEntrantScheduleSummaryPages(doc, printData.entrantSchedules);
+  }
+  if (reports.includes('entrantSchedLabels')) {
     generateEntrantSchedulePages(doc, printData.entrantSchedules);
   }
   if (reports.includes('flowDocument')) {
@@ -698,8 +702,8 @@ export async function generatePDF(
     generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges);
   }
 
-  // Add footer to all pages (except entrant schedules)
-  if (!reports.includes('entrantSchedules')) {
+  // Add footer to all pages (except entrant sched. labels)
+  if (!reports.includes('entrantSchedLabels')) {
     const pageCount = doc.internal.pages.length - 1; // jsPDF is 0-indexed
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -713,6 +717,7 @@ export async function generatePDF(
   const reportNames: { [key: string]: string } = {
     'judgeSchedules': 'judge-schedules',
     'entrantSchedules': 'entrant-schedules',
+    'entrantSchedLabels': 'entrant-sched-labels',
     'flowDocument': 'flow-document',
     'feedbackAnnouncements': 'feedback-announcements',
     'preferenceCheck': 'preference-check'

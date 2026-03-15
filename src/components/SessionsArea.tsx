@@ -136,6 +136,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
         { id: 'matrix', label: 'Feedback Matrix' },
         { id: 'judgeSchedules', label: 'Judge Schedules' },
         { id: 'entrantSchedules', label: 'Entrant Schedules' },
+        { id: 'entrantSchedLabels', label: 'Entrant Sched. Labels' },
         { id: 'flowDocument', label: 'Flow Document' },
         { id: 'feedbackAnnouncements', label: 'Feedback Announcements' },
         { id: 'preferenceCheck', label: 'Preference Check' }
