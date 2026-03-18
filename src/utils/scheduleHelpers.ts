@@ -144,27 +144,43 @@ export const getSessionConflictSeverity = (
         const otherEndRow = otherStartRow + otherDuration - 1;
         const requirePadding = otherSession.entrantId !== session.entrantId;
 
-        const overlaps = doTimeRangesOverlap(
+        const actualOverlaps = doTimeRangesOverlap(
           sessionStartRow,
           sessionEndRow,
           otherStartRow,
-          otherEndRow,
-          requirePadding
+          otherEndRow
         );
 
-        if (!overlaps) {
+        const overlapsWithPadding = requirePadding
+          ? doTimeRangesOverlap(
+              sessionStartRow,
+              sessionEndRow,
+              otherStartRow,
+              otherEndRow,
+              true
+            )
+          : actualOverlaps;
+
+        if (!overlapsWithPadding) {
           continue;
         }
 
         const bothThreeByTen = session.type === '3x10' && otherSession.type === '3x10';
-        if (bothThreeByTen) {
-          if (roomOverlapSeverity === null) {
-            roomOverlapSeverity = 'yellow';
-          }
-        } else {
-          roomOverlapSeverity = 'red';
-          break;
+
+        // If the sessions only "overlap" due to required transition padding,
+        // this is an alert (yellow), not a critical conflict (red).
+        if (!actualOverlaps) {
+          roomOverlapSeverity = roomOverlapSeverity ?? 'yellow';
+          continue;
         }
+
+        if (bothThreeByTen) {
+          roomOverlapSeverity = roomOverlapSeverity ?? 'yellow';
+          continue;
+        }
+
+        roomOverlapSeverity = 'red';
+        break;
       }
 
       if (roomOverlapSeverity) {
