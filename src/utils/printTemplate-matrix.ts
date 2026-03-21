@@ -10,6 +10,8 @@ export async function generateMatrixPage(
 ): Promise<Blob> {
   const settings = getSettings();
   const getSessionDuration = (t: string) => getSessionDurationMinutes(t as '1xLong' | '3x20' | '3x10', settings);
+  /** Fixed height per time-slot row (px); session rowspan cells use `rowSpan * SLOT_ROW_PX`. */
+  const SLOT_ROW_PX = 23;
   
   // Helper function to convert row index to time string
   const rowIndexToTime = (rowIndex: number): string => {
@@ -50,11 +52,14 @@ export async function generateMatrixPage(
     <style>
       body { margin: 0; padding: 20px; font-family: Arial, sans-serif; color: #000; }
       h1 { font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #000; }
-      table { width: 100%; border-collapse: collapse; font-size: 16px; }
+      table { width: 100%; border-collapse: collapse; font-size: 16px; table-layout: fixed; }
       th { background-color: #d3d3d3; color: #000; padding: 8px; text-align: center; font-weight: bold; border: 1px solid #666; }
-      td { height: 18px; padding: 2px; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
-      .time-col { line-height: 0.8; padding-bottom: 10px; background-color: #d3d3d3; width: 50px; font-size: 12px;}
-      .session-cell { background-color:#ffffff; }
+      tbody tr { height: ${SLOT_ROW_PX}px; }
+      td { height: ${SLOT_ROW_PX}px; min-height: ${SLOT_ROW_PX}px; padding: 4px 6px; box-sizing: border-box; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
+      .time-col { line-height: 1.1; padding: 4px; background-color: #d3d3d3; width: 50px; font-size: 12px;}
+      .session-cell { background-color:#ffffff; vertical-align: middle; }
+      .session-entrant-name { font-size: 14px; line-height: 1.2; }
+      .session-duration { font-size: 11px; line-height: 1.15; color: #333; }
       @media print {
         @page { size: legal landscape; margin: 0.4in; }
       }
@@ -111,31 +116,18 @@ export async function generateMatrixPage(
         
         // Only show room number in session cell if judges are visiting groups
         const roomNumber = settings.moving === 'judges' ? entrant?.roomNumber : null;
-        const roomText = roomNumber ? `<br>${roomNumber}` : '';
         
         if (entrant && entrant.judgePreference1 === judge.id) {
           entrantName = `*${entrantName}`;
         }
-        
-        // Build order of appearance display
-        let orderOfAppearanceText = '';
-        if (entrant) {
-          const orderOfAppearance = [];
-          if (entrant.overallSF !== undefined) orderOfAppearance.push(entrant.overallSF);
-          if (entrant.overallF !== undefined) orderOfAppearance.push(entrant.overallF);
-          
-          // If only one value, display just the number; if two values, show both with prefixes
-          if (orderOfAppearance.length === 1) {
-            orderOfAppearanceText = `O/A: ${orderOfAppearance[0].toString()}`;
-          } else if (orderOfAppearance.length === 2) {
-            orderOfAppearanceText = `O/A: SF - ${entrant.overallSF}, F - ${entrant.overallF}`;
-          }
-        }
-        
-        // Use order of appearance if available, otherwise fall back to session type
-        const displayText = orderOfAppearanceText || session.type;
-        
-        html += `<td class="session-cell" rowspan="${rowSpan}">${entrantName}<br>${displayText}${roomText}</td>`;
+
+        const sessionCellHeightPx = rowSpan * SLOT_ROW_PX;
+        const durationParts: string[] = [];
+        if (roomNumber) durationParts.push(roomNumber);
+        if (session.type !== '3x10') durationParts.push(session.type);
+        const durationContent = durationParts.join('<br>');
+        const durationBlock = durationContent ? `<br><span class="session-duration">${durationContent}</span>` : '';
+        html += `<td class="session-cell" rowspan="${rowSpan}" style="height:${sessionCellHeightPx}px;min-height:${sessionCellHeightPx}px"><span class="session-entrant-name">${entrantName}</span>${durationBlock}</td>`;
         
         // Mark cells as occupied
         for (let r = 0; r < rowSpan; r++) {
