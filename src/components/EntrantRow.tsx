@@ -349,8 +349,8 @@ export default function EntrantRow({
         <input
           type="text"
           value={entrant.pos || ''}
-          onChange={(e) => onFieldUpdate(entrant.id, 'roomNumber', e.target.value)}
-          onBlur={(e) => onFieldUpdate(entrant.id, 'roomNumber', e.target.value.trim() || '')}
+          onChange={(e) => onFieldUpdate(entrant.id, 'pos', e.target.value)}
+          onBlur={(e) => onFieldUpdate(entrant.id, 'pos', e.target.value.trim() || '')}
           className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </td>
