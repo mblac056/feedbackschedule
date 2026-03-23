@@ -178,21 +178,21 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden border border-transparent dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-gray-600 to-gray-700 text-white p-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Settings</h2>
           </div>
           <button
             onClick={onClose}
-            className="p-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+            className="p-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 dark:hover:bg-gray-400 transition-colors"
           >
             <FaTimes />
           </button>
         </div>
         
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-          <div className="space-y-6 text-gray-700">
+          <div className="space-y-6 text-gray-700 dark:text-gray-200">
 
             
             {/* Export file name */}
@@ -205,9 +205,9 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                 value={settings.exportName ?? ''}
                 onChange={(e) => handleInputChange('exportName', e.target.value)}
                 placeholder="ONT-S26-QF"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
               />
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 If set, export files use this name plus date-time (e.g. ONT-S26-QF-20260218-1430.json).
               </p>
             </div>
@@ -219,7 +219,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
               <select
                 value={settings.moving}
                 onChange={(e) => handleInputChange('moving', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
               >
                 <option value="judges">Judges visit groups</option>
                 <option value="groups">Groups visit judges</option>
@@ -234,7 +234,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                 type="time"
                 value={settings.startTime}
                 onChange={(e) => handleInputChange('startTime', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
               />
             </div>
 
@@ -251,7 +251,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                 step="5"
                 value={settings.oneXLongLength}
                 onChange={(e) => handleInputChange('oneXLongLength', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
               />
             </div>
 
@@ -267,7 +267,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                 step="5"
                 value={settings.threeX20Length}
                 onChange={(e) => handleInputChange('threeX20Length', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
               />
             </div>
 
@@ -283,14 +283,14 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                 step="5"
                 value={settings.threeX10Length}
                 onChange={(e) => handleInputChange('threeX10Length', parseInt(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
               />
             </div>
           </div>
 
           {/* Warning Message */}
           {showResetWarning && (
-            <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
@@ -298,10 +298,10 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-amber-800">
+                  <h3 className="text-sm font-medium text-amber-800 dark:text-amber-200">
                     Warning: Scheduling Grid Reset
                   </h3>
-                  <div className="mt-2 text-sm text-amber-700">
+                  <div className="mt-2 text-sm text-amber-700 dark:text-amber-300">
                     <p>
                       Changing session lengths will automatically clear your current scheduling grid and unschedule all sessions. 
                       Make sure to save or export your current schedule before proceeding.
@@ -322,10 +322,10 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                     Invalid Session Lengths
                   </h3>
-                  <div className="mt-2 text-sm text-red-700">
+                  <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                     <p>
                       All session lengths must be multiples of 5 minutes, the 3X10 length must be less than the 3X20 length, and the 3X20 length must be less than the 1XLong length. Please adjust the values before saving.
                     </p>
@@ -337,7 +337,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
 
           {/* Complete Reset Warning Message */}
           {showCompleteResetWarning && (
-            <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mt-6 p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -345,10 +345,10 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                   </svg>
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
+                  <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                     Complete Reset Warning
                   </h3>
-                  <div className="mt-2 text-sm text-red-700">
+                  <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                     <p>
                       This will permanently delete ALL data including judges, entrants, session blocks, settings, and preference notes. 
                       This action cannot be undone. Make sure to export your data first if you want to keep it.
@@ -357,7 +357,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                   <div className="mt-4 flex space-x-3">
                     <button
                       onClick={() => setShowCompleteResetWarning(false)}
-                      className="px-3 py-1 bg-gray-200 text-gray-800 rounded text-sm hover:bg-gray-300 transition-colors"
+                      className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                     >
                       Cancel
                     </button>
@@ -379,16 +379,16 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
             <div className="flex space-x-3">
               <button
                 onClick={handleReset}
-                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
                 Reset to Defaults
               </button>
               <button
                 onClick={handleSave}
                 disabled={showValidationError}
-                className={`flex-1 px-4 py-2 rounded-lg focus:ring-2 focus:ring-offset-2 transition-colors ${
+                className={`flex-1 px-4 py-2 rounded-lg focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors ${
                   showValidationError 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                    ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed' 
                     : 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500'
                 }`}
               >
@@ -397,7 +397,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
             </div>
             <button
               onClick={() => setShowCompleteResetWarning(true)}
-              className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors"
+              className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
             >
               Complete Reset
             </button>

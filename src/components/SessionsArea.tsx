@@ -225,7 +225,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                     <button 
                       className={`px-4 py-2 rounded-l-md transition-colors ${
                         hasRedConflicts
-                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-70'
+                          ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70'
                           : 'bg-gray-600 hover:bg-[var(--secondary-color-dark)] text-white'
                       }`} 
                       onClick={() => {
@@ -239,8 +239,8 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                     <button 
                       className={`px-2 py-2 rounded-r-md transition-colors border-l ${
                         hasRedConflicts
-                          ? 'bg-gray-300 text-gray-500 border-gray-200 cursor-not-allowed opacity-70'
-                          : 'bg-gray-600 hover:bg-[var(--secondary-color-dark)] text-white border-gray-300'
+                          ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 cursor-not-allowed opacity-70'
+                          : 'bg-gray-600 hover:bg-[var(--secondary-color-dark)] text-white border-gray-300 dark:border-gray-500'
                       }`}
                       onClick={() => {
                         if (hasRedConflicts) return;
@@ -253,13 +253,13 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                   </div>
                   
                   {showPrintDropdown && (
-                    <div className="absolute top-full z-50 left-0 mt-1 bg-white border border-[var(--primary-color)] rounded-md shadow-lg z-10 min-w-64 md:min-w-64 w-full md:w-auto">
+                    <div className="absolute top-full z-50 left-0 mt-1 bg-white dark:bg-gray-800 border border-[var(--primary-color)] rounded-md shadow-lg z-10 min-w-64 md:min-w-64 w-full md:w-auto">
                       <div className="p-1">
                         {reportOptions.map(option => (
                           <button
                             key={option.id}
                             onClick={() => handleGenerateReport(option.id)}
-                            className="w-full text-left px-3 my-1 py-0 text-gray-700 hover:bg-gray-100 rounded transition-colors"
+                            className="w-full text-left px-3 my-1 py-0 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
                           >
                             {option.label}
                           </button>
@@ -272,14 +272,14 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
               
           </div>
           <div className="content-start mx-12 mb-4">
-            <div className="text-gray-600 text-lg">
+            <div className="text-gray-600 dark:text-gray-400 text-lg">
               Session Format:{' '}
-              <span className={`font-bold ${settings.moving === 'groups' ? 'text-green-600' : 'text-blue-600'} font-bold`}>
+              <span className={`font-bold ${settings.moving === 'groups' ? 'text-green-600 dark:text-green-400' : 'text-blue-600 dark:text-blue-400'} font-bold`}>
                 {settings.moving === 'groups' ? 'Groups moving to Judges' : 'Judges moving to Groups'}
               </span>
             </div>            
             {totalDuration > 0 && (
-              <div className={`text-gray-600 text-lg ${totalDuration > 120 && 'text-red-500'} w-full md:w-auto`}>
+              <div className={`text-gray-600 dark:text-gray-400 text-lg ${totalDuration > 120 && 'text-red-500 dark:text-red-400'} w-full md:w-auto`}>
                 Total Length: <span className="font-bold">{Math.floor(totalDuration / 60) !== 0 && `${Math.floor(totalDuration / 60)}h `}{totalDuration % 60 !== 0 && `${totalDuration % 60}m`}</span>
               </div>
             )}

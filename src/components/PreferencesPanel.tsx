@@ -316,70 +316,70 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   const isEmpty = includedEntrants.length === 0;
 
   const panelBodyContent = isEmpty ? (
-    <div className="text-center text-gray-500 py-8">
+    <div className="text-center text-gray-500 dark:text-gray-400 py-8">
       <p>No entrants included in schedule yet.</p>
       <p className="text-sm mt-2">Check the "Include" checkbox for entrants in the Manage Entrants modal.</p>
     </div>
   ) : (
     <div className="space-y-4 min-w-0">
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-gray-700 mb-3">Summary</h3>
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Summary</h3>
         <div className="flex flex-wrap gap-4 text-sm">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 bg-green-200 rounded-full"></span>
-            <span className="text-green-800 font-medium">{pillCounts.greenCount}</span>
-            <span className="text-gray-600">Good/Assigned</span>
+            <span className="text-green-800 dark:text-green-200 font-medium">{pillCounts.greenCount}</span>
+            <span className="text-gray-600 dark:text-gray-400">Good/Assigned</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 bg-red-200 rounded-full"></span>
-            <span className="text-red-800 font-medium">{pillCounts.redCount}</span>
-            <span className="text-gray-600">Conflicts</span>
+            <span className="text-red-800 dark:text-red-200 font-medium">{pillCounts.redCount}</span>
+            <span className="text-gray-600 dark:text-gray-400">Conflicts</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 bg-gray-200 rounded-full"></span>
-            <span className="text-gray-800 font-medium">{pillCounts.grayCount}</span>
-            <span className="text-gray-600">Unassigned/Mismatched</span>
+            <span className="text-gray-800 dark:text-gray-200 font-medium">{pillCounts.grayCount}</span>
+            <span className="text-gray-600 dark:text-gray-400">Unassigned/Mismatched</span>
           </div>
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200 rounded-lg" style={{ minWidth: '800px' }}>
-          <thead className="bg-gray-50">
+        <table className="min-w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg" style={{ minWidth: '800px' }}>
+          <thead className="bg-gray-50 dark:bg-gray-800/80">
             <tr>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">
                 #
               </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">
                 Name
               </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">
                 Groups to Avoid
               </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">
                 Preference
               </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">
                 Judge 1
               </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">
                 Judge 2
               </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">
                 Judge 3
               </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">
                 Byes
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-200">
+          <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
             {includedEntrants.map((entrant, index) => (
               <tr
                 key={entrant.id}
                 className={`transition-all duration-200 ${draggedEntrantId === entrant.id ? 'opacity-50 scale-95' : ''
                   } ${dragOverEntrantId === entrant.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
-                  } ${selectedEntrant === entrant.id ? 'bg-[var(--primary-color)] text-white' : 'text-gray-600'
+                  } ${selectedEntrant === entrant.id ? 'bg-[var(--primary-color)] text-white' : 'text-gray-600 dark:text-gray-300'
                   }`}
                 draggable
                 onClick={() => setSelectedEntrant(entrant.id)}
@@ -508,13 +508,13 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
           </tbody>
         </table>
       </div>
-      <p className="text-gray-600 text-xs text-center">
+      <p className="text-gray-600 dark:text-gray-400 text-xs text-center">
         Drag rows to reorder entrants to more easily visualize preferences by group priority
       </p>
-      <label htmlFor="preference-notes" className="block text-sm font-medium text-gray-700 mb-2">
+      <label htmlFor="preference-notes" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
         Notes and Reminders
       </label>
-      <p className="text-xs text-gray-500 mb-2">
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
         These notes will also be included in the Preference Check PDF.
       </p>
       <textarea
@@ -522,11 +522,11 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
         value={preferenceNotes}
         onChange={handleNotesChange}
         placeholder="Add any notes, reminders, or considerations for the feedback schedule..."
-        className="w-full px-3 py-2 border border-gray-300 text-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-y min-h-[100px]"
+        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-950 text-gray-700 dark:text-gray-200 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-y min-h-[100px]"
         rows={4}
       />
       <div className="flex justify-center">
-        <p className="text-gray-600 text-xs text-center bg-yellow-100 p-2 rounded-lg">
+        <p className="text-gray-600 dark:text-gray-300 text-xs text-center bg-yellow-100 dark:bg-yellow-950/40 p-2 rounded-lg">
           Tip: Toggle this panel using the "P" key.
         </p>
       </div>
@@ -536,7 +536,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   const toggleBadge = (
     <button
       onClick={togglePanel}
-      className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white border border-gray-200 border-r-0 rounded-l-lg shadow px-3 py-2 text-xs font-semibold text-gray-600 flex flex-col items-center gap-2 transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 border-r-0 rounded-l-lg shadow px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 flex flex-col items-center gap-2 transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       aria-label="Open preference panel"
     >
@@ -566,7 +566,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
         }}
       >
         {isOpen &&
-          <div className="relative flex h-full min-h-full flex-col bg-white border-l border-gray-200 shadow-lg">
+          <div className="relative flex h-full min-h-full flex-col bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-lg">
             {isDesktopView && (
               <button
                 type="button"
@@ -574,7 +574,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                 className="absolute left-0 top-0 z-10 hidden h-full w-3 -translate-x-1/2 cursor-col-resize items-center justify-center lg:flex"
                 aria-label="Resize preference panel"
               >
-                <span className={`h-16 w-1 rounded-full transition-colors ${isResizing ? 'bg-[var(--primary-color)]' : 'bg-gray-300 hover:bg-gray-400'}`} />
+                <span className={`h-16 w-1 rounded-full transition-colors ${isResizing ? 'bg-[var(--primary-color)]' : 'bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500'}`} />
               </button>
             )}
             <div className="bg-[var(--primary-color)] text-white px-6 py-4 flex items-center justify-between">

@@ -542,7 +542,7 @@ const handleSessionDragLeave = () => {
               //Match heights of the judges columns
               <div key={judge.id} className="flex-1 text-center">
                 <div 
-                  className={`border-2 border-gray-300 text-white p-3 rounded-t-lg cursor-move flex flex-col justify-center relative h-full ${
+                  className={`border-2 border-gray-300 dark:border-gray-600 text-white p-3 rounded-t-lg cursor-move flex flex-col justify-center relative h-full ${
                     draggedJudgeId === judge.id ? 'opacity-50 scale-95' : ''
                   } ${
                     dragOverJudgeId === judge.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
@@ -614,10 +614,10 @@ const handleSessionDragLeave = () => {
               {timeSlots.map((slot, index) => (
                 <div 
                   key={index}
-                  className={`border-r-2 border-gray-300 text-xs text-gray-500 ${
+                  className={`border-r-2 border-gray-300 dark:border-gray-600 text-xs text-gray-500 dark:text-gray-400 ${
                     index % TIME_CONFIG.HOUR_MARKER_INTERVAL !== 0
-                      ? 'border-b border-gray-200'
-                      : 'border-b-2 border-gray-300'
+                      ? 'border-b border-gray-200 dark:border-gray-700'
+                      : 'border-b-2 border-gray-300 dark:border-gray-600'
                   }`}
                   style={{ height: `${TIME_CONFIG.SLOT_HEIGHT_PX}px` }}
                 >
@@ -631,14 +631,14 @@ const handleSessionDragLeave = () => {
                           onChange={handleStartTimeChange}
                           onBlur={handleStartTimeBlur}
                           onKeyDown={handleStartTimeKeyDown}
-                          className="w-full text-right bg-transparent border-none outline-none text-xs text-gray-700 font-mono"
+                          className="w-full text-right bg-transparent border-none outline-none text-xs text-gray-700 dark:text-gray-200 font-mono"
                           placeholder="HH:MM"
                           autoFocus
                         />
                       ) : (
                         <button
                           onClick={handleStartTimeClick}
-                          className="w-full text-right hover:bg-gray-100 rounded px-1 py-0.5 transition-colors cursor-pointer"
+                          className="w-full text-right hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-1 py-0.5 transition-colors cursor-pointer"
                           title="Click to edit start time"
                         >
                           {slot.displayTime}
@@ -656,13 +656,13 @@ const handleSessionDragLeave = () => {
             {judges.map((judge) => (
               <div 
                 key={judge.id} 
-                className="flex-1 border-r-2 border-gray-300"
+                className="flex-1 border-r-2 border-gray-300 dark:border-gray-600"
                 data-judge-column={judge.id}
               >
                 {timeSlots.map((_, index) => (
                   <div 
                     key={index}
-                    className={`relative border-b border-gray-200`}
+                    className={`relative border-b border-gray-200 dark:border-gray-700`}
                     style={{ height: `${TIME_CONFIG.SLOT_HEIGHT_PX}px` }}
                                          onDragOver={(e) => handleSessionDragOverWithPreview(e, judge.id, index)}
                      onDragEnter={(e) => handleSessionDragEnter(e, judge.id, index)}

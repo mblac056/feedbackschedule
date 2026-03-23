@@ -408,16 +408,16 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
       {/* Confirmation Dialog */}
       {showConfirmClose && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[61] p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full border border-transparent dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Unsaved Changes</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Unsaved Changes</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Are you sure you want to close without saving? Your changes will be lost.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowConfirmClose(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
@@ -434,12 +434,12 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
       )}
       {movementPrompt && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[62] p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full border border-transparent dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                 {movementPrompt === 'chorusToJudges' ? 'Switch to Judges Move?' : 'Switch to Groups Move?'}
               </h3>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 {movementPrompt === 'chorusToJudges'
                   ? 'Most of the selected entrants are choruses. Switching to judges move can improve the flow of the schedule. Would you like to switch before saving?'
                   : 'Most of the selected entrants are quartets. Switching to groups move can improve the flow of the schedule. Would you like to switch before saving?'}
@@ -447,7 +447,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={handleMovementPromptDecline}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   Keep Current
                 </button>
@@ -463,7 +463,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         </div>
       )}
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={handleCloseClick}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[95vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-h-[95vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gray-600 text-white p-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Manage Entrants</h2>
@@ -472,7 +472,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
           <div className="flex items-center space-x-3">
             <button
               onClick={handleSaveAndClose}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
             >
               Save & Close
             </button>
@@ -486,18 +486,18 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         </div>
 
         <div className="p-6 overflow-y-auto overflow-x-auto max-h-[calc(95vh-200px)]">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-800">
+          <div className="flex justify-between items-center mb-6 text-gray-900 dark:text-gray-100">
+            <h3 className="text-lg font-semibold">
               {selectedVisibleCount > 0
                 ? `Selected Entrants (${selectedVisibleCount}/${totalVisibleEligible})`
                 : `Entrants (${totalVisibleEligible})`}
             </h3>
-            <h3 className="text-lg font-semibold text-gray-800">
+            <h3 className="text-lg font-semibold">
               Entrants to Display:
               <select
                 value={groupFilter}
                 onChange={(e) => setGroupFilter(e.target.value)}
-                className="text-gray-800 mx-2 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className=" dark:bg-gray-900 mx-2 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="All">All</option>
                 <option value="Chorus">Choruses</option>
@@ -509,16 +509,16 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                 <>
                   <button
                     onClick={() => setShowImport(true)}
-                    className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                    className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
                   >
                     Import Entrants
                   </button>
                   <button
                     onClick={() => setShowPreferencesImport(true)}
                     disabled={judges.length === 0}
-                    className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-offset-2 transition-colors ${
+                    className={`px-4 py-2 rounded-lg focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors ${
                       judges.length === 0
-                        ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                        ? 'bg-gray-400 dark:bg-gray-700 text-gray-600 dark:text-gray-500 cursor-not-allowed'
                         : 'bg-[var(--primary-color)] text-white hover:bg-purple-700 focus:ring-purple-500'
                     }`}
                     title={judges.length === 0 ? 'No judges in the system yet' : ''}
@@ -539,10 +539,10 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
           {showImport ? (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="text-lg font-medium text-gray-800">Import Entrants from CSV</h4>
+                <h4 className="text-lg font-medium text-gray-800 dark:text-gray-100">Import Entrants from CSV</h4>
                 <button
                   onClick={() => setShowImport(false)}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -570,12 +570,12 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
             </div>
           ) : (
             <div>
-              <table className="min-w-max bg-white border border-gray-200 rounded-lg">
-                <thead className="bg-gray-50">
+              <table className="min-w-max bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <thead className="bg-gray-50 dark:bg-gray-800/80">
                   <tr>
                     <th
-                      className={`px-2 py-1.5 min-w-[6rem] w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-0 bg-gray-50 z-10 cursor-pointer hover:bg-gray-100 select-none ${
-                        sortColumn === 'include' ? 'bg-gray-100' : ''
+                      className={`px-2 py-1.5 min-w-[6rem] w-24 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700 sticky left-0 bg-gray-50 dark:bg-gray-800 z-10 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none ${
+                        sortColumn === 'include' ? 'bg-gray-100 dark:bg-gray-700' : ''
                       }`}
                       onClick={() => handleSort('include')}
                     >
@@ -586,7 +586,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         checked={areAllChecked()}
                         onChange={(e) => onCheckboxUpdate(e.target.checked)}  
                         onClick={(e) => e.stopPropagation()}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-950 text-blue-600 focus:ring-blue-500"
                         />
 
                         <span>Include</span>
@@ -597,8 +597,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                     </th>
 
                     <th
-                      className={`px-2 py-1.5 min-w-[12rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b sticky left-24 bg-gray-50 z-10 cursor-pointer hover:bg-gray-100 select-none ${
-                        sortColumn === 'name' ? 'bg-gray-100' : ''
+                      className={`px-2 py-1.5 min-w-[12rem] text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700 sticky left-24 bg-gray-50 dark:bg-gray-800 z-10 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none ${
+                        sortColumn === 'name' ? 'bg-gray-100 dark:bg-gray-700' : ''
                       }`}
                       onClick={() => handleSort('name')}
                     >
@@ -609,10 +609,10 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
-                    <th className="px-2 py-1.5 min-w-[6rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Group Type</th>
+                    <th className="px-2 py-1.5 min-w-[6rem] text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Group Type</th>
                     <th
-                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
-                        sortColumn === 'score' ? 'bg-gray-100' : ''
+                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none ${
+                        sortColumn === 'score' ? 'bg-gray-100 dark:bg-gray-700' : ''
                       }`}
                       onClick={() => handleSort('score')}
                     >
@@ -623,23 +623,23 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
-                    <th className="px-2 py-1.5 min-w-[14rem] text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Groups to Avoid</th>
-                    <th className="px-2 py-1.5 w-26 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Preference</th>
-                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 1</th>
-                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 2</th>
-                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Judge 3</th>
+                    <th className="px-2 py-1.5 min-w-[14rem] text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Groups to Avoid</th>
+                    <th className="px-2 py-1.5 w-26 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Preference</th>
+                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 1</th>
+                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 2</th>
+                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 3</th>
                     
                    {/*Render Room and POS columns only if moving judges*/}
                     {settings.moving === 'judges' && (
                      <>
-                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
-                    <th className="px-2 py-1.5 w-32 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Performers</th>
+                    <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Room</th>
+                    <th className="px-2 py-1.5 w-32 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Performers</th>
                     </>
                     )}
 
                     <th
-                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
-                        sortColumn === 'overallSF' ? 'bg-gray-100' : ''
+                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none ${
+                        sortColumn === 'overallSF' ? 'bg-gray-100 dark:bg-gray-700' : ''
                       }`}
                       onClick={() => handleSort('overallSF')}
                     >
@@ -651,8 +651,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                       </div>
                     </th>
                     <th
-                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b cursor-pointer hover:bg-gray-100 select-none ${
-                        sortColumn === 'overallF' ? 'bg-gray-100' : ''
+                      className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none ${
+                        sortColumn === 'overallF' ? 'bg-gray-100 dark:bg-gray-700' : ''
                       }`}
                       onClick={() => handleSort('overallF')}
                     >
@@ -663,10 +663,10 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         )}
                       </div>
                     </th>
-                    <th className="px-2 py-1.5 w-10 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b"></th>
+                    <th className="px-2 py-1.5 w-10 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {visibleEntrants.map((entrant) => (
                       <EntrantRow
                         key={entrant.id}

@@ -118,7 +118,7 @@ function App() {
   return (
     <SettingsProvider>
       <div 
-        className="min-h-screen relative bg-gray-100 flex flex-col"
+        className="min-h-screen relative bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 flex flex-col"
       >
         <Header 
           onOpenJudgesModal={() => setIsJudgesModalOpen(true)}

@@ -150,8 +150,8 @@ export default function UnassignedSessions({ refreshKey, allSessionBlocks, onSes
   if (includedEntrants.length === 0) {
     return (
       <div className="mt-8">
-        <div className="bg-gray-200 rounded-xl border border-gray-200 p-6">
-          <div className="text-center text-gray-500">
+        <div className="bg-gray-200 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+          <div className="text-center text-gray-500 dark:text-gray-400">
             <p className="text-lg font-medium">Unassigned Sessions</p>
             <p className="text-sm">No entrants included in schedule yet</p>
           </div>
@@ -163,7 +163,7 @@ export default function UnassignedSessions({ refreshKey, allSessionBlocks, onSes
   return (
     <div className="mt-8">
       <div 
-        className={`bg-gray-200 rounded-xl border-2 transition-all duration-200 p-6 ${
+        className={`bg-gray-200 dark:bg-gray-800 rounded-xl border-2 transition-all duration-200 p-6 ${
           isDragOver 
             ? 'border-blue-500 bg-blue-50 shadow-lg' 
             : 'border-gray-500'
@@ -174,7 +174,7 @@ export default function UnassignedSessions({ refreshKey, allSessionBlocks, onSes
         onDrop={handleDrop}
       >
         {isDragOver && (
-          <div className="text-center font-semibold mb-4 p-2 bg-gray-300 rounded-lg border-dashed border-2 border-gray-500">
+          <div className="text-center font-semibold mb-4 p-2 bg-gray-300 dark:bg-gray-700 dark:text-gray-100 rounded-lg border-dashed border-2 border-gray-500 dark:border-gray-500">
             Drop here to unschedule session
           </div>
         )}

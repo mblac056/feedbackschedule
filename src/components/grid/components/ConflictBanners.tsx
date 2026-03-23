@@ -9,7 +9,7 @@ export default function ConflictBanners({ redConflicts, yellowConflicts }: Confl
   return (
     <>
       {redConflicts.length > 0 && (
-        <div className="mb-4 p-4 rounded-lg bg-red-50 border border-red-200">
+        <div className="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
@@ -17,10 +17,10 @@ export default function ConflictBanners({ redConflicts, yellowConflicts }: Confl
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
+              <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
                 Critical Scheduling Conflicts
               </h3>
-              <div className="mt-2 text-sm text-red-700">
+              <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                 <ul className="list-disc list-inside space-y-1">
                   {redConflicts.map((conflict, index) => {
                     if (conflict.type === 'entrant') {
@@ -47,7 +47,7 @@ export default function ConflictBanners({ redConflicts, yellowConflicts }: Confl
       )}
 
       {yellowConflicts.length > 0 && (
-        <div className="mb-4 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+        <div className="mb-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -55,10 +55,10 @@ export default function ConflictBanners({ redConflicts, yellowConflicts }: Confl
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
+              <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                 Scheduling Alerts
               </h3>
-              <div className="mt-2 text-sm text-yellow-700">
+              <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
                 <ul className="list-disc list-inside space-y-1">
                   {yellowConflicts.map((conflict, index) => {
                     if (conflict.type === 'category') {

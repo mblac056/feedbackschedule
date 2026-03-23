@@ -93,8 +93,8 @@ export default function EmptyState({ onJudgesImported }: EmptyStateProps) {
         <div
           className={`relative border-2 border-dashed rounded-xl p-12 transition-colors cursor-pointer ${
             isDragOver 
-              ? 'border-blue-400 bg-blue-50' 
-              : 'border-gray-300 hover:border-gray-400'
+              ? 'border-blue-400 bg-blue-50 dark:bg-blue-950/40' 
+              : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500'
           }`}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
@@ -151,7 +151,7 @@ export default function EmptyState({ onJudgesImported }: EmptyStateProps) {
         {isProcessing && (
           <div className="flex items-center justify-center p-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Processing CSV...</span>
+            <span className="ml-3 text-gray-600 dark:text-gray-400">Processing CSV...</span>
           </div>
         )}
       </div>

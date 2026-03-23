@@ -117,7 +117,7 @@ export default function EntrantRow({
 
   return (
     <tr
-      className={`text-gray-600 hover:bg-gray-50 transition-all duration-200 group ${
+      className={`text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/40 transition-all duration-200 group ${
         draggedEntrantId === entrant.id ? 'opacity-50 scale-95' : ''
       } ${
         dragOverEntrantId === entrant.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
@@ -130,9 +130,9 @@ export default function EntrantRow({
       onDragEnd={onDragEnd}
     >
       {/* Include Checkbox */}
-      <td className="px-2 py-1 w-24 border-b sticky left-0 bg-white group-hover:bg-gray-50 z-10">
+      <td className="px-2 py-1 w-24 border-b dark:border-gray-700 sticky left-0 bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 z-10">
         <div className="flex items-center gap-2">
-          <div className="cursor-move text-gray-400 hover:text-gray-600">
+          <div className="cursor-move text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
             </svg>
@@ -141,30 +141,30 @@ export default function EntrantRow({
             type="checkbox"
             checked={entrant.includeInSchedule || false}
             onChange={(e) => onFieldUpdate(entrant.id, 'includeInSchedule', e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="rounded border-gray-300 dark:border-gray-600 dark:bg-gray-950 text-blue-600 focus:ring-blue-500"
             disabled={entrant.preference === 'None'}
           />
         </div>
       </td>
 
       {/* Name */}
-      <td className="px-2 py-1 min-w-[12rem] border-b sticky left-24 bg-white group-hover:bg-gray-50 z-10">
+      <td className="px-2 py-1 min-w-[12rem] border-b dark:border-gray-700 sticky left-24 bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 z-10">
         <input
           type="text"
           value={entrant.name}
           onChange={(e) => onFieldUpdate(entrant.id, 'name', e.target.value)}
           onBlur={(e) => onFieldUpdate(entrant.id, 'name', e.target.value.trim())}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="Enter name"
         />
       </td>
 
       {/* Group Type */}
-      <td className="px-2 py-1 border-b">
+      <td className="px-2 py-1 border-b dark:border-gray-700">
         <select
           value={entrant.groupType || ''}
           onChange={(e) => onFieldUpdate(entrant.id, 'groupType', e.target.value || null)}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Select Type</option>
           <option value="Chorus">Chorus</option>
@@ -173,7 +173,7 @@ export default function EntrantRow({
       </td>
 
       {/* Score */}
-      <td className="px-2 py-1 w-10 border-b">
+      <td className="px-2 py-1 w-10 border-b dark:border-gray-700">
         <input
           type="text"
           inputMode="numeric"
@@ -186,13 +186,13 @@ export default function EntrantRow({
               onFieldUpdate(entrant.id, 'score', value === '' ? undefined : Number(value));
             }
           }}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="0"
         />
       </td>
 
       {/* Groups to Avoid */}
-      <td className="px-2 py-1 min-w-[14rem] border-b">
+      <td className="px-2 py-1 min-w-[14rem] border-b dark:border-gray-700">
         <div className="space-y-1">
           {/* Input with Autocomplete */}
           <div className="relative">
@@ -202,12 +202,12 @@ export default function EntrantRow({
               onChange={(e) => handleGroupsInputChange(e.target.value)}
               onKeyDown={handleGroupsInputKeyDown}
               placeholder="Type to add groups to avoid..."
-              className="w-full px-2 py-0.5 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+              className="w-full px-2 py-0.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             />
 
             {/* Autocomplete Suggestions */}
             {groupsInput && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+              <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-md shadow-lg">
                 {getAutocompleteSuggestions(groupsInput).length > 0 ? (
                   getAutocompleteSuggestions(groupsInput).map((suggestion, index) => (
                     <button
@@ -230,13 +230,13 @@ export default function EntrantRow({
 
                         setGroupsInput('');
                       }}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 focus:bg-gray-100"
+                      className="w-full text-left px-3 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 focus:bg-gray-100 dark:focus:bg-gray-700"
                     >
                       {suggestion}
                     </button>
                   ))
                 ) : (
-                  <div className="px-3 py-2 text-sm text-gray-500">
+                  <div className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
                     No matching entrants found
                   </div>
                 )}
@@ -275,11 +275,11 @@ export default function EntrantRow({
       </td>
 
       {/* Preference */}
-      <td className="px-2 py-1 border-b">
+      <td className="px-2 py-1 border-b dark:border-gray-700">
         <select
           value={entrant.preference || ''}
           onChange={(e) => handlePreferenceChange(e.target.value)}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Select Preference</option>
           <option value="1xLong">1xLong</option>
@@ -290,11 +290,11 @@ export default function EntrantRow({
       </td>
 
       {/* Judge 1 */}
-      <td className="px-2 py-1 border-b">
+      <td className="px-2 py-1 border-b dark:border-gray-700">
         <select
           value={entrant.judgePreference1}
           onChange={(e) => onFieldUpdate(entrant.id, 'judgePreference1', e.target.value)}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Select Judge</option>
           {judges.map(judge => (
@@ -304,11 +304,11 @@ export default function EntrantRow({
       </td>
 
       {/* Judge 2 */}
-      <td className="px-2 py-1 border-b">
+      <td className="px-2 py-1 border-b dark:border-gray-700">
         <select
           value={entrant.judgePreference2}
           onChange={(e) => onFieldUpdate(entrant.id, 'judgePreference2', e.target.value)}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Select Judge</option>
           {judges.map(judge => (
@@ -322,7 +322,7 @@ export default function EntrantRow({
         <select
           value={entrant.judgePreference3}
           onChange={(e) => onFieldUpdate(entrant.id, 'judgePreference3', e.target.value)}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         >
           <option value="">Select Judge</option>
           {judges.map(judge => (
@@ -335,23 +335,23 @@ export default function EntrantRow({
         {settings.moving === 'judges' && (
        <>        
       {/* Room */}
-      <td className="px-2 py-1 border-b">
+      <td className="px-2 py-1 border-b dark:border-gray-700">
         <input
           type="text"
           value={entrant.roomNumber || ''}
           onChange={(e) => onFieldUpdate(entrant.id, 'roomNumber', e.target.value)}
           onBlur={(e) => onFieldUpdate(entrant.id, 'roomNumber', e.target.value.trim() || '')}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </td>
       {/* POS */}
-      <td className="px-2 py-1 border-b">
+      <td className="px-2 py-1 border-b dark:border-gray-700">
         <input
           type="text"
           value={entrant.pos || ''}
           onChange={(e) => onFieldUpdate(entrant.id, 'roomNumber', e.target.value)}
           onBlur={(e) => onFieldUpdate(entrant.id, 'roomNumber', e.target.value.trim() || '')}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </td>
       </>
@@ -359,7 +359,7 @@ export default function EntrantRow({
 
 
       {/* O/A SF */}
-      <td className="px-2 py-1 border-b">
+      <td className="px-2 py-1 border-b dark:border-gray-700">
         <input
           type="text"
           inputMode="numeric"
@@ -372,13 +372,13 @@ export default function EntrantRow({
               onFieldUpdate(entrant.id, 'overallSF', value === '' ? undefined : Number(value));
             }
           }}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="0"
         />
       </td>
 
       {/* O/A F */}
-      <td className="px-2 py-1 border-b">
+      <td className="px-2 py-1 border-b dark:border-gray-700">
         <input
           type="text"
           inputMode="numeric"
@@ -391,16 +391,16 @@ export default function EntrantRow({
               onFieldUpdate(entrant.id, 'overallF', value === '' ? undefined : Number(value));
             }
           }}
-          className="w-full px-2 py-0.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           placeholder="0"
         />
       </td>
 
       {/* Actions */}
-      <td className="px-2 py-1 w-10 border-b text-right">
+      <td className="px-2 py-1 w-10 border-b dark:border-gray-700 text-right">
         <button
           onClick={() => onRemove(entrant.id)}
-          className="text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors font-bold text-lg"
+          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-md transition-colors font-bold text-lg"
           title="Remove entrant"
         >
           ×

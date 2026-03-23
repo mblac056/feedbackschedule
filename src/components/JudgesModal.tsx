@@ -90,16 +90,16 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
       {/* Confirmation Dialog */}
       {showConfirmClose && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[61] p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-md w-full border border-transparent dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Unsaved Changes</h3>
-              <p className="text-gray-600 mb-6">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">Unsaved Changes</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
                 Are you sure you want to close without saving? Your changes will be lost.
               </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowConfirmClose(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
                 >
                   Cancel
                 </button>
@@ -115,7 +115,7 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
         </div>
       )}
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4" onClick={handleCloseClick}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden border border-transparent dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gray-600 text-white p-6 flex justify-between items-center">
           <div>
             <h2 className="text-2xl font-bold">Manage Judges</h2>
@@ -130,7 +130,7 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
             </button>
                         <button
               onClick={handleClose}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
             >
               Save & Close
             </button>
@@ -138,12 +138,12 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
           </div>
         </div>
         
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)] text-gray-900 dark:text-gray-100">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-lg font-semibold text-gray-800">Judges ({judges.length})</h3>
+            <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Judges ({judges.length})</h3>
             <button
               onClick={handleAddJudge}
-              className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+              className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
             >
               Add Judge
             </button>
@@ -152,39 +152,39 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
           {judges.length === 0 ? (
             <div className="text-center py-12">
               <div className="max-w-md mx-auto">
-                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="mx-auto w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No Judges Added Yet</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Judges Added Yet</h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
                   Add judges manually using the "Add Judge" button above, or import them from CSV on the main page.
                 </p>
               </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full bg-white border border-gray-200 rounded-lg">
-                <thead className="bg-gray-50">
+              <table className="min-w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                <thead className="bg-gray-50 dark:bg-gray-800/80">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Category</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Room</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Active</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Name</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Category</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Room</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Active</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                   {judges.map((judge) => (
-                    <tr key={judge.id} className="text-gray-600 hover:bg-gray-50">
+                    <tr key={judge.id} className="text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <td className="px-4 py-3 border-b">
                         <input
                           type="text"
                           value={judge.name}
                           onChange={(e) => handleFieldUpdate(judge.id, 'name', e.target.value)}
                           onBlur={(e) => handleFieldUpdate(judge.id, 'name', e.target.value.trim())}
-                          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                           placeholder="Enter judge name"
                         />
                       </td>
@@ -192,7 +192,7 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
                         <select
                           value={judge.category || ''}
                           onChange={(e) => handleFieldUpdate(judge.id, 'category', e.target.value || undefined)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="">Select Category</option>
                           <option value="SNG">SNG</option>
@@ -206,7 +206,7 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
                           value={judge.roomNumber || ''}
                           onChange={(e) => handleFieldUpdate(judge.id, 'roomNumber', e.target.value)}
                           onBlur={(e) => handleFieldUpdate(judge.id, 'roomNumber', e.target.value.trim() || undefined)}
-                          className="w-full px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         />
                       </td>
                       <td className="px-4 py-3 border-b">
@@ -222,7 +222,7 @@ export default function JudgesModal({ isOpen, onClose, onModalClose }: JudgesMod
                       <td className="px-4 py-3 border-b">
                         <button
                           onClick={() => handleRemove(judge.id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-md transition-colors"
                           title="Remove judge"
                         >
                           <FaTrash className="w-4 h-4" />
