@@ -152,22 +152,32 @@ export const importEvalPreferencesCSV = (
       }
       
       // Prioritize Semifinals column, then fall back to Finals or other eval type columns
-      const applyPreference = (prefValue: string) => {
-        if (prefValue.includes('3x20')) {
+      const applyPreference = (prefValue: string): boolean => {
+        const normalized = prefValue.replace(/\s+/g, '').toLowerCase();
+
+        if (normalized.includes('3x20')) {
           existingEntrant.preference = '3x20';
           console.log(`  Set preference to: "3x20"`);
-        } else if (prefValue.includes('3x10')) {
+          return true;
+        }
+        if (normalized.includes('3x10')) {
           existingEntrant.preference = '3x10';
           console.log(`  Set preference to: "3x10"`);
-        } else if (prefValue.includes('1xLong')) {
+          return true;
+        }
+        if (normalized.includes('1xlong')) {
           existingEntrant.preference = '1xLong';
           console.log(`  Set preference to: "1xLong"`);
-        } else if (prefValue.includes('None')) {
+          return true;
+        }
+        if (normalized.includes('none')) {
           existingEntrant.preference = 'None';
           console.log(`  Set preference to: "None"`);
-        } else {
-          console.log(`  Preference value "${prefValue}" did not match any known patterns`);
+          return true;
         }
+
+        console.log(`  Preference value "${prefValue}" did not match any known patterns`);
+        return false;
       };
 
       let preferenceSet = false;
@@ -175,8 +185,7 @@ export const importEvalPreferencesCSV = (
       const semifinalsValue = row['Eval Type Semifinals']?.trim();
       if (semifinalsValue) {
         console.log(`  Using preference from Eval Type Semifinals: "${semifinalsValue}"`);
-        applyPreference(semifinalsValue);
-        preferenceSet = true;
+        preferenceSet = applyPreference(semifinalsValue);
       }
       // Fallback: first non-blank value from other eval type columns (Finals, etc.)
       if (!preferenceSet) {
@@ -188,9 +197,10 @@ export const importEvalPreferencesCSV = (
             console.log(`  Checking column "${columnName}": "${prefValue}"`);
             if (prefValue) {
               console.log(`  Found preference value: "${prefValue}"`);
-              applyPreference(prefValue);
-              preferenceSet = true;
-              break;
+              if (applyPreference(prefValue)) {
+                preferenceSet = true;
+                break;
+              }
             }
           }
         }
