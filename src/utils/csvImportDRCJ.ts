@@ -41,6 +41,10 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
       };
     }
 
+    // If the column exists at all in the import file, treat the import as a Chorus import.
+    // (Some exports include the column even when the values are blank.)
+    const hasEstimatedPOSColumn = Object.prototype.hasOwnProperty.call(firstRow, 'Estimated POS');
+
     console.log('DRCJ Import: Starting processing of', rows.length, 'rows');
     console.log('DRCJ Import: Available columns:', Object.keys(rows[0] || {}));
 
@@ -51,14 +55,7 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
 
     rows.forEach((row, index) => {
       const groupName = row['Group Name']?.trim();
-      const estimated_pos:number = Number(row['Estimated POS']);
-
-      const parsePOS = (pos: number) => {
-        if (pos > 4) {
-          return "Chorus";
-        }
-        return "Quartet";
-      }
+      const estimated_pos: number = Number(row['Estimated POS']);
 
       console.log(`DRCJ Import: Processing row ${index + 2}:`, {
         groupName,
@@ -98,8 +95,8 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
         overallSF,
         overallF: undefined, // Not available in DRCJ Report format
         score: undefined, // Not available in DRCJ Report format
-        groupType: parsePOS(estimated_pos),
-        pos: isNaN(estimated_pos) ? null : estimated_pos
+        groupType: hasEstimatedPOSColumn ? 'Chorus' : 'Quartet',
+        pos: hasEstimatedPOSColumn && !isNaN(estimated_pos) ? estimated_pos : null
       };
 
       entrants.push(entrant);
