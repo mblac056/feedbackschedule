@@ -224,7 +224,7 @@ export default function SessionBlock({
       {showContextMenu && (
         <div
           ref={contextMenuRef}
-          className="fixed bg-black border border-gray-300 rounded-lg shadow-lg py-1 z-50 min-w-[160px]"
+          className="fixed bg-white dark:bg-black border border-gray-300 rounded-lg shadow-lg py-1 z-50 min-w-[160px]"
           style={{
             left: contextMenuPosition.x,
             top: contextMenuPosition.y,
