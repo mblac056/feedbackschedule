@@ -18,9 +18,10 @@ import { createNameToIdMapper } from './nameToIdMapper';
  * - Contacts, Shared Members (groups to avoid), Notes
  *
  * @param csvText The raw CSV text
+ * @param fileName Optional import file name (used to infer Chorus vs Quartet)
  * @returns ImportResult with entrants data
  */
-export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImportData> => {
+export const importDRCJReportCSV = (csvText: string, fileName?: string): ImportResult<DRCJReportImportData> => {
   try {
     const rows = parseComplexCSV(csvText); // Use complex parser for multi-line fields
 
@@ -41,7 +42,12 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
       };
     }
 
-    // If the column exists at all in the import file, treat the import as a Chorus import.
+    // Quartets may also include the "Estimated POS" column, so infer Chorus vs Quartet
+    // from the *file name* instead (case-insensitive) per user workflow.
+    const baseFileName = (fileName ?? '').trim().replace(/\.[^/.]+$/, '');
+    const isChorusImport = baseFileName.toLowerCase().endsWith('chorus');
+
+    // Still detect whether the column exists before reading it.
     // (Some exports include the column even when the values are blank.)
     const hasEstimatedPOSColumn = Object.prototype.hasOwnProperty.call(firstRow, 'Estimated POS');
 
@@ -95,8 +101,8 @@ export const importDRCJReportCSV = (csvText: string): ImportResult<DRCJReportImp
         overallSF,
         overallF: undefined, // Not available in DRCJ Report format
         score: undefined, // Not available in DRCJ Report format
-        groupType: hasEstimatedPOSColumn ? 'Chorus' : 'Quartet',
-        pos: hasEstimatedPOSColumn && !isNaN(estimated_pos) ? estimated_pos : null
+        groupType: isChorusImport ? 'Chorus' : 'Quartet',
+        pos: isChorusImport && hasEstimatedPOSColumn && !isNaN(estimated_pos) ? estimated_pos : null
       };
 
       entrants.push(entrant);

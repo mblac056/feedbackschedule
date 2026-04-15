@@ -31,7 +31,7 @@ export default function CSVImport({
 
     try {
       const text = await file.text();
-      const result = importDRCJReportCSV(text);
+      const result = importDRCJReportCSV(text, file.name);
       
       if (result.success && result.data) {
         const entrantsData = result.data as { entrants: Entrant[] };
