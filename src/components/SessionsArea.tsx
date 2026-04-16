@@ -202,7 +202,10 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
             <div className="flex flex-row items-center gap-4 w-full md:w-auto flex-shrink-0">
               {scheduledSessions.length > 0 ? (
                 <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
-                    // Clear the grid using the utility function
+                  // Confirm with user before clearing the grid
+                  const confirm = window.confirm('Are you sure you want to clear the grid? This action cannot be undone.');
+                  if (!confirm) return;
+                  // Clear the grid using the utility function
                     const clearedSessionBlocks = clearGrid(allSessionBlocks);
                     clearedSessionBlocks.forEach(block => {
                       onSessionBlockUpdate(block);
