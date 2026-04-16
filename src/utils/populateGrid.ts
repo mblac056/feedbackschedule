@@ -267,13 +267,13 @@ const createPods = (threeX10Count: number, threeX20Count: number): Array<string>
       }
     }
     
-    // Strategy 3: If still remaining groups, use pods of 2
+    // Strategy 3: If still remaining groups, use a full 3-slot pod with one bye (same rotation as 3 groups)
     if (remaining3x10 >= 2) {
-      podTypes.push(['3x10', '3x10']);
+      podTypes.push(['3x10', '3x10', 'bye']);
       remaining3x10 -= 2;
     }
     if (remaining3x20 >= 2) {
-      podTypes.push(['3x20', '3x20']);
+      podTypes.push(['3x20', '3x20', 'bye']);
       remaining3x20 -= 2;
     }
     
@@ -285,6 +285,16 @@ const createPods = (threeX10Count: number, threeX20Count: number): Array<string>
     }
   }
   
+  // Two entrants in the same format: same rotation as a 3-group pod, third slot is a bye
+  if (remaining3x10 === 2) {
+    podTypes.push(['3x10', '3x10', 'bye']);
+    remaining3x10 = 0;
+  }
+  if (remaining3x20 === 2) {
+    podTypes.push(['3x20', '3x20', 'bye']);
+    remaining3x20 = 0;
+  }
+
   // Last resort: Handle single remaining groups (they just rotate through judges)
   if (remaining3x10 === 1) {
     podTypes.push(['3x10']);
@@ -425,12 +435,13 @@ const assignPodsToJudges = (pod: string[], threeX10Height: number, threeX20Heigh
   const numGroups = pod.length;
   const judgeAssignments: number[][] = [[],[],[]];
 
-  // Check if the pod is homogeneous or hybrid
-  const isHomogeneous = pod.every(group => group === pod[0]);
+  const nonByeKinds = pod.filter(group => group !== 'bye');
+  const isMixed310And320 = nonByeKinds.includes('3x10') && nonByeKinds.includes('3x20');
+  const uniformKind = nonByeKinds.length > 0 && nonByeKinds.every(group => group === nonByeKinds[0]);
 
-  // Determine the height for this pod (use the maximum height for hybrid pods)
-  const podHeight = isHomogeneous 
-    ? (pod[0] === '3x10' ? threeX10Height : threeX20Height)
+  // Height: one session kind (+ optional bye slots) uses that kind's duration; true 3x10/3x20 mix uses max
+  const podHeight = uniformKind
+    ? (nonByeKinds[0] === '3x10' ? threeX10Height : threeX20Height)
     : Math.max(threeX10Height, threeX20Height);
 
   if (numGroups === 1) {
@@ -512,7 +523,7 @@ const assignPodsToJudges = (pod: string[], threeX10Height: number, threeX20Heigh
     }
   }
 
-  if (!isHomogeneous) {
+  if (isMixed310And320) {
     // Figure out which groups are 3X10 (by index)
     const threeX10GroupIndices = pod.map((group, index) => group === '3x10' ? index + 1 : null).filter(i => i !== null);
     // Calculate bye slots for 3x10 groups
