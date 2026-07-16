@@ -45,7 +45,7 @@ export const importDRCJReportCSV = (csvText: string, fileName?: string): ImportR
     // Quartets may also include the "Estimated POS" column, so infer Chorus vs Quartet
     // from the *file name* instead (case-insensitive) per user workflow.
     const baseFileName = (fileName ?? '').trim().replace(/\.[^/.]+$/, '');
-    const isChorusImport = baseFileName.toLowerCase().endsWith('chorus');
+    const isChorusImport = baseFileName.toLowerCase().includes('chorus');
 
     // Still detect whether the column exists before reading it.
     // (Some exports include the column even when the values are blank.)
