@@ -628,14 +628,8 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                     <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 1</th>
                     <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 2</th>
                     <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 3</th>
-                    
-                   {/*Render Room and POS columns only if moving judges*/}
-                    {settings.moving === 'judges' && (
-                     <>
                     <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Room</th>
                     <th className="px-2 py-1.5 w-32 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Performers</th>
-                    </>
-                    )}
 
                     <th
                       className={`px-2 py-1.5 w-24 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none ${

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import type { Entrant, Judge } from '../types';
-import { useSettings } from '../contexts/useSettings';
 
 interface SessionConflict {
   entrantId: string;
@@ -43,7 +42,6 @@ export default function EntrantRow({
   onDragEnd
 }: EntrantRowProps) {
   const [groupsInput, setGroupsInput] = useState('');
-  const { settings } = useSettings();
 
   const handleGroupsInputChange = (value: string) => {
     setGroupsInput(value);
@@ -331,9 +329,6 @@ export default function EntrantRow({
         </select>
       </td>
 
-      {/*Render Room and POS columns only if moving judges*/}
-        {settings.moving === 'judges' && (
-       <>        
       {/* Room */}
       <td className="px-2 py-1 border-b dark:border-gray-700">
         <input
@@ -354,8 +349,6 @@ export default function EntrantRow({
           className="w-full px-2 py-0.5 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </td>
-      </>
-      )}
 
 
       {/* O/A SF */}
