@@ -14,6 +14,11 @@ export default function PreviewPersonPage() {
   });
 
   return (
-    <PublicPersonSchedule payload={payload} personSlug={personSlug} hubPath="/preview" />
+    <PublicPersonSchedule
+      payload={payload}
+      personSlug={personSlug}
+      hubPath="/preview"
+      showBackToCreate
+    />
   );
 }

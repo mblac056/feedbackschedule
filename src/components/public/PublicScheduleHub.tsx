@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { RiLayoutMasonryFill } from 'react-icons/ri';
+import { FiRefreshCcw } from 'react-icons/fi';
 import type { PublishedSchedulePayload } from '../../types/publishedSchedule';
 import { downloadPublishedMatrixPdf } from '../../utils/publishedPdf';
 
@@ -7,20 +9,21 @@ type Props = {
   payload: PublishedSchedulePayload;
   personBasePath: string; // '/preview' or `/${code}`
   title?: string;
+  /** Shown on local preview so creators can return to the editor. */
+  showBackToCreate?: boolean;
 };
 
 type Tab = 'entrants' | 'judges';
 
-export default function PublicScheduleHub({ payload, personBasePath, title }: Props) {
+export default function PublicScheduleHub({ payload, personBasePath, title, showBackToCreate = false }: Props) {
   const [tab, setTab] = useState<Tab>('entrants');
-  const [filter, setFilter] = useState('');
   const [pdfBusy, setPdfBusy] = useState(false);
   const [pdfError, setPdfError] = useState('');
 
   const heading = title ?? (payload.exportName?.trim() || 'Feedback Schedule');
   const base = personBasePath.replace(/\/$/, '');
 
-  const list =
+  const people = (
     tab === 'entrants'
       ? payload.entrants.map((e) => ({
           id: e.id,
@@ -31,10 +34,8 @@ export default function PublicScheduleHub({ payload, personBasePath, title }: Pr
           id: j.id,
           name: j.category ? `${j.name} (${j.category})` : j.name,
           slug: payload.slugs[j.id],
-        }));
-
-  const q = filter.trim().toLowerCase();
-  const people = (q ? list.filter((p) => p.name.toLowerCase().includes(q)) : list)
+        }))
+  )
     .filter((p) => p.slug)
     .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -54,7 +55,34 @@ export default function PublicScheduleHub({ payload, personBasePath, title }: Pr
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       <div className="max-w-2xl mx-auto px-4 py-8 flex flex-col gap-6">
         <header className="flex flex-col gap-4">
-          <h1 className="text-2xl font-bold text-[var(--primary-color)]">{heading}</h1>
+          {showBackToCreate && (
+            <Link
+              to="/create"
+              className="inline-flex items-center w-fit px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-600 text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-950 transition-colors"
+            >
+              ← Back to create
+            </Link>
+          )}
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              to="/"
+              className="flex items-center gap-2 min-w-0 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
+              title="Enter a schedule code"
+            >
+              <RiLayoutMasonryFill className="text-2xl text-[var(--primary-color)] shrink-0" />
+              <span className="text-xl font-bold text-[var(--primary-color)] truncate">Feedback Schedule</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="p-2 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-950 transition-colors shrink-0"
+              aria-label="Refresh"
+              title="Refresh"
+            >
+              <FiRefreshCcw className="text-lg" />
+            </button>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{heading}</h1>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <button
               type="button"
@@ -86,26 +114,13 @@ export default function PublicScheduleHub({ payload, personBasePath, title }: Pr
                   : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
             >
-              {key === 'entrants' ? 'Entrants' : 'Judges'}
+              {key === 'entrants' ? 'Entrant Schedules' : 'Judge Schedules'}
             </button>
           ))}
         </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="sr-only">Filter names</span>
-          <input
-            type="search"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter names…"
-            className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] focus:border-[var(--primary-color)]"
-          />
-        </label>
-
         {people.length === 0 ? (
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            {filter.trim() ? 'No names match your filter.' : 'No scheduled people yet.'}
-          </p>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">No scheduled people yet.</p>
         ) : (
           <ul className="divide-y divide-gray-200 dark:divide-gray-800 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden bg-white dark:bg-gray-900">
             {people.map((person) => (

@@ -9,6 +9,7 @@ export interface PersonScheduleRow {
   counterpart: string;
   sessionType: string;
   roomNumber?: string;
+  isBye?: boolean;
 }
 
 export interface PersonScheduleView {
@@ -37,6 +38,45 @@ function addMinutesToTime(timeStr: string, minutes: number): string {
   return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
 }
 
+function minutesBetween(start: string, end: string): number {
+  const [startHours, startMins] = start.split(':').map(Number);
+  const [endHours, endMins] = end.split(':').map(Number);
+  let duration = endHours * 60 + endMins - (startHours * 60 + startMins);
+  if (duration < 0) {
+    duration += 24 * 60;
+  }
+  return duration;
+}
+
+/** Gaps between consecutive sessions become BYE rows (same idea as print schedules). */
+function insertByeRows(sessionRows: PersonScheduleRow[]): PersonScheduleRow[] {
+  const sorted = [...sessionRows].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const combined: PersonScheduleRow[] = [];
+
+  for (let i = 0; i < sorted.length; i++) {
+    combined.push(sorted[i]);
+    if (i < sorted.length - 1) {
+      const currentEnd = sorted[i].endTime;
+      const nextStart = sorted[i + 1].startTime;
+      if (currentEnd !== nextStart) {
+        const duration = minutesBetween(currentEnd, nextStart);
+        if (duration > 0) {
+          combined.push({
+            startTime: currentEnd,
+            endTime: nextStart,
+            timeLabel: `${formatTimeForDisplay(currentEnd)}-${formatTimeForDisplay(nextStart)}`,
+            counterpart: 'BYE',
+            sessionType: `${duration} min`,
+            isBye: true,
+          });
+        }
+      }
+    }
+  }
+
+  return combined;
+}
+
 /**
  * Build display rows for one entrant or judge from a published payload.
  * Returns null when the slug is missing from slugIndex.
@@ -57,7 +97,7 @@ export function buildPersonSchedule(
     if (!entrant) return null;
 
     const showRoomColumn = settings.moving === 'groups';
-    const rows = payload.sessions
+    const sessionRows = payload.sessions
       .filter((s) => s.entrantId === entry.id)
       .map((session) => {
         const judge = judgeById.get(session.judgeId);
@@ -77,8 +117,7 @@ export function buildPersonSchedule(
           sessionType: session.type,
           roomNumber: showRoomColumn ? judge?.roomNumber : undefined,
         };
-      })
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
+      });
 
     return {
       kind: 'entrant',
@@ -86,7 +125,7 @@ export function buildPersonSchedule(
       moving: settings.moving,
       ownRoom: settings.moving === 'judges' ? entrant.roomNumber : undefined,
       showRoomColumn,
-      rows,
+      rows: insertByeRows(sessionRows),
     };
   }
 
@@ -94,7 +133,7 @@ export function buildPersonSchedule(
   if (!judge) return null;
 
   const showRoomColumn = settings.moving === 'judges';
-  const rows = payload.sessions
+  const sessionRows = payload.sessions
     .filter((s) => s.judgeId === entry.id)
     .map((session) => {
       const entrant = entrantById.get(session.entrantId);
@@ -109,8 +148,7 @@ export function buildPersonSchedule(
         sessionType: session.type,
         roomNumber: showRoomColumn ? entrant?.roomNumber : undefined,
       };
-    })
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+    });
 
   return {
     kind: 'judge',
@@ -118,6 +156,6 @@ export function buildPersonSchedule(
     moving: settings.moving,
     ownRoom: settings.moving === 'groups' ? judge.roomNumber : undefined,
     showRoomColumn,
-    rows,
+    rows: insertByeRows(sessionRows),
   };
 }

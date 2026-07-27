@@ -4,7 +4,7 @@ import type { SessionBlock } from '../types';
 import { useSettings } from '../contexts/useSettings';
 import type { SessionSettings } from '../config/timeConfig';
 import { LocalStorageService } from '../utils/localStorage';
-import { CODE_ALPHABET } from '../utils/publishCodes';
+import { filterCodePrefix } from '../utils/publishCodes';
 
 interface Settings extends SessionSettings {
   feedbackStart: string;
@@ -29,15 +29,6 @@ const DEFAULT_SETTINGS: Settings = {
   exportName: '',
   codePrefix: '',
 };
-
-function filterCodePrefix(value: string): string {
-  return value
-    .toUpperCase()
-    .split('')
-    .filter((ch) => CODE_ALPHABET.includes(ch))
-    .join('')
-    .slice(0, 3);
-}
 
 
 export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset, onClearGrid }: SettingsModalProps) {
@@ -244,7 +235,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-mono tracking-widest uppercase focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                Optional up to 3 characters used at the start of new publish codes (no 0/O/1/I/L).
+                Optional up to 3 characters used at the start of new publish codes. Remaining characters are random (avoiding 0/O/1/I/L).
               </p>
             </div>
             {/* Travel Directions */}

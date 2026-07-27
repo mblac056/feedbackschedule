@@ -11,6 +11,7 @@ import { useSettings } from "../contexts/useSettings";
 import { getSessionDurationMinutes } from "../config/timeConfig";
 import { populateGrid } from "../utils/populateGrid";
 import { getConflictDetails } from "../utils/scheduleHelpers";
+import PublishControls from "./PublishControls";
 //import type { SessionSettings } from "../config/timeConfig";
 
 
@@ -197,9 +198,9 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
         onDragStart={handleGlobalDragStart}
         onDragOver={handleGlobalDragOver}
         onDragEnd={handleGlobalDragEnd}>
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4 mb-4 ml-10 overflow-x-auto mobile-button-container">
-            {/* Button row - side by side on mobile, horizontal on desktop */}
-            <div className="flex flex-row items-center gap-4 w-full md:w-auto flex-shrink-0">
+          <div className="flex flex-row flex-wrap items-center gap-4 mb-4 ml-10">
+            {/* Button row */}
+            <div className="flex flex-row flex-wrap items-center gap-4">
               {scheduledSessions.length > 0 ? (
                 <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
                   // Confirm with user before clearing the grid
@@ -223,7 +224,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                     Populate Grid
                   </button>
                   )}
-                <div className="relative print-dropdown-container">
+                <div className="relative print-dropdown-container shrink-0">
                   <div className="flex">
                     <button 
                       className={`px-4 py-2 rounded-l-md transition-colors ${
@@ -256,13 +257,13 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                   </div>
                   
                   {showPrintDropdown && (
-                    <div className="absolute top-full z-50 left-0 mt-1 bg-white dark:bg-gray-800 border border-[var(--primary-color)] rounded-md shadow-lg z-10 min-w-64 md:min-w-64 w-full md:w-auto">
+                    <div className="absolute top-full z-50 left-0 mt-1 bg-white dark:bg-gray-800 border border-[var(--primary-color)] rounded-md shadow-lg min-w-64 w-max">
                       <div className="p-1">
                         {reportOptions.map(option => (
                           <button
                             key={option.id}
                             onClick={() => handleGenerateReport(option.id)}
-                            className="w-full text-left px-3 my-1 py-0 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                            className="w-full text-left px-3 my-1 py-0 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors whitespace-nowrap"
                           >
                             {option.label}
                           </button>
@@ -271,6 +272,9 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                     </div>
                   )}
                 </div>
+                {scheduledSessions.length > 0 && (
+                  <PublishControls disabled={hasRedConflicts} />
+                )}
               </div>
               
           </div>

@@ -3,7 +3,6 @@ import { useEntrant, SettingsProvider } from '../contexts'
 import { useSessionManagement } from '../hooks/useSessionManagement'
 import { getEntrants, getJudges } from '../utils/localStorage'
 import Header from '../components/Header'
-import PublishControls from '../components/PublishControls'
 import JudgesModal from '../components/JudgesModal'
 import EntrantsModal from '../components/EntrantsModal'
 import SettingsModal from '../components/SettingsModal'
@@ -127,7 +126,6 @@ function CreatePage() {
           onOpenSettingsModal={() => setIsSettingsModalOpen(true)}
           onOpenImportExportModal={() => setIsImportExportModalOpen(true)}
         />
-        <PublishControls />
         
         <div className="flex-1">
           {judges.length === 0 ? (

@@ -42,7 +42,7 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
     <div className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+          <div className="flex items-center space-x-2 min-w-0">
             <Link
               to="/"
               className="flex items-center space-x-2 min-w-0 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
@@ -50,12 +50,6 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
             >
               <RiLayoutMasonryFill className="text-2xl text-[var(--primary-color)] shrink-0" />
               <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-color)] truncate">Feedback Schedule</h1>
-            </Link>
-            <Link
-              to="/preview"
-              className="hidden sm:inline text-sm text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded whitespace-nowrap"
-            >
-              Preview public view
             </Link>
           </div>
           
@@ -128,13 +122,6 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
         {isMobileMenuOpen && (
           <div className="md:hidden border-t border-gray-200 dark:border-gray-700 py-4">
             <div className="flex flex-col space-y-2">
-              <Link
-                to="/preview"
-                onClick={closeMobileMenu}
-                className="w-full text-left px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 hover:text-[var(--primary-color)] hover:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
-              >
-                Preview public view
-              </Link>
               <button
                 onClick={() => {
                   onOpenEntrantsModal();

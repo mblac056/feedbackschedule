@@ -3,7 +3,7 @@ import { getStore } from '@netlify/blobs';
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const CODE_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const MAX_BODY_CHARS = 512_000;
 
 type BlobRecord = {
@@ -17,7 +17,7 @@ function normalizeCode(input: string): string {
 }
 
 function isValidCode(code: string): boolean {
-  return code.length === 6 && [...code].every((ch) => CODE_ALPHABET.includes(ch));
+  return code.length === 6 && [...code].every((ch) => CODE_CHARSET.includes(ch));
 }
 
 function hashToken(token: string): string {

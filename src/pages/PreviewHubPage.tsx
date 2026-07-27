@@ -10,5 +10,5 @@ export default function PreviewHubPage() {
     settings: getSettings(),
   });
 
-  return <PublicScheduleHub payload={payload} personBasePath="/preview" />;
+  return <PublicScheduleHub payload={payload} personBasePath="/preview" showBackToCreate />;
 }
