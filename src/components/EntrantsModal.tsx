@@ -24,6 +24,8 @@ interface EntrantsModalProps {
   scheduleConflicts?: SessionConflict[];
 }
 
+type SortColumn = 'score' | 'name' | 'include' | 'overallSF' | 'overallF' | 'evalOnly';
+
 export default function EntrantsModal({ isOpen, onClose, onModalClose, onSessionBlocksChange, scheduleConflicts = [] }: EntrantsModalProps) {
   const [entrants, setEntrants] = useState<Entrant[]>([]);
   const [judges, setJudges] = useState<Judge[]>([]);
@@ -33,7 +35,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const [showPreferencesImport, setShowPreferencesImport] = useState(false);
   const [originalEntrants, setOriginalEntrants] = useState<Entrant[]>([]);
   const [showConfirmClose, setShowConfirmClose] = useState(false);
-  const [sortColumn, setSortColumn] = useState<'score' | 'name' | 'include' | 'overallSF' | 'overallF' | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [groupFilter, setGroupFilter] = useState('All');
   const [movementPrompt, setMovementPrompt] = useState<'chorusToJudges' | 'quartetToGroups' | null>(null);
@@ -319,7 +321,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   };
 
   // Handle column header click for sorting
-  const handleSort = (column: 'score' | 'name' | 'include' | 'overallSF' | 'overallF') => {
+  const handleSort = (column: SortColumn) => {
     const isSameColumn = sortColumn === column;
     const newDirection = isSameColumn ? (sortDirection === 'asc' ? 'desc' : 'asc') : 'asc';
 
@@ -361,6 +363,10 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
         case 'overallF':
           aValue = a.overallF ?? -Infinity; // Treat undefined as lowest
           bValue = b.overallF ?? -Infinity;
+          break;
+        case 'evalOnly':
+          aValue = a.evalOnly ?? false;
+          bValue = b.evalOnly ?? false;
           break;
       }
 
@@ -628,6 +634,19 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                     <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 1</th>
                     <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 2</th>
                     <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Judge 3</th>
+                    <th
+                      className={`px-2 py-1.5 w-28 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 select-none ${
+                        sortColumn === 'evalOnly' ? 'bg-gray-100 dark:bg-gray-700' : ''
+                      }`}
+                      onClick={() => handleSort('evalOnly')}
+                    >
+                      <div className="flex items-center space-x-1">
+                        <span>Eval Only</span>
+                        {sortColumn === 'evalOnly' && (
+                          <span>{sortDirection === 'asc' ? '↑' : '↓'}</span>
+                        )}
+                      </div>
+                    </th>
                     <th className="px-2 py-1.5 w-36 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Room</th>
                     <th className="px-2 py-1.5 w-32 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b dark:border-gray-700">Performers</th>
 

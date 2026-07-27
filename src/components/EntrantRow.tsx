@@ -329,6 +329,13 @@ export default function EntrantRow({
         </select>
       </td>
 
+      {/* Eval Only */}
+      <td className="px-2 py-1 border-b dark:border-gray-700">
+        <span className="text-sm">
+          {entrant.evalOnly === undefined ? '' : entrant.evalOnly ? 'TRUE' : 'FALSE'}
+        </span>
+      </td>
+
       {/* Room */}
       <td className="px-2 py-1 border-b dark:border-gray-700">
         <input

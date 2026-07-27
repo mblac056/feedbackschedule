@@ -50,6 +50,7 @@ export const importDRCJReportCSV = (csvText: string, fileName?: string): ImportR
     // Still detect whether the column exists before reading it.
     // (Some exports include the column even when the values are blank.)
     const hasEstimatedPOSColumn = Object.prototype.hasOwnProperty.call(firstRow, 'Estimated POS');
+    const hasEvalOnlyColumn = Object.prototype.hasOwnProperty.call(firstRow, 'Score/Eval-Only?');
 
     console.log('DRCJ Import: Starting processing of', rows.length, 'rows');
     console.log('DRCJ Import: Available columns:', Object.keys(rows[0] || {}));
@@ -102,7 +103,8 @@ export const importDRCJReportCSV = (csvText: string, fileName?: string): ImportR
         overallF: undefined, // Not available in DRCJ Report format
         score: undefined, // Not available in DRCJ Report format
         groupType: isChorusImport ? 'Chorus' : 'Quartet',
-        pos: isChorusImport && hasEstimatedPOSColumn && !isNaN(estimated_pos) ? estimated_pos : null
+        pos: isChorusImport && hasEstimatedPOSColumn && !isNaN(estimated_pos) ? estimated_pos : null,
+        evalOnly: hasEvalOnlyColumn ? row['Score/Eval-Only?']?.trim().toUpperCase() === 'TRUE' : undefined
       };
 
       entrants.push(entrant);
