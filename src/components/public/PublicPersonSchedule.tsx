@@ -83,7 +83,7 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
             Feedback Schedule for {schedule.name}
           </h1>
           {schedule.ownRoom && (
-            <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
               Room: {schedule.ownRoom}
             </p>
           )}
