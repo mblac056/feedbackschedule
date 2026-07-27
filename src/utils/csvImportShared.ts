@@ -36,37 +36,36 @@ export interface EvalPreferencesImportData {
 // ============================================================================
 
 /**
+ * Convert a full judge name to "FirstInitial. LastName" format.
+ * First name is the first whitespace-separated token; everything after that is the last name
+ * (so "Chad St. John" → "C. St. John", "Josh van Gorder" → "J. van Gorder").
+ */
+const toInitialLastName = (fullName: string): string => {
+  const trimmed = fullName.trim();
+  if (!trimmed) return trimmed;
+
+  const spaceIndex = trimmed.search(/\s/);
+  if (spaceIndex === -1) {
+    return `${trimmed[0].toUpperCase()}.`;
+  }
+
+  const firstName = trimmed.slice(0, spaceIndex);
+  const lastName = trimmed.slice(spaceIndex).trim();
+  if (!lastName) {
+    return `${firstName[0].toUpperCase()}.`;
+  }
+
+  return `${firstName[0].toUpperCase()}. ${lastName}`;
+};
+
+/**
  * Shorten all judge names to first initial + last name format
  * @param fullNames Array of all full names to process
  * @returns Array of shortened names in "FirstInitial. LastName" format
  */
 export const shortenJudgeNames = (fullNames: string[]): string[] => {
   if (fullNames.length === 0) return [];
-  
-  const shortenedNames: string[] = [];
-  
-  fullNames.forEach(fullName => {
-    const trimmed = fullName.trim();
-    if (!trimmed) {
-      shortenedNames.push('');
-      return;
-    }
-    
-    const nameParts = trimmed.split(/\s+/);
-    if (nameParts.length === 0) {
-      shortenedNames.push(trimmed);
-      return;
-    }
-    
-    const lastName = nameParts[nameParts.length - 1];
-    const firstName = nameParts[0];
-    
-    // Always use first initial + last name format
-    const firstInitial = firstName[0].toUpperCase();
-    shortenedNames.push(`${firstInitial}. ${lastName}`);
-  });
-  
-  return shortenedNames;
+  return fullNames.map(toInitialLastName);
 };
 
 /**
@@ -81,19 +80,8 @@ export const shortenJudgeName = (fullName: string, allNames?: string[]): string 
     const index = allNames.findIndex(name => name.trim() === fullName.trim());
     return index >= 0 ? shortened[index] : fullName.trim();
   }
-  
-  // Fallback: convert to first initial + last name format
-  const trimmed = fullName.trim();
-  if (!trimmed) return trimmed;
-  
-  const nameParts = trimmed.split(/\s+/);
-  if (nameParts.length === 0) return trimmed;
-  
-  const lastName = nameParts[nameParts.length - 1];
-  const firstName = nameParts[0];
-  const firstInitial = firstName[0].toUpperCase();
-  
-  return `${firstInitial}. ${lastName}`;
+
+  return toInitialLastName(fullName);
 };
 
 /**
@@ -102,17 +90,7 @@ export const shortenJudgeName = (fullName: string, allNames?: string[]): string 
  * @returns Standardized name format
  */
 export const normalizeJudgeName = (fullName: string): string => {
-  const trimmed = fullName.trim();
-  if (!trimmed) return trimmed;
-  
-  const nameParts = trimmed.split(/\s+/);
-  if (nameParts.length === 0) return trimmed;
-  
-  const lastName = nameParts[nameParts.length - 1];
-  const firstName = nameParts[0];
-  const firstInitial = firstName[0].toUpperCase();
-  
-  return `${firstInitial}. ${lastName}`;
+  return toInitialLastName(fullName);
 };
 
 /**
