@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
 import { RiLayoutMasonryFill } from 'react-icons/ri';
-import { FiRefreshCcw } from 'react-icons/fi';
 import type { PublishedSchedulePayload } from '../../types/publishedSchedule';
 import { buildPersonSchedule } from '../../utils/publishedPersonSchedule';
+import MaskIcon from './MaskIcon';
 import ScheduleQrButton from './ScheduleQrButton';
 
 type Props = {
@@ -69,7 +69,7 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
                 aria-label="Refresh"
                 title="Refresh"
               >
-                <FiRefreshCcw className="text-lg" />
+                <MaskIcon src="/icons/icon-refresh.png" className="w-[1.125rem] h-[1.125rem]" />
               </button>
             </div>
           </div>

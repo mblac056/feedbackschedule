@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { FaQrcode, FaTimes } from 'react-icons/fa';
+import { FaTimes } from 'react-icons/fa';
 import QRCode from 'qrcode';
+import MaskIcon from './MaskIcon';
 
 type Props = {
   /** Absolute URL encoded in the QR code. Defaults to current page URL. */
@@ -53,7 +54,7 @@ export default function ScheduleQrButton({ url }: Props) {
         aria-label="Show QR code for this schedule"
         title="QR code"
       >
-        <FaQrcode className="text-lg" />
+        <MaskIcon src="/icons/icon-qr.png" className="w-[1.125rem] h-[1.125rem]" />
       </button>
 
       {open && (
