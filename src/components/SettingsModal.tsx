@@ -4,6 +4,7 @@ import type { SessionBlock } from '../types';
 import { useSettings } from '../contexts/useSettings';
 import type { SessionSettings } from '../config/timeConfig';
 import { LocalStorageService } from '../utils/localStorage';
+import { CODE_ALPHABET } from '../utils/publishCodes';
 
 interface Settings extends SessionSettings {
   feedbackStart: string;
@@ -26,7 +27,17 @@ const DEFAULT_SETTINGS: Settings = {
   startTime: '09:00',
   moving: 'groups',
   exportName: '',
+  codePrefix: '',
 };
+
+function filterCodePrefix(value: string): string {
+  return value
+    .toUpperCase()
+    .split('')
+    .filter((ch) => CODE_ALPHABET.includes(ch))
+    .join('')
+    .slice(0, 3);
+}
 
 
 export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset, onClearGrid }: SettingsModalProps) {
@@ -46,6 +57,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
         ...loadedSettings,
         feedbackStart: '21:00', // Default feedback start time
         exportName: loadedSettings.exportName ?? '',
+        codePrefix: loadedSettings.codePrefix ?? '',
       };
       setSettings(settingsWithFeedback);
       // Store the original settings to detect changes
@@ -91,10 +103,11 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       startTime: settings.startTime,
       moving: settings.moving,
       exportName: settings.exportName ?? '',
+      codePrefix: settings.codePrefix ?? '',
     };
     LocalStorageService.saveSettings(sessionSettings);
     
-    // Update the context settings with all settings (include exportName so context save doesn't overwrite it)
+    // Update the context settings with all settings (include exportName/codePrefix so context save doesn't overwrite them)
     setContextSettings({
       oneXLongLength: settings.oneXLongLength,
       threeX20Length: settings.threeX20Length,
@@ -102,6 +115,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       startTime: settings.startTime,
       moving: settings.moving as 'judges' | 'groups',
       exportName: settings.exportName ?? '',
+      codePrefix: settings.codePrefix ?? '',
     });
     
     setShowResetWarning(false);
@@ -134,6 +148,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       startTime: DEFAULT_SETTINGS.startTime,
       moving: DEFAULT_SETTINGS.moving as 'judges' | 'groups',
       exportName: DEFAULT_SETTINGS.exportName ?? '',
+      codePrefix: DEFAULT_SETTINGS.codePrefix ?? '',
     });
     
     // Reset all warning states
@@ -209,6 +224,27 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 If set, export files and printouts use this name.
+              </p>
+            </div>
+            {/* Publish code prefix */}
+            <div>
+              <label className="block text-sm font-medium mb-2" htmlFor="code-prefix">
+                Publish code prefix
+              </label>
+              <input
+                id="code-prefix"
+                type="text"
+                value={settings.codePrefix ?? ''}
+                onChange={(e) => handleInputChange('codePrefix', filterCodePrefix(e.target.value))}
+                placeholder="ABC"
+                maxLength={3}
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 font-mono tracking-widest uppercase focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Optional up to 3 characters used at the start of new publish codes (no 0/O/1/I/L).
               </p>
             </div>
             {/* Travel Directions */}
