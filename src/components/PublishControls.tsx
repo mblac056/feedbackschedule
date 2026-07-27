@@ -32,7 +32,11 @@ async function publishWithNewCode(): Promise<string> {
       return code;
     } catch (err) {
       lastError = err;
-      if (err instanceof ScheduleApiError && err.status === 409) {
+      // Netlify returns 403 when code exists with a non-matching token; 409 is also collision.
+      if (
+        err instanceof ScheduleApiError &&
+        (err.status === 403 || err.status === 409)
+      ) {
         continue;
       }
       throw err;
