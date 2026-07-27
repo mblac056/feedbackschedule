@@ -4,6 +4,7 @@ import { RiLayoutMasonryFill } from 'react-icons/ri';
 import { FiRefreshCcw } from 'react-icons/fi';
 import type { PublishedSchedulePayload } from '../../types/publishedSchedule';
 import { downloadPublishedMatrixPdf } from '../../utils/publishedPdf';
+import ScheduleQrButton from './ScheduleQrButton';
 
 type Props = {
   payload: PublishedSchedulePayload;
@@ -72,15 +73,18 @@ export default function PublicScheduleHub({ payload, personBasePath, title, show
               <RiLayoutMasonryFill className="text-2xl text-[var(--primary-color)] shrink-0" />
               <span className="text-xl font-bold text-[var(--primary-color)] truncate">Feedback Schedule</span>
             </Link>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="p-2 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-950 transition-colors shrink-0"
-              aria-label="Refresh"
-              title="Refresh"
-            >
-              <FiRefreshCcw className="text-lg" />
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              <ScheduleQrButton />
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="p-2 rounded-lg border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-950 transition-colors"
+                aria-label="Refresh"
+                title="Refresh"
+              >
+                <FiRefreshCcw className="text-lg" />
+              </button>
+            </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{heading}</h1>
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">

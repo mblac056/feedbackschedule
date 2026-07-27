@@ -228,6 +228,8 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
               </button>
               <Link
                 to={`/${lastPublishedCode}`}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-[var(--primary-color)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
               >
                 Open
