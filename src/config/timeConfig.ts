@@ -26,7 +26,7 @@ export interface SessionSettings {
   threeX10Length: number;
   startTime: string;
   moving: 'judges' | 'groups';
-  /** If set, used as the base name for export files instead of "evalmatrix-export". */
+  /** Persisted feedback round label; also used as the export file base name. */
   exportName?: string;
 }
 

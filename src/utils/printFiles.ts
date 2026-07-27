@@ -631,6 +631,9 @@ export async function generatePDF(
   }>
 ) {
   const entrants = getEntrants();
+  const settings = getSettings();
+  const feedbackRound = settings.exportName?.trim();
+  const feedbackRoundFooterSuffix = feedbackRound ? ` - ${feedbackRound}` : '';
   
   // Generate matrix separately if requested
   if (reports.includes('matrix')) {
@@ -674,7 +677,7 @@ export async function generatePDF(
     doc.setTextColor(128, 128, 128); // Gray color
     
     // Add footer text centered at bottom
-    const footerText = `Generated on ${generatedDateTime}`;
+    const footerText = `Generated on ${generatedDateTime}${feedbackRoundFooterSuffix}`;
     const textWidth = doc.getTextWidth(footerText);
     const x = (pageWidth - textWidth) / 2;
     const y = pageHeight - 10;

@@ -1,6 +1,7 @@
 import html2pdf from 'html2pdf.js';
 import type { Entrant, Judge, EntrantJudgeAssignments } from '../types';
 import { getCategoryColor } from '../config/categoryConfig';
+import { getSettings } from './localStorage';
 
 export interface PreferenceCheckData {
   entrants: Entrant[];
@@ -34,6 +35,22 @@ export interface PreferenceCheckData {
 }
 
 export async function generatePreferenceCheckPage(data: PreferenceCheckData): Promise<Blob> {
+  const settings = getSettings();
+  const feedbackRound = settings.exportName?.trim();
+
+  // Helper function to escape HTML and convert newlines to <br>
+  const escapeHtml = (text: string): string => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/\n/g, '<br>');
+  };
+
+  const title = feedbackRound ? `Preference Check - ${escapeHtml(feedbackRound)}` : 'Preference Check';
+
   // Helper function to check if a group has conflicts for a specific entrant
   const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
     if (!data.scheduleConflicts) return false;
@@ -79,7 +96,7 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
         @page { size: letter portrait; margin: 0.5in; }
       }
     </style>
-    <h1>Preference Check</h1>
+    <h1>${title}</h1>
     <div class="summary">
       <h3>Summary</h3>
       <div class="summary-row">
@@ -188,17 +205,6 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
     
     html += '</tr>';
   });
-
-  // Helper function to escape HTML and convert newlines to <br>
-  const escapeHtml = (text: string): string => {
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;')
-      .replace(/\n/g, '<br>');
-  };
 
   html += `
       </tbody>

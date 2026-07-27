@@ -195,20 +195,20 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
           <div className="space-y-6 text-gray-700 dark:text-gray-200">
 
             
-            {/* Export file name */}
+            {/* Feedback round */}
             <div>
               <label className="block text-sm font-medium mb-2">
-                Export file name
+                Feedback Round
               </label>
               <input
                 type="text"
                 value={settings.exportName ?? ''}
                 onChange={(e) => handleInputChange('exportName', e.target.value)}
-                placeholder="ONT-S26-QF"
+                placeholder="2027 Spring ONT Quartet Finals"
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                If set, export files use this name plus date-time (e.g. ONT-S26-QF-20260218-1430.json).
+                If set, export files and printouts use this name.
               </p>
             </div>
             {/* Travel Directions */}

@@ -10,6 +10,14 @@ export async function generateMatrixPage(
 ): Promise<Blob> {
   const settings = getSettings();
   const getSessionDuration = (t: string) => getSessionDurationMinutes(t as '1xLong' | '3x20' | '3x10', settings);
+  const escapeHtml = (text: string): string => text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+  const feedbackRound = settings.exportName?.trim();
+  const title = feedbackRound ? `Schedule Matrix - ${escapeHtml(feedbackRound)}` : 'Schedule Matrix';
   /** Fixed height per time-slot row (px); session rowspan cells use `rowSpan * SLOT_ROW_PX`. */
   const SLOT_ROW_PX = 23;
   
@@ -64,7 +72,7 @@ export async function generateMatrixPage(
         @page { size: legal landscape; margin: 0.4in; }
       }
     </style>
-    <h1>Schedule Matrix</h1>
+    <h1>${title}</h1>
     <table>
       <thead>
         <tr>

@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import { formatTimeForDisplay } from './printHelpers';
+import { getSettings } from './localStorage';
 
 export interface FlowDocumentEntry {
   time: string;
@@ -7,10 +8,14 @@ export interface FlowDocumentEntry {
 }
 
 export function generateFlowDocumentPage(doc: jsPDF, flowDocument: FlowDocumentEntry[]) {
+  const settings = getSettings();
+  const feedbackRound = settings.exportName?.trim();
+  const title = feedbackRound ? `Flow Document - ${feedbackRound}` : 'Flow Document';
+
   doc.setTextColor(0, 0, 0);
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('Flow Document', 20, 20);
+  doc.text(title, 20, 20);
   
   let yPos = 40;
   const leftMargin = 20;
