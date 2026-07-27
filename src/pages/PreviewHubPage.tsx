@@ -1,7 +1,14 @@
+import PublicScheduleHub from '../components/public/PublicScheduleHub';
+import { buildPublishedPayload } from '../utils/buildPublishedPayload';
+import { getEntrants, getJudges, getSessionBlocks, getSettings } from '../utils/localStorage';
+
 export default function PreviewHubPage() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100 p-6">
-      <p>Preview coming soon</p>
-    </div>
-  );
+  const payload = buildPublishedPayload({
+    judges: getJudges(),
+    entrants: getEntrants(),
+    sessionBlocks: getSessionBlocks(),
+    settings: getSettings(),
+  });
+
+  return <PublicScheduleHub payload={payload} personBasePath="/preview" />;
 }
