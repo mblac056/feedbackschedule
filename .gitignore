@@ -28,3 +28,6 @@ dist-ssr
 # Git worktrees
 .worktrees/
 
+
+# Local Netlify folder
+.netlify
