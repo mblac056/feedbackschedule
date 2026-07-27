@@ -172,7 +172,6 @@ function App() {
           onClose={() => setIsEntrantsModalOpen(false)}
           onModalClose={handleEntrantsModalClose}
           onSessionBlocksChange={handleSessionBlocksChange}
-          scheduleConflicts={scheduleConflicts}
         />
 
         <SettingsModal

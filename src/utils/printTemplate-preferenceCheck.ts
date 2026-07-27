@@ -72,8 +72,8 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
       .summary-row { display: flex; flex-wrap: wrap; gap: 16px; font-size: 14px; }
       .summary-item { display: flex; align-items: center; gap: 8px; }
       .summary-dot { width: 12px; height: 12px; border-radius: 50%; }
-      .summary-dot.green { background: #bbf7d0; }
-      .summary-dot.red { background: #fecaca; }
+      .summary-dot.green { background: #bbf7d0; border: 2px solid #16a34a; }
+      .summary-dot.red { background: #fecaca; border: 1px dashed #dc2626; }
       .summary-dot.gray { background: #e5e7eb; }
       .summary-count { font-weight: 600; }
       .summary-count.green { color: #166534; }
@@ -84,8 +84,8 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
       th { background-color: #f3f4f6; color: #374151; padding: 8px; text-align: left; font-weight: 600; border-bottom: 2px solid #e5e7eb; }
       td { padding: 8px; border-bottom: 1px solid #e5e7eb; }
       .pill { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 9999px; font-size: 10px; margin: 2px; }
-      .pill.green { background: #dcfce7; color: #166534; }
-      .pill.red { background: #fee2e2; color: #991b1b; }
+      .pill.green { background: #dcfce7; color: #166534; border: 2px solid #16a34a; }
+      .pill.red { background: #fee2e2; color: #991b1b; border: 1px dashed #dc2626; }
       .pill.gray { background: #e5e7eb; color: #4b5563; }
       .pill-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
       .notes-section { margin-top: 20px; background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; }

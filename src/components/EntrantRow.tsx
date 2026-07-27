@@ -1,22 +1,12 @@
 import { useState } from 'react';
 import type { Entrant, Judge } from '../types';
 
-interface SessionConflict {
-  entrantId: string;
-  entrantName: string;
-  conflictingGroup: string;
-  conflictingEntrantId: string;
-  conflictingEntrantName: string;
-  timeSlot: string;
-}
-
 interface EntrantRowProps {
   entrant: Entrant;
   judges: Judge[];
   allEntrants: Entrant[];
   draggedEntrantId: string | null;
   dragOverEntrantId: string | null;
-  scheduleConflicts?: SessionConflict[];
   onFieldUpdate: (entrantId: string, field: keyof Entrant, value: string | boolean | number | null | undefined | string[]) => void;
   onRemove: (entrantId: string) => void;
   onDragStart: (e: React.DragEvent, entrantId: string) => void;
@@ -32,7 +22,6 @@ export default function EntrantRow({
   allEntrants,
   draggedEntrantId,
   dragOverEntrantId,
-  scheduleConflicts = [],
   onFieldUpdate,
   onRemove,
   onDragStart,
@@ -104,13 +93,6 @@ export default function EntrantRow({
       )
       .map(otherEntrant => otherEntrant.name)
       .slice(0, 5); // Limit to 5 suggestions
-  };
-
-  // Helper function to check if a group has conflicts
-  const hasGroupConflict = (groupId: string): boolean => {
-    return scheduleConflicts.some(conflict =>
-      conflict.entrantId === entrant.id && conflict.conflictingEntrantId === groupId
-    );
   };
 
   return (
@@ -251,11 +233,7 @@ export default function EntrantRow({
                 return (
                   <span
                     key={index}
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      hasGroupConflict(groupId)
-                        ? 'bg-red-200 text-red-800'
-                        : 'bg-green-200 text-green-800'
-                    }`}
+                    className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
                   >
                     {groupName}
                     <button

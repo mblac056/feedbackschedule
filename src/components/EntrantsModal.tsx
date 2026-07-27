@@ -7,26 +7,16 @@ import PreferencesImport from './PreferencesImport';
 import EntrantRow from './EntrantRow';
 import { useSettings } from '../contexts/useSettings';
 
-interface SessionConflict {
-  entrantId: string;
-  entrantName: string;
-  conflictingGroup: string;
-  conflictingEntrantId: string;
-  conflictingEntrantName: string;
-  timeSlot: string;
-}
-
 interface EntrantsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onModalClose?: () => void;
   onSessionBlocksChange?: () => void;
-  scheduleConflicts?: SessionConflict[];
 }
 
 type SortColumn = 'score' | 'name' | 'include' | 'overallSF' | 'overallF' | 'evalOnly';
 
-export default function EntrantsModal({ isOpen, onClose, onModalClose, onSessionBlocksChange, scheduleConflicts = [] }: EntrantsModalProps) {
+export default function EntrantsModal({ isOpen, onClose, onModalClose, onSessionBlocksChange }: EntrantsModalProps) {
   const [entrants, setEntrants] = useState<Entrant[]>([]);
   const [judges, setJudges] = useState<Judge[]>([]);
   const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
@@ -688,7 +678,6 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
                         allEntrants={entrants}
                         draggedEntrantId={draggedEntrantId}
                         dragOverEntrantId={dragOverEntrantId}
-                        scheduleConflicts={scheduleConflicts}
                         onFieldUpdate={handleFieldUpdate}
                         onRemove={handleRemove}
                         onDragStart={handleDragStart}

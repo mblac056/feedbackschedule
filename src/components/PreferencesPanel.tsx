@@ -326,12 +326,12 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Summary</h3>
         <div className="flex flex-wrap gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-green-200 rounded-full"></span>
+            <span className="w-3 h-3 bg-green-200 rounded-full border-2 border-green-600"></span>
             <span className="text-green-800 dark:text-green-200 font-medium">{pillCounts.greenCount}</span>
             <span className="text-gray-600 dark:text-gray-400">Good/Assigned</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-red-200 rounded-full"></span>
+            <span className="w-3 h-3 bg-red-200 rounded-full border border-dashed border-red-600"></span>
             <span className="text-red-800 dark:text-red-200 font-medium">{pillCounts.redCount}</span>
             <span className="text-gray-600 dark:text-gray-400">Conflicts</span>
           </div>
@@ -405,8 +405,8 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                           <span
                             key={groupIndex}
                             className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${hasGroupConflict(entrant.id, groupId)
-                              ? 'bg-red-200 text-red-800'
-                              : 'bg-green-200 text-green-800'
+                              ? 'bg-red-200 text-red-800 border border-dashed border-red-600'
+                              : 'bg-green-200 text-green-800 border-2 border-green-600'
                               }`}
                           >
                             {groupName}
@@ -426,8 +426,8 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                           block => block.type === entrant.preference
                         );
                         return hasMatchingSessionType
-                          ? 'bg-green-200 text-green-800'
-                          : 'bg-red-200 text-red-800';
+                          ? 'bg-green-200 text-green-800 border-2 border-green-600'
+                          : 'bg-red-200 text-red-800 border border-dashed border-red-600';
                       })()
                         }`}
                     >
@@ -439,7 +439,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                   {judges.find(j => j.id === entrant.judgePreference1) && (
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference1)
-                        ? 'bg-green-200 text-green-800'
+                        ? 'bg-green-200 text-green-800 border-2 border-green-600'
                         : 'bg-gray-200 text-gray-600'
                         }`}
                     >
@@ -460,7 +460,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                   {judges.find(j => j.id === entrant.judgePreference2) && (
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference2)
-                        ? 'bg-green-200 text-green-800'
+                        ? 'bg-green-200 text-green-800 border-2 border-green-600'
                         : 'bg-gray-200 text-gray-600'
                         }`}
                     >
@@ -481,7 +481,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                   {judges.find(j => j.id === entrant.judgePreference3) && (
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference3)
-                        ? 'bg-green-200 text-green-800'
+                        ? 'bg-green-200 text-green-800 border-2 border-green-600'
                         : 'bg-gray-200 text-gray-600'
                         }`}
                     >
@@ -541,11 +541,11 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
       aria-label="Open preference panel"
     >
       <span className="flex items-center gap-1">
-        <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+        <span className="w-2 h-2 bg-green-400 rounded-full border-2 border-green-600"></span>
         <span>{pillCounts.greenCount}</span>
       </span>
       <span className="flex items-center gap-1">
-        <span className="w-2 h-2 bg-red-400 rounded-full"></span>
+        <span className="w-2 h-2 bg-red-400 rounded-full border border-dashed border-red-600"></span>
         <span>{pillCounts.redCount}</span>
       </span>
       <span className="flex items-center gap-1">
