@@ -4,6 +4,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const MAX_BODY_CHARS = 512_000;
 
 type BlobRecord = {
   payload: unknown;
@@ -42,16 +43,27 @@ function corsHeaders(): Record<string, string> {
   };
 }
 
+function noCacheHeaders(): Record<string, string> {
+  return {
+    'Cache-Control': 'no-store',
+    Pragma: 'no-cache',
+  };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function json(status: number, body: unknown) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+    headers: { 'Content-Type': 'application/json', ...noCacheHeaders(), ...corsHeaders() },
   });
 }
 
 export default async (req: Request, _context: Context) => {
   if (req.method === 'OPTIONS') {
-    return new Response('', { status: 204, headers: corsHeaders() });
+    return new Response('', { status: 204, headers: { ...noCacheHeaders(), ...corsHeaders() } });
   }
 
   const url = new URL(req.url);
@@ -76,14 +88,28 @@ export default async (req: Request, _context: Context) => {
   }
 
   if (req.method === 'PUT') {
+    const contentLength = req.headers.get('Content-Length');
+    if (contentLength !== null) {
+      const len = parseInt(contentLength, 10);
+      if (!Number.isNaN(len) && len > MAX_BODY_CHARS) {
+        return json(400, { error: 'Request body too large' });
+      }
+    }
+
     let body: { editToken?: string; payload?: unknown };
     try {
       body = await req.json();
     } catch {
       return json(400, { error: 'Invalid JSON' });
     }
+    if (JSON.stringify(body).length > MAX_BODY_CHARS) {
+      return json(400, { error: 'Request body too large' });
+    }
     if (!body.editToken || typeof body.editToken !== 'string' || body.payload === undefined) {
       return json(400, { error: 'editToken and payload required' });
+    }
+    if (!isPlainObject(body.payload)) {
+      return json(400, { error: 'payload must be a plain object' });
     }
 
     const existing = (await store.get(code, { type: 'json' })) as BlobRecord | null;
