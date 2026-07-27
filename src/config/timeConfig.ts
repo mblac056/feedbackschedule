@@ -28,6 +28,7 @@ export interface SessionSettings {
   moving: 'judges' | 'groups';
   /** Persisted feedback round label; also used as the export file base name. */
   exportName?: string;
+  codePrefix?: string;
 }
 
 // Helper function to get session duration in minutes from settings

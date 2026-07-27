@@ -1,14 +1,16 @@
 import type { Judge, SessionBlock, Entrant } from '../types';
 import { getSettings } from './localStorage';
-import { getSessionDurationMinutes, TIME_CONFIG } from '../config/timeConfig';
+import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '../config/timeConfig';
 import html2pdf from 'html2pdf.js';
 
 export async function generateMatrixPage(
   scheduledSessions: SessionBlock[],
   judges: Judge[],
-  entrants: Entrant[]
+  entrants: Entrant[],
+  /** When omitted, falls back to creator localStorage settings (keeps /create exports working). */
+  settingsOverride?: SessionSettings
 ): Promise<Blob> {
-  const settings = getSettings();
+  const settings = settingsOverride ?? getSettings();
   const getSessionDuration = (t: string) => getSessionDurationMinutes(t as '1xLong' | '3x20' | '3x10', settings);
   const escapeHtml = (text: string): string => text
     .replace(/&/g, '&amp;')

@@ -1,0 +1,2 @@
+/api/schedules/:code  /.netlify/functions/schedules?code=:code  200
+/*    /index.html   200

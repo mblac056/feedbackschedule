@@ -1,0 +1,134 @@
+import type { Context } from '@netlify/functions';
+import { getStore } from '@netlify/blobs';
+import { createHash, timingSafeEqual } from 'node:crypto';
+
+const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const CODE_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const MAX_BODY_CHARS = 512_000;
+
+type BlobRecord = {
+  payload: unknown;
+  editTokenHash: string;
+  updatedAt: string;
+};
+
+function normalizeCode(input: string): string {
+  return input.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+}
+
+function isValidCode(code: string): boolean {
+  return code.length === 6 && [...code].every((ch) => CODE_CHARSET.includes(ch));
+}
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
+function tokensEqual(aHex: string, bHex: string): boolean {
+  try {
+    const a = Buffer.from(aHex, 'hex');
+    const b = Buffer.from(bHex, 'hex');
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
+  } catch {
+    return false;
+  }
+}
+
+function corsHeaders(): Record<string, string> {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET,PUT,OPTIONS',
+  };
+}
+
+function noCacheHeaders(): Record<string, string> {
+  return {
+    'Cache-Control': 'no-store',
+    Pragma: 'no-cache',
+  };
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function json(status: number, body: unknown) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...noCacheHeaders(), ...corsHeaders() },
+  });
+}
+
+export default async (req: Request, _context: Context) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('', { status: 204, headers: { ...noCacheHeaders(), ...corsHeaders() } });
+  }
+
+  const url = new URL(req.url);
+  // Expected path after redirect: /api/schedules/:code or function path with code segment
+  const parts = url.pathname.split('/').filter(Boolean);
+  const code = normalizeCode(url.searchParams.get('code') || parts[parts.length - 1] || '');
+  if (!isValidCode(code)) {
+    return json(400, { error: 'Invalid code' });
+  }
+
+  const store = getStore('published-schedules');
+
+  if (req.method === 'GET') {
+    const raw = await store.get(code, { type: 'json' });
+    if (!raw) return json(404, { error: 'Not found' });
+    const record = raw as BlobRecord;
+    if (Date.now() - Date.parse(record.updatedAt) > TTL_MS) {
+      await store.delete(code);
+      return json(404, { error: 'Expired' });
+    }
+    return json(200, { payload: record.payload, updatedAt: record.updatedAt });
+  }
+
+  if (req.method === 'PUT') {
+    const contentLength = req.headers.get('Content-Length');
+    if (contentLength !== null) {
+      const len = parseInt(contentLength, 10);
+      if (!Number.isNaN(len) && len > MAX_BODY_CHARS) {
+        return json(400, { error: 'Request body too large' });
+      }
+    }
+
+    let body: { editToken?: string; payload?: unknown };
+    try {
+      body = await req.json();
+    } catch {
+      return json(400, { error: 'Invalid JSON' });
+    }
+    if (JSON.stringify(body).length > MAX_BODY_CHARS) {
+      return json(400, { error: 'Request body too large' });
+    }
+    if (!body.editToken || typeof body.editToken !== 'string' || body.payload === undefined) {
+      return json(400, { error: 'editToken and payload required' });
+    }
+    if (!isPlainObject(body.payload)) {
+      return json(400, { error: 'payload must be a plain object' });
+    }
+
+    const existing = (await store.get(code, { type: 'json' })) as BlobRecord | null;
+    const incomingHash = hashToken(body.editToken);
+
+    if (existing) {
+      if (!tokensEqual(existing.editTokenHash, incomingHash)) {
+        return json(403, { error: 'Forbidden' });
+      }
+    }
+
+    const record: BlobRecord = {
+      payload: body.payload,
+      editTokenHash: existing?.editTokenHash ?? incomingHash,
+      updatedAt: new Date().toISOString(),
+    };
+    await store.setJSON(code, record);
+    return json(200, { ok: true, updatedAt: record.updatedAt });
+  }
+
+  return json(405, { error: 'Method not allowed' });
+};

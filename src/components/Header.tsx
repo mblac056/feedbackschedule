@@ -1,5 +1,6 @@
 import { RiLayoutMasonryFill } from "react-icons/ri";
 import { useState, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { FaBars, FaTimes } from "react-icons/fa";
 import { FiRefreshCcw, FiMoon, FiSun } from "react-icons/fi";
 import {
@@ -41,9 +42,15 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
     <div className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          <div className="flex items-center space-x-2">
-            <RiLayoutMasonryFill className="text-2xl text-[var(--primary-color)]" />
-            <h1 className="text-2xl font-bold text-[var(--primary-color)]">Feedback Schedule</h1>
+          <div className="flex items-center space-x-2 min-w-0">
+            <Link
+              to="/"
+              className="flex items-center space-x-2 min-w-0 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
+              title="Home"
+            >
+              <RiLayoutMasonryFill className="text-2xl text-[var(--primary-color)] shrink-0" />
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-color)] truncate">Feedback Schedule</h1>
+            </Link>
           </div>
           
           {/* Desktop menu */}

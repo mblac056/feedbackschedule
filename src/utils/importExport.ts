@@ -12,6 +12,7 @@ export interface ExportData {
     threeX10Length: number;
     moving: 'judges' | 'groups';
     exportName?: string;
+    codePrefix?: string;
   };
   preferenceNotes?: string;
   exportDate: string;
@@ -100,6 +101,7 @@ export const importData = (jsonString: string): ImportResult => {
       threeX10Length: parsedData.settings?.threeX10Length || 10,
       moving: parsedData.settings?.moving || 'judges' as 'judges' | 'groups',
       exportName: parsedData.settings?.exportName ?? '',
+      codePrefix: parsedData.settings?.codePrefix ?? '',
     };
     
     console.log('Clean settings:', cleanSettings);

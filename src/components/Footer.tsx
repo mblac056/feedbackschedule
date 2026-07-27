@@ -5,16 +5,6 @@ const Footer: React.FC = () => {
     <footer className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 py-4 px-4 mt-auto">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row items-center justify-between text-sm text-gray-600 dark:text-gray-400 space-y-2 sm:space-y-0">
-          <div className="flex items-center">
-            <span>Originally created by <a 
-              href="https://michael-black.com" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              Michael Black
-            </a></span>
-          </div>
           
           <div className="flex items-center space-x-2">
           <a

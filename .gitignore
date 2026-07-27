@@ -24,3 +24,10 @@ dist-ssr
 *.sw?
 .prettierrc
 .eslintrc.json
+
+# Git worktrees
+.worktrees/
+
+
+# Local Netlify folder
+.netlify
