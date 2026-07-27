@@ -143,6 +143,13 @@ export const importDRCJReportCSV = (csvText: string, fileName?: string): ImportR
               entrant.groupsToAvoid.push(groupToAvoidId);
               console.log(`DRCJ Import: Row ${index + 2} - Added to groups to avoid: "${memberName}" (ID: ${groupToAvoidId})`);
             }
+
+            // Reciprocal: also add this entrant to the other group's avoidance list
+            const otherEntrant = entrants.find(e => e.id === groupToAvoidId);
+            if (otherEntrant && !otherEntrant.groupsToAvoid.includes(entrant.id)) {
+              otherEntrant.groupsToAvoid.push(entrant.id);
+              console.log(`DRCJ Import: Row ${index + 2} - Added reciprocal avoid: "${otherEntrant.name}" now avoids "${entrant.name}"`);
+            }
           } else if (groupToAvoidId === entrant.id) {
             console.log(`DRCJ Import: Row ${index + 2} - Skipped self-reference: "${memberName}"`);
           } else {
