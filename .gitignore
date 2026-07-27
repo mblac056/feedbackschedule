@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 .prettierrc
 .eslintrc.json
+
+# Git worktrees
+.worktrees/
+
