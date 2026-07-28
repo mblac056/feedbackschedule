@@ -1,7 +1,10 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { RiLayoutMasonryFill } from 'react-icons/ri';
 import type { PublishedSchedulePayload } from '../../types/publishedSchedule';
 import { buildPersonSchedule } from '../../utils/publishedPersonSchedule';
+import { useActiveSessionCountdown } from '../../hooks/useActiveSessionCountdown';
+import { useScreenWakeLock } from '../../hooks/useScreenWakeLock';
 import MaskIcon from './MaskIcon';
 import ScheduleQrButton from './ScheduleQrButton';
 
@@ -13,7 +16,15 @@ type Props = {
 };
 
 export default function PublicPersonSchedule({ payload, personSlug, hubPath, showBackToCreate = false }: Props) {
-  const schedule = buildPersonSchedule(payload, personSlug);
+  const schedule = useMemo(
+    () => buildPersonSchedule(payload, personSlug),
+    [payload, personSlug]
+  );
+  const activeCountdown = useActiveSessionCountdown(
+    schedule?.rows ?? [],
+    payload.settings.startTime
+  );
+  useScreenWakeLock(activeCountdown !== null);
 
   if (!schedule) {
     return (
@@ -94,6 +105,51 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
             </p>
           )}
         </div>
+
+        {activeCountdown && (
+          <div
+            role="timer"
+            aria-live="polite"
+            aria-label={`${activeCountdown.remainingSeconds} seconds remaining in current session`}
+            className={
+              activeCountdown.urgency === 'normal'
+                ? 'text-center'
+                : `rounded-lg px-4 py-5 text-center text-white shadow-md transition-colors ${
+                    activeCountdown.urgency === 'critical'
+                      ? 'bg-red-500 dark:bg-red-600'
+                      : 'bg-amber-500 dark:bg-amber-600'
+                  }`
+            }
+          >
+            <p
+              className={`text-sm font-medium uppercase tracking-wide ${
+                activeCountdown.urgency === 'normal'
+                  ? 'text-gray-600 dark:text-gray-400'
+                  : 'opacity-90'
+              }`}
+            >
+              Current session
+            </p>
+            <p
+              className={`mt-1 text-4xl font-bold font-mono tabular-nums ${
+                activeCountdown.urgency === 'normal'
+                  ? 'text-[var(--primary-color)]'
+                  : ''
+              }`}
+            >
+              {activeCountdown.formattedRemaining}
+            </p>
+            <p
+              className={`mt-2 text-sm ${
+                activeCountdown.urgency === 'normal'
+                  ? 'text-gray-700 dark:text-gray-300'
+                  : 'opacity-90'
+              }`}
+            >
+              {activeCountdown.session.counterpart} · {activeCountdown.session.timeLabel}
+            </p>
+          </div>
+        )}
 
         {schedule.rows.length === 0 ? (
           <p className="text-gray-600 dark:text-gray-400 text-sm">No sessions scheduled.</p>
