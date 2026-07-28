@@ -111,7 +111,7 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
                     <th className="px-3 py-2 font-semibold">Room</th>
                   )}
                   {schedule.showOrderColumn && (
-                    <th className="px-3 py-2 font-semibold">Order of Appearance</th>
+                    <th className="px-3 py-2 font-semibold">O/A</th>
                   )}
                 </tr>
               </thead>
