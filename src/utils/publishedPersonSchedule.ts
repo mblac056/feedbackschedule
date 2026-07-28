@@ -9,6 +9,7 @@ export interface PersonScheduleRow {
   counterpart: string;
   sessionType: string;
   roomNumber?: string;
+  orderOfAppearance?: string;
   isBye?: boolean;
 }
 
@@ -18,8 +19,22 @@ export interface PersonScheduleView {
   moving: 'judges' | 'groups';
   /** Person's fixed room, shown above the table when they are not moving. */
   ownRoom?: string;
+  /** Entrant's single session type, shown above the table (groups only have one). */
+  ownSessionType?: string;
   showRoomColumn: boolean;
+  /** Judge schedules only: show Order of Appearance when any row has SF/F data. */
+  showOrderColumn: boolean;
   rows: PersonScheduleRow[];
+}
+
+/** Match print judge schedules: one number, or `SF: x, F: y` when both exist. */
+function formatOrderOfAppearance(overallSF?: number, overallF?: number): string | undefined {
+  const hasSF = overallSF !== undefined;
+  const hasF = overallF !== undefined;
+  if (hasSF && hasF) return `SF: ${overallSF}, F: ${overallF}`;
+  if (hasSF) return String(overallSF);
+  if (hasF) return String(overallF);
+  return undefined;
 }
 
 function rowIndexToTime(rowIndex: number, startTime: string): string {
@@ -65,8 +80,8 @@ function insertByeRows(sessionRows: PersonScheduleRow[]): PersonScheduleRow[] {
             startTime: currentEnd,
             endTime: nextStart,
             timeLabel: `${formatTimeForDisplay(currentEnd)}-${formatTimeForDisplay(nextStart)}`,
-            counterpart: 'BYE',
-            sessionType: `${duration} min`,
+            counterpart: `BYE (${duration} min)`,
+            sessionType: '',
             isBye: true,
           });
         }
@@ -119,12 +134,17 @@ export function buildPersonSchedule(
         };
       });
 
+    const ownSessionType =
+      sessionRows.length > 0 ? sessionRows[0].sessionType : undefined;
+
     return {
       kind: 'entrant',
       name: entrant.name,
       moving: settings.moving,
       ownRoom: settings.moving === 'judges' ? entrant.roomNumber : undefined,
+      ownSessionType,
       showRoomColumn,
+      showOrderColumn: false,
       rows: insertByeRows(sessionRows),
     };
   }
@@ -140,15 +160,21 @@ export function buildPersonSchedule(
       const duration = getSessionDurationMinutes(session.type, settings as SessionSettings);
       const startTime = rowIndexToTime(session.startRowIndex, settings.startTime);
       const endTime = addMinutesToTime(startTime, duration);
+      const entrantName = entrant?.name ?? session.entrantName ?? 'Unknown';
+      const isFirstPreference = Boolean(entrant?.judgePreference1 && entrant.judgePreference1 === entry.id);
+      const orderOfAppearance = formatOrderOfAppearance(entrant?.overallSF, entrant?.overallF);
       return {
         startTime,
         endTime,
         timeLabel: `${formatTimeForDisplay(startTime)}-${formatTimeForDisplay(endTime)}`,
-        counterpart: entrant?.name ?? session.entrantName ?? 'Unknown',
+        counterpart: isFirstPreference ? `*${entrantName}` : entrantName,
         sessionType: session.type,
         roomNumber: showRoomColumn ? entrant?.roomNumber : undefined,
+        orderOfAppearance,
       };
     });
+
+  const showOrderColumn = sessionRows.some((r) => Boolean(r.orderOfAppearance));
 
   return {
     kind: 'judge',
@@ -156,6 +182,7 @@ export function buildPersonSchedule(
     moving: settings.moving,
     ownRoom: settings.moving === 'groups' ? judge.roomNumber : undefined,
     showRoomColumn,
+    showOrderColumn,
     rows: insertByeRows(sessionRows),
   };
 }

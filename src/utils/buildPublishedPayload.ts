@@ -37,6 +37,9 @@ export function buildPublishedPayload(args: {
       name: e.name,
       groupType: e.groupType,
       roomNumber: e.roomNumber,
+      overallSF: e.overallSF,
+      overallF: e.overallF,
+      judgePreference1: e.judgePreference1 || undefined,
     }));
 
   const slugs = buildSlugMap([

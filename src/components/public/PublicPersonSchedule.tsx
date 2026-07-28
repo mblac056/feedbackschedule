@@ -38,6 +38,7 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
   }
 
   const counterpartHeader = schedule.kind === 'entrant' ? 'Judge' : 'Entrant';
+  const showSessionTypeColumn = !schedule.ownSessionType;
 
   return (
     <div className="min-h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
@@ -87,6 +88,11 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
               Room: {schedule.ownRoom}
             </p>
           )}
+          {schedule.ownSessionType && (
+            <p className="text-lg font-medium text-gray-700 dark:text-gray-300">
+              Session Type: {schedule.ownSessionType}
+            </p>
+          )}
         </div>
 
         {schedule.rows.length === 0 ? (
@@ -98,9 +104,14 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
                 <tr className="bg-[var(--primary-color)] text-white">
                   <th className="px-3 py-2 font-semibold">Time</th>
                   <th className="px-3 py-2 font-semibold">{counterpartHeader}</th>
-                  <th className="px-3 py-2 font-semibold">Session Type</th>
+                  {showSessionTypeColumn && (
+                    <th className="px-3 py-2 font-semibold">Session Type</th>
+                  )}
                   {schedule.showRoomColumn && (
                     <th className="px-3 py-2 font-semibold">Room</th>
+                  )}
+                  {schedule.showOrderColumn && (
+                    <th className="px-3 py-2 font-semibold">Order of Appearance</th>
                   )}
                 </tr>
               </thead>
@@ -114,9 +125,14 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
                   >
                     <td className="px-3 py-2 whitespace-nowrap font-mono">{row.timeLabel}</td>
                     <td className="px-3 py-2">{row.counterpart}</td>
-                    <td className="px-3 py-2">{row.sessionType}</td>
+                    {showSessionTypeColumn && (
+                      <td className="px-3 py-2">{row.sessionType}</td>
+                    )}
                     {schedule.showRoomColumn && (
                       <td className="px-3 py-2">{row.isBye ? '' : (row.roomNumber ?? '')}</td>
+                    )}
+                    {schedule.showOrderColumn && (
+                      <td className="px-3 py-2">{row.isBye ? '' : (row.orderOfAppearance ?? '')}</td>
                     )}
                   </tr>
                 ))}

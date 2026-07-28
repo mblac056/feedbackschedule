@@ -12,6 +12,10 @@ export interface PublishedEntrant {
   name: string;
   groupType?: 'Chorus' | 'Quartet' | null;
   roomNumber?: string;
+  overallSF?: number;
+  overallF?: number;
+  /** First-preference judge id; used to mark `*` on judge schedules. */
+  judgePreference1?: string;
 }
 
 export interface PublishedSession {
