@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FaVolumeMute, FaVolumeUp } from 'react-icons/fa';
 import { RiLayoutMasonryFill } from 'react-icons/ri';
 import type { PublishedSchedulePayload } from '../../types/publishedSchedule';
 import { buildPersonSchedule } from '../../utils/publishedPersonSchedule';
 import { useActiveSessionCountdown } from '../../hooks/useActiveSessionCountdown';
 import { useScreenWakeLock } from '../../hooks/useScreenWakeLock';
+import { useSessionAlertSounds } from '../../hooks/useSessionAlertSounds';
+import { playSessionAlertDemo, unlockSessionAlertAudio } from '../../utils/sessionAlertAudio';
 import MaskIcon from './MaskIcon';
 import ScheduleQrButton from './ScheduleQrButton';
 
@@ -20,11 +23,44 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
     () => buildPersonSchedule(payload, personSlug),
     [payload, personSlug]
   );
+  const isJudge = schedule?.kind === 'judge';
+  const [soundsEnabled, setSoundsEnabled] = useState(false);
+  const soundClickTimeoutRef = useRef<number | null>(null);
   const activeCountdown = useActiveSessionCountdown(
     schedule?.rows ?? [],
     payload.settings.startTime
   );
   useScreenWakeLock(activeCountdown !== null);
+  useSessionAlertSounds(activeCountdown, soundsEnabled, Boolean(isJudge));
+
+  const handleToggleSounds = () => {
+    setSoundsEnabled((prev) => {
+      const next = !prev;
+      if (next) {
+        void unlockSessionAlertAudio();
+      }
+      return next;
+    });
+  };
+
+  const handleSoundButtonClick = () => {
+    if (soundClickTimeoutRef.current !== null) {
+      window.clearTimeout(soundClickTimeoutRef.current);
+    }
+    // Delay toggle so a double-click can cancel it and run the demo instead.
+    soundClickTimeoutRef.current = window.setTimeout(() => {
+      soundClickTimeoutRef.current = null;
+      handleToggleSounds();
+    }, 250);
+  };
+
+  const handleSoundButtonDoubleClick = () => {
+    if (soundClickTimeoutRef.current !== null) {
+      window.clearTimeout(soundClickTimeoutRef.current);
+      soundClickTimeoutRef.current = null;
+    }
+    void playSessionAlertDemo();
+  };
 
   if (!schedule) {
     return (
@@ -113,14 +149,35 @@ export default function PublicPersonSchedule({ payload, personSlug, hubPath, sho
             aria-label={`${activeCountdown.remainingSeconds} seconds remaining in current session`}
             className={
               activeCountdown.urgency === 'normal'
-                ? 'text-center'
-                : `rounded-lg px-4 py-5 text-center text-white shadow-md transition-colors ${
+                ? `relative text-center${isJudge ? ' pr-8' : ''}`
+                : `relative rounded-lg px-4 py-5 text-center text-white shadow-md transition-colors ${
                     activeCountdown.urgency === 'critical'
                       ? 'bg-red-500 dark:bg-red-600'
                       : 'bg-amber-500 dark:bg-amber-600'
                   }`
             }
           >
+            {isJudge && (
+              <button
+                type="button"
+                onClick={handleSoundButtonClick}
+                onDoubleClick={handleSoundButtonDoubleClick}
+                className={`absolute top-1 right-1 p-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-950 ${
+                  activeCountdown.urgency === 'normal'
+                    ? 'text-gray-500 dark:text-gray-400 hover:text-[var(--primary-color)] focus:ring-[var(--primary-color)]'
+                    : 'text-white/90 hover:text-white hover:bg-white/15 focus:ring-white'
+                }`}
+                aria-label={soundsEnabled ? 'Disable sounds' : 'Enable sounds'}
+                aria-pressed={soundsEnabled}
+                title={soundsEnabled ? 'Disable sounds (double-click to preview)' : 'Enable sounds (double-click to preview)'}
+              >
+                {soundsEnabled ? (
+                  <FaVolumeUp className="w-4 h-4" aria-hidden />
+                ) : (
+                  <FaVolumeMute className="w-4 h-4" aria-hidden />
+                )}
+              </button>
+            )}
             <p
               className={`text-sm font-medium uppercase tracking-wide ${
                 activeCountdown.urgency === 'normal'
