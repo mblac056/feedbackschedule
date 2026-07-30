@@ -1,12 +1,13 @@
 /** Web Audio tones for judge session alerts. Requires a user gesture to unlock. */
 
 let audioContext: AudioContext | null = null;
+let masterInput: GainNode | null = null;
 
 /** Just-intonation barbershop (harmonic) seventh: 1 : 5/4 : 3/2 : 7/4 */
 const BARBERSHOP_SEVENTH_RATIOS = [1, 5 / 4, 3 / 2, 7 / 4] as const;
 
-/** Comfortable midrange root (approx. Bb3). */
-const BARBERSHOP_ROOT_HZ = 233.08;
+/** Higher root (approx. Bb4) so the chord sits in a cutting midrange. */
+const BARBERSHOP_ROOT_HZ = 466.16;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -18,9 +19,37 @@ function getAudioContext(): AudioContext | null {
 
   if (!audioContext || audioContext.state === 'closed') {
     audioContext = new AudioContextCtor();
+    masterInput = null;
   }
 
   return audioContext;
+}
+
+/** Shared bus: mild saturation via compressor so chords stay loud and present. */
+function getMasterInput(ctx: AudioContext): GainNode {
+  if (masterInput && masterInput.context === ctx) {
+    return masterInput;
+  }
+
+  const input = ctx.createGain();
+  input.gain.value = 1;
+
+  const compressor = ctx.createDynamicsCompressor();
+  compressor.threshold.value = -18;
+  compressor.knee.value = 6;
+  compressor.ratio.value = 8;
+  compressor.attack.value = 0.003;
+  compressor.release.value = 0.12;
+
+  const output = ctx.createGain();
+  output.gain.value = 1.35;
+
+  input.connect(compressor);
+  compressor.connect(output);
+  output.connect(ctx.destination);
+
+  masterInput = input;
+  return input;
 }
 
 /** Call from a click handler so browsers unlock audio playback. */
@@ -37,13 +66,17 @@ export async function unlockSessionAlertAudio(): Promise<void> {
   }
 }
 
+/**
+ * Bright, pointed voice: square fundamental + octave triangle, fast attack.
+ * Cuts through a room better than soft sines.
+ */
 function playVoice(
   ctx: AudioContext,
   {
     frequency,
     startAt,
     endAt,
-    gain = 0.07,
+    gain = 0.14,
   }: {
     frequency: number;
     startAt: number;
@@ -54,25 +87,67 @@ function playVoice(
   const duration = endAt - startAt;
   if (duration <= 0) return;
 
-  const oscillator = ctx.createOscillator();
-  const gainNode = ctx.createGain();
+  const master = getMasterInput(ctx);
+  const voiceGain = ctx.createGain();
 
-  oscillator.type = 'sine';
-  oscillator.frequency.value = frequency;
-
-  const attack = Math.min(0.04, duration * 0.15);
-  const release = Math.min(0.35, duration * 0.25);
+  // Hard, percussive onset then solid sustain.
+  const attack = 0.008;
+  const release = Math.min(0.18, duration * 0.15);
   const peak = Math.max(0.0001, gain);
+  const sustain = peak * 0.85;
 
-  gainNode.gain.setValueAtTime(0.0001, startAt);
-  gainNode.gain.exponentialRampToValueAtTime(peak, startAt + attack);
-  gainNode.gain.setValueAtTime(peak, Math.max(startAt + attack, endAt - release));
-  gainNode.gain.exponentialRampToValueAtTime(0.0001, endAt);
+  voiceGain.gain.setValueAtTime(0.0001, startAt);
+  voiceGain.gain.exponentialRampToValueAtTime(peak, startAt + attack);
+  voiceGain.gain.exponentialRampToValueAtTime(sustain, startAt + attack + 0.05);
+  voiceGain.gain.setValueAtTime(sustain, Math.max(startAt + attack + 0.05, endAt - release));
+  voiceGain.gain.exponentialRampToValueAtTime(0.0001, endAt);
 
-  oscillator.connect(gainNode);
-  gainNode.connect(ctx.destination);
-  oscillator.start(startAt);
-  oscillator.stop(endAt + 0.02);
+  // Fundamental — square for edge / "point".
+  const fundamental = ctx.createOscillator();
+  fundamental.type = 'square';
+  fundamental.frequency.value = frequency;
+
+  const fundamentalGain = ctx.createGain();
+  fundamentalGain.gain.value = 0.55;
+
+  // Soft low-pass so it stays piercing without harsh digital buzz.
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.value = Math.min(4200, frequency * 6);
+  filter.Q.value = 0.7;
+
+  // Octave up — adds brilliance and room cut-through.
+  const octave = ctx.createOscillator();
+  octave.type = 'triangle';
+  octave.frequency.value = frequency * 2;
+
+  const octaveGain = ctx.createGain();
+  octaveGain.gain.value = 0.35;
+
+  // Fifth harmonic hint for extra "ring".
+  const fifthPartial = ctx.createOscillator();
+  fifthPartial.type = 'sine';
+  fifthPartial.frequency.value = frequency * 3;
+
+  const fifthGain = ctx.createGain();
+  fifthGain.gain.value = 0.12;
+
+  fundamental.connect(fundamentalGain);
+  fundamentalGain.connect(filter);
+  octave.connect(octaveGain);
+  octaveGain.connect(filter);
+  fifthPartial.connect(fifthGain);
+  fifthGain.connect(filter);
+  filter.connect(voiceGain);
+  voiceGain.connect(master);
+
+  const stopAt = endAt + 0.03;
+  fundamental.start(startAt);
+  octave.start(startAt);
+  fifthPartial.start(startAt);
+  fundamental.stop(stopAt);
+  octave.stop(stopAt);
+  fifthPartial.stop(stopAt);
 }
 
 /**
@@ -107,7 +182,7 @@ function playBarbershopSeventhArpeggio(
       frequency: rootHz * ratios[i],
       startAt: now + i * step,
       endAt,
-      gain: 0.065,
+      gain: 0.16,
     });
   }
 }
