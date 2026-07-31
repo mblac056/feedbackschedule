@@ -187,7 +187,7 @@ function CreatePage() {
           onClose={() => setIsImportExportModalOpen(false)}
         />
 
-        <Footer />
+        <Footer showAdminGuide />
         <PWAUpdatePrompt />
       </div>
     </SettingsProvider>

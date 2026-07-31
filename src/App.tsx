@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import GoogleAnalytics from './components/GoogleAnalytics';
+import AdminGuidePage from './pages/AdminGuidePage';
 import CreatePage from './pages/CreatePage';
 import HomePage from './pages/HomePage';
 import PreviewHubPage from './pages/PreviewHubPage';
@@ -14,6 +15,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/create" element={<CreatePage />} />
+        <Route path="/admin-guide" element={<AdminGuidePage />} />
         <Route path="/preview" element={<PreviewHubPage />} />
         <Route path="/preview/:personSlug" element={<PreviewPersonPage />} />
         <Route path="/:code" element={<PublishedHubPage />} />

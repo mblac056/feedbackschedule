@@ -175,6 +175,123 @@ body {
   }
 }
 
+/* Administrative user guide */
+.admin-guide {
+  line-height: 1.65;
+}
 
+.admin-guide h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--primary-color);
+}
 
+.admin-guide h2 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 2.25rem 0 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e5e7eb;
+}
 
+.dark .admin-guide h2 {
+  border-top-color: #1f2937;
+}
+
+.admin-guide h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.5rem;
+}
+
+.admin-guide p {
+  margin: 0.75rem 0;
+}
+
+.admin-guide ul,
+.admin-guide ol {
+  margin: 0.75rem 0;
+  padding-left: 1.35rem;
+}
+
+.admin-guide li {
+  margin: 0.25rem 0;
+}
+
+.admin-guide a {
+  color: var(--primary-color);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.admin-guide strong {
+  font-weight: 600;
+}
+
+.admin-guide code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875em;
+  background: #e5e7eb;
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}
+
+.dark .admin-guide code {
+  background: #1f2937;
+}
+
+.admin-guide hr {
+  border: none;
+  border-top: 1px solid #d1d5db;
+  margin: 1.75rem 0;
+}
+
+.dark .admin-guide hr {
+  border-top-color: #374151;
+}
+
+.admin-guide .table-wrap {
+  overflow-x: auto;
+  margin: 1rem 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: #fff;
+}
+
+.dark .admin-guide .table-wrap {
+  border-color: #1f2937;
+  background: #111827;
+}
+
+.admin-guide table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.admin-guide th,
+.admin-guide td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dark .admin-guide th,
+.dark .admin-guide td {
+  border-bottom-color: #1f2937;
+}
+
+.admin-guide th {
+  font-weight: 600;
+  background: #f9fafb;
+}
+
+.dark .admin-guide th {
+  background: #0f172a;
+}
+
+.admin-guide tr:last-child td {
+  border-bottom: none;
+}
