@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/useSettings';
 import type { SessionSettings } from '../config/timeConfig';
 import { LocalStorageService } from '../utils/localStorage';
 import { filterCodePrefix } from '../utils/publishCodes';
+import { clearPublishCredentials } from '../utils/publishStorage';
 
 interface Settings extends SessionSettings {
   feedbackStart: string;
@@ -127,6 +128,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
     LocalStorageService.saveSessionBlocks([]);
     LocalStorageService.clearSettings();
     LocalStorageService.savePreferenceNotes('');
+    clearPublishCredentials();
     
     // Reset settings to default
     setSettings(DEFAULT_SETTINGS);
@@ -377,7 +379,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                   </h3>
                   <div className="mt-2 text-sm text-red-700 dark:text-red-300">
                     <p>
-                      This will permanently delete ALL data including judges, entrants, session blocks, settings, and preference notes. 
+                      This will permanently delete ALL data including judges, entrants, session blocks, settings, preference notes, and local publish credentials.
                       This action cannot be undone. Make sure to export your data first if you want to keep it.
                     </p>
                   </div>

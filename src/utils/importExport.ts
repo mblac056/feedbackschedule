@@ -1,5 +1,15 @@
 import type { Judge, Entrant, SessionBlock } from '../types';
 import { getJudges, getEntrants, getSessionBlocks, saveJudges, saveEntrants, saveSessionBlocks, getSettings, saveSettings, getPreferenceNotes, savePreferenceNotes } from './localStorage';
+import {
+  clearPublishCredentials,
+  getPublishCredentials,
+  setPublishCredentials,
+} from './publishStorage';
+
+export interface ExportPublishCredentials {
+  code: string;
+  editToken: string;
+}
 
 export interface ExportData {
   judges: Judge[];
@@ -15,6 +25,8 @@ export interface ExportData {
     codePrefix?: string;
   };
   preferenceNotes?: string;
+  /** Present when this browser has published; omitted when never published or cleared. */
+  publish?: ExportPublishCredentials;
   exportDate: string;
   version: string;
 }
@@ -46,8 +58,25 @@ export const parseJSON = (jsonString: string): ExportData | null => {
   }
 };
 
+function applyPublishCredentialsFromImport(publish: unknown): void {
+  if (
+    publish &&
+    typeof publish === 'object' &&
+    typeof (publish as ExportPublishCredentials).code === 'string' &&
+    typeof (publish as ExportPublishCredentials).editToken === 'string' &&
+    (publish as ExportPublishCredentials).code.trim() !== '' &&
+    (publish as ExportPublishCredentials).editToken.trim() !== ''
+  ) {
+    const { code, editToken } = publish as ExportPublishCredentials;
+    setPublishCredentials(code, editToken);
+    return;
+  }
+  clearPublishCredentials();
+}
+
 // Generate export data from current localStorage state
 export const generateExportData = (): ExportData => {
+  const credentials = getPublishCredentials();
   return {
     exportDate: new Date().toISOString(),
     version: '1.0',
@@ -56,6 +85,7 @@ export const generateExportData = (): ExportData => {
     entrants: getEntrants(),
     sessionBlocks: getSessionBlocks(),
     preferenceNotes: getPreferenceNotes() || undefined,
+    ...(credentials ? { publish: credentials } : {}),
   };
 };
 
@@ -119,6 +149,9 @@ export const importData = (jsonString: string): ImportResult => {
     if (parsedData.preferenceNotes !== undefined) {
       savePreferenceNotes(parsedData.preferenceNotes || '');
     }
+
+    // Restore publish identity from file, or clear leftover device credentials
+    applyPublishCredentialsFromImport(parsedData.publish);
 
     return { 
       success: true, 

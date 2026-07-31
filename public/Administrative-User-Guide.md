@@ -1,8 +1,8 @@
 # Feedback Schedule — Administrative User Guide
 
-**Site:** [feedbackschedule.com](https://feedbackschedule.com)  
-**Audience:** Barbershop administrative judges building evaluation / feedback schedules  
-**Open source:** [github.com/mblac056/feedbackschedule](https://github.com/mblac056/feedbackschedule)
+- **Site:** [feedbackschedule.com](https://feedbackschedule.com)
+- **Audience:** Barbershop administrative judges building evaluation / feedback schedules
+- **Open source:** [github.com/mblac056/feedbackschedule](https://github.com/mblac056/feedbackschedule)
 
 This guide walks through the full product: from an empty browser tab to printed reports and phone-friendly published schedules for judges and entrants. It is written for BHS-style contest feedback options (1xLong / 3x20 / 3x10 feedback), but the same workflow applies anywhere you need preference-aware eval grids.
 
@@ -157,7 +157,7 @@ Open **Settings** from the header.
 - Lengths must be **multiples of 5**, and **3X10 &lt; 3X20 &lt; 1XLong**  
 - Changing lengths shows **Warning: Scheduling Grid Reset** — the grid will be cleared (export first if you care about placements)  
 - **Reset to Defaults** — settings only  
-- **Complete Reset** — deletes judges, entrants, session blocks, settings, and preference notes in this browser, then reloads. It does **not** clear your theme preference or stored publish credentials  
+- **Complete Reset** — deletes judges, entrants, session blocks, settings, preference notes, and local publish credentials in this browser, then reloads. It does **not** clear your theme preference. Export first if you want to restore the same publish code later.  
 
 When you save entrants after a roster that is mostly choruses or mostly quartets, you may also be prompted to **Switch Movement** (or keep the current mode). That prompt is advisory convenience, not a hard rule.
 
@@ -453,14 +453,17 @@ Preference-panel reds (avoid conflicts, mismatched types) are a separate, always
 
 ### Export
 
-- **Export to File** downloads JSON: judges, entrants, settings, session blocks, preference notes  
+- **Export to File** downloads JSON: judges, entrants, settings, session blocks, preference notes, and (when published) the publish code + edit token  
 - Filename: `{Feedback Round}-{YYYYMMDD-HHMM}.json`  
 - Success: **Data exported successfully!**  
+- Anyone with the file can update that published schedule — treat it as a full backup, not a public handout  
 
 ### Import
 
 - **Choose File to Import** — `.json` only  
 - **Replaces all current data**, then reloads after a short success message  
+- If the file includes publish credentials, they are restored so **Publish** can update the same code  
+- If the file has no publish block (older exports and unpublished schedules), any leftover publish credentials on this device are cleared  
 - Bad files: **Failed to read file…** / structure errors  
 
 ### Best practice
@@ -469,7 +472,7 @@ Preference-panel reds (avoid conflicts, mismatched types) are a separate, always
 2. Duplicate / re-import and carve each feedback round (quartet semis, quartet finals, chorus, etc.) from that base  
 3. Export again after major edits **before** Complete Reset or length changes  
 
-Email the JSON to a colleague for review or co-editing. They import on their machine (full replace).
+Email the JSON to a colleague for review or co-editing. They import on their machine (full replace, including publish identity when present).
 
 ---
 
@@ -517,7 +520,7 @@ After a successful publish you see **Code: ABC-DEF** (link opens in a new tab) p
 - **Could not publish: too many code collisions** — rare; try again  
 - **Publish failed** / not found — network or server issue  
 
-Publish credentials (`code` + edit token) are stored in this browser so **Publish** can update the same code later.
+Publish credentials (`code` + edit token) are stored in this browser so **Publish** can update the same code later. They are also written into the JSON export so another device can take over the same published listing after import.
 
 ### Lifetime
 
