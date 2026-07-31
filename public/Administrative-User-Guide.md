@@ -572,6 +572,7 @@ On person pages, when wall-clock time falls inside a real (non-bye) session:
 - **Normal** (&gt; 5 minutes): plain text, no box  
 - **Warning** (≤ 5 minutes): yellow box  
 - **Critical** (≤ 2 minutes): red box  
+- Published times before noon also arm the countdown **twelve hours later** (e.g. `10:00–10:20` runs at 10:00 **and** 22:00 wall clock). Labels still show the stored times—no AM/PM. Military evening times such as `22:00` do **not** also fire in the morning. Prefer correct military / extended start times on create so late-run checks (e.g. **Sessions ending after 1am**) stay accurate.
 
 ### Screen Wake Lock
 
