@@ -25,13 +25,14 @@ This guide walks through the full product: from an empty browser tab to printed 
 13. [Alerts and critical conflicts](#13-alerts-and-critical-conflicts)
 14. [Export and backup](#14-export-and-backup)
 15. [Printable reports](#15-printable-reports)
-16. [Preview and publish](#16-preview-and-publish)
-17. [Published hub and person pages](#17-published-hub-and-person-pages)
-18. [Live session timer and sounds](#18-live-session-timer-and-sounds)
-19. [Keyboard shortcuts and tips](#19-keyboard-shortcuts-and-tips)
-20. [Data stored in this browser](#20-data-stored-in-this-browser)
-21. [End-to-end checklist](#21-end-to-end-checklist)
-22. [Questions and expertise](#22-questions-and-expertise)
+16. [Assigning rooms when judges visit groups](#16-assigning-rooms-when-judges-visit-groups)
+17. [Preview and publish](#17-preview-and-publish)
+18. [Published hub and person pages](#18-published-hub-and-person-pages)
+19. [Live session timer and sounds](#19-live-session-timer-and-sounds)
+20. [Keyboard shortcuts and tips](#20-keyboard-shortcuts-and-tips)
+21. [Data stored in this browser](#21-data-stored-in-this-browser)
+22. [End-to-end checklist](#22-end-to-end-checklist)
+23. [Questions and expertise](#23-questions-and-expertise)
 
 ---
 
@@ -130,7 +131,7 @@ On narrow screens the same actions live in the hamburger menu.
 | **Clear Grid** | Unschedules everything after confirm; session *blocks* remain in Unassigned |
 | **Print** | Prints the Feedback Matrix; disabled if any **red** conflict exists |
 | Print dropdown | Other reports (see [Printable reports](#15-printable-reports)) |
-| **Publish** | Shareable code / preview (see [Preview and publish](#16-preview-and-publish)); disabled on red conflicts |
+| **Publish** | Shareable code / preview (see [Preview and publish](#17-preview-and-publish)); disabled on red conflicts |
 | **Session Format** | Shows current movement mode (color-coded) — **Groups moving to Judges** or **Judges moving to Groups** |
 | **Total Length** | Span from earliest to latest session; turns **red if over 120 minutes** |
 
@@ -146,7 +147,7 @@ Open **Settings** from the header.
 |---------|---------|
 | **Feedback Round** | Human label for this schedule (example placeholder: `2027 Spring ONT Quartet Finals`). Used in export filenames, print titles, and the published hub heading |
 | **Publish code prefix** | Optional ≤3 alphanumeric characters stuck on the front of new publish codes. Remaining characters are random (avoiding 0/O/1/I/L) |
-| **Movement** | **Judges visit groups** or **Groups visit judges**. Controls which side “owns” rooms on the matrix and printouts |
+| **Movement** | **Judges visit groups** or **Groups visit judges**. Controls which side “owns” rooms on the matrix and printouts. When judges visit groups, see [Assigning rooms when judges visit groups](#16-assigning-rooms-when-judges-visit-groups) |
 | **Feedback Start Time** | Clock time for the top of the grid (also editable by clicking the first time-slot label on the far left of the grid) |
 | **1XLong Length (minutes)** | Default **40** |
 | **3X20 Length (minutes)** | Default **20** |
@@ -244,7 +245,7 @@ You can **drag judge headers** to reorder columns while editing. That order is f
 | **Preference** | Preferred session type: **1xLong**, **3x20**, **3x10**, or **None** (None clears Include) |
 | **Judge 1 / 2 / 3** | First through third choice judges |
 | **Eval Only** | Displayed from import when present (TRUE/FALSE); not a free-edit workflow field |
-| **Room** | Used when judges visit groups |
+| **Room** | Used when judges visit groups — see [Assigning rooms when judges visit groups](#16-assigning-rooms-when-judges-visit-groups) |
 | **Performers** | Headcount — helps you reason about room capacity |
 | **O/A Semi-Final / O/A Final** | Order of appearance for judge schedules and related printouts |
 | Delete | Remove the entrant |
@@ -489,10 +490,33 @@ Available when sessions exist and **no red conflicts**. The main **Print** butto
 | **Flow Document** | Minute-by-minute operational flow: starts, moves, finishes, byes, five-minute notices, **(ROOM MISSING)** flags when needed |
 | **Feedback Announcements** | Groups clustered by first start — bullet list with room (or TBD) for reading aloud / posting |
 | **Preference Check** | Snapshot of the Preferences panel (summary pills, table, byes, **Notes and Reminders**). Expect this in contest reporting packages |
+| **Shared Room Guide** | **Judges moving to Groups only.** Minimum rooms needed, each scheduled group’s **Performers** count, and which other groups can share a room (no hard session overlap and no overlapping overall windows that would force mid-schedule swaps). Soft 3x10 overlaps are allowed for sharing; transition-gap warnings stay on the grid |
 
 ---
 
-## 16. Preview and publish
+## 16. Assigning rooms when judges visit groups
+
+When **Session Format** is **Judges moving to Groups**, each group stays put and judges travel. Groups need room assignments on the entrant **Room** field so the matrix, labels, announcements, and published schedules show where to go.
+
+This is usually **not** a crunch-time task. Do it ahead of the contest weekend—often using **previous contest results / placements** to decide which groups get first pick of rooms—so you have breathing room to match capacities and sharing pairs calmly.
+
+### Suggested workflow
+
+1. Build (or import) a schedule with **Judges moving to Groups** and clear any **red** conflicts  
+2. **Print → Shared Room Guide** — note the **Minimum number of rooms**, each group’s performer count, and **Can share room with** lists  
+3. Get your venue’s **room list and capacities** (from the hotel, school, or contest site)  
+4. Open **Manage Entrants** and assign **Room** values, using:
+   - **Performers** vs room capacity  
+   - Sharing partners from the Shared Room Guide (groups that can occupy the same room without mid-schedule swaps)  
+   - Priority / placement from prior results when demand exceeds ideal rooms  
+5. Re-check the grid for **Room … overlapping sessions** (red) or soft 3x10 / transition alerts (yellow) after rooms are filled in  
+6. Reprint announcements, labels, and entrant schedules once rooms are set  
+
+Sharing is about **time windows**, not just simultaneous sessions: if one group’s first-start-to-last-end window overlaps another’s, the guide will not list them as shareable even when individual sessions do not collide—swapping groups in and out of a room mid-block is not realistic on site.
+
+---
+
+## 17. Preview and publish
 
 Publishing uploads the **current** scheduled grid so others can open it with a short code—no admin UI, no login for viewers.
 
@@ -537,7 +561,7 @@ Published schedules expire **7 days** after last update. Viewers of an expired c
 
 ---
 
-## 17. Published hub and person pages
+## 18. Published hub and person pages
 
 ### Hub (`/{code}` or `/preview`)
 
@@ -561,7 +585,7 @@ Errors: **Loading schedule…**, **Person not found.**, **No sessions scheduled.
 
 ---
 
-## 18. Live session timer and sounds
+## 19. Live session timer and sounds
 
 On person pages, when wall-clock time falls inside a real (non-bye) session:
 
@@ -598,7 +622,7 @@ Entrant person pages show the countdown and wake lock but **not** the sound butt
 
 ---
 
-## 19. Keyboard shortcuts and tips
+## 20. Keyboard shortcuts and tips
 
 | Shortcut | Where | Action |
 |----------|-------|--------|
@@ -617,7 +641,7 @@ Entrant person pages show the countdown and wake lock but **not** the sound butt
 
 ---
 
-## 20. Data stored in this browser
+## 21. Data stored in this browser
 
 | Storage key (conceptually) | Contents |
 |----------------------------|----------|
@@ -635,7 +659,7 @@ Clearing site data in the browser wipes the unpublished schedule. Export first.
 
 ---
 
-## 21. End-to-end checklist
+## 22. End-to-end checklist
 
 1. Install the PWA on the admin laptop; confirm offline / update prompts once online  
 2. **Create a schedule**  
@@ -647,15 +671,16 @@ Clearing site data in the browser wipes the unpublished schedule. Export first.
 8. Open Preferences (**P**) — review Good / Conflicts / Unassigned; add Notes  
 9. Drag, swap, multi-select, and type-change as needed  
 10. Clear **red** conflicts; decide which **yellow** alerts you’ll accept  
-11. **Export** JSON backup  
-12. Print Matrix, Judge/Entrant schedules, Labels, Announcements, Flow, Preference Check as needed  
-13. **Preview**, then **Publish**; copy code; generate QR from the hub  
-14. Brief judges: open their person link, leave the page up during sessions, optionally enable timer sounds  
-15. Re-**Publish** after late changes so phones see the update (within the ~7-day window)  
+11. If **Judges moving to Groups:** print **Shared Room Guide**, gather room capacities, assign entrant **Rooms** (ideally ahead of contest using prior placements for priority)  
+12. **Export** JSON backup  
+13. Print Matrix, Judge/Entrant schedules, Labels, Announcements, Flow, Preference Check, Shared Room Guide as needed  
+14. **Preview**, then **Publish**; copy code; generate QR from the hub  
+15. Brief judges: open their person link, leave the page up during sessions, optionally enable timer sounds  
+16. Re-**Publish** after late changes so phones see the update (within the ~7-day window)  
 
 ---
 
-## 22. Questions and expertise
+## 23. Questions and expertise
 
 Between alerts, critical conflicts, and the Preferences panel, you can feel confident getting as creative as the venue allows—and still **show the trade-offs** you made.
 

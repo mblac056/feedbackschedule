@@ -140,7 +140,10 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
         { id: 'entrantSchedLabels', label: 'Entrant Sched. Labels' },
         { id: 'flowDocument', label: 'Flow Document' },
         { id: 'feedbackAnnouncements', label: 'Feedback Announcements' },
-        { id: 'preferenceCheck', label: 'Preference Check' }
+        { id: 'preferenceCheck', label: 'Preference Check' },
+        ...(settings.moving === 'judges'
+          ? [{ id: 'sharedRoomGuide', label: 'Shared Room Guide' }]
+          : []),
     ];
 
     const handlePrintMatrix = async () => {

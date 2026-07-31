@@ -9,6 +9,10 @@ import { generateEntrantSchedulePages } from './printTemplate-entrantSchedLabels
 import { generateFlowDocumentPage } from './printTemplate-flowDocument';
 import { generateFeedbackAnnouncementsPage } from './printTemplate-feedbackAnnouncements';
 import { generatePreferenceCheckPage, type PreferenceCheckData } from './printTemplate-preferenceCheck';
+import {
+  buildSharedRoomGuideData,
+  generateSharedRoomGuidePage,
+} from './printTemplate-sharedRoomGuide';
 
 interface SessionEvent {
   time: string;
@@ -660,6 +664,31 @@ export async function generatePDF(
     return;
   }
 
+  // Shared Room Guide (judges-move mode only)
+  if (reports.includes('sharedRoomGuide')) {
+    const sharedRoomGuideData = buildSharedRoomGuideData(scheduledSessions, entrants, settings);
+    const doc = new jsPDF('portrait');
+    generateSharedRoomGuidePage(doc, sharedRoomGuideData);
+
+    const generatedDateTime = new Date().toLocaleString();
+    const pageCount = doc.internal.pages.length - 1;
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageHeight = doc.internal.pageSize.height;
+      const pageWidth = doc.internal.pageSize.width;
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(128, 128, 128);
+      const footerText = `Generated on ${generatedDateTime}${feedbackRoundFooterSuffix}`;
+      const textWidth = doc.getTextWidth(footerText);
+      doc.text(footerText, (pageWidth - textWidth) / 2, pageHeight - 10);
+      doc.setTextColor(0, 0, 0);
+    }
+
+    doc.save('shared-room-guide.pdf');
+    return;
+  }
+
   // Generate other reports
   const printData = generatePrintData(scheduledSessions, judges);
   
@@ -723,7 +752,8 @@ export async function generatePDF(
     'entrantSchedLabels': 'entrant-sched-labels',
     'flowDocument': 'flow-document',
     'feedbackAnnouncements': 'feedback-announcements',
-    'preferenceCheck': 'preference-check'
+    'preferenceCheck': 'preference-check',
+    'sharedRoomGuide': 'shared-room-guide',
   };
   
   const filename = reports.length === 1 && reportNames[reports[0]] 
