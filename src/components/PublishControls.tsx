@@ -147,7 +147,7 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
 
   const disabledClass = disabled
     ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70'
-    : 'bg-gray-600 hover:bg-[var(--secondary-color-dark)] text-white';
+    : 'bg-gray-600 hover:bg-gray-800 text-white';
 
   return (
     <>
@@ -166,7 +166,7 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
             className={`px-2 py-2 rounded-r-md transition-colors border-l ${
               disabled
                 ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 cursor-not-allowed opacity-70'
-                : 'bg-gray-600 hover:bg-[var(--secondary-color-dark)] text-white border-gray-300 dark:border-gray-500'
+                : 'bg-gray-600 hover:bg-gray-800 text-white border-gray-300 dark:border-gray-500'
             }`}
             onClick={() => {
               if (disabled || busy) return;
@@ -227,7 +227,7 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
               <button
                 type="button"
                 onClick={() => void handleCopy()}
-                className="p-1.5 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-[var(--primary-color)] hover:border-[var(--primary-color)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
+                className="p-1.5 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-gray-800 hover:border-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
                 aria-label="Copy publish code"
                 title="Copy code"
               >

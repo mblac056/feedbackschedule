@@ -69,7 +69,7 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
             </button>
             <button
               onClick={onOpenImportExportModal}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-[var(--secondary-color-dark)] focus:ring-2 focus:ring-[var(--secondary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-800 focus:ring-2 focus:ring-[var(--secondary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
               title="Import/Export (Press 'E' for quick export)"
             >
               Import/Export
@@ -145,7 +145,7 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
                   onOpenImportExportModal();
                   closeMobileMenu();
                 }}
-                className="w-full text-left px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-[var(--secondary-color-dark)] focus:ring-2 focus:ring-[var(--secondary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
+                className="w-full text-left px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-800 focus:ring-2 focus:ring-[var(--secondary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
               >
                 Import/Export
               </button>
@@ -154,7 +154,7 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
                   onOpenSettingsModal();
                   closeMobileMenu();
                 }}
-                className="w-full text-left px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
+                className="w-full text-left px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
               >
                 Settings
               </button>
