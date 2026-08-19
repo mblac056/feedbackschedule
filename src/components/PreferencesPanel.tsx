@@ -29,6 +29,18 @@ const MIN_PANEL_WIDTH = 520;
 const MAX_PANEL_WIDTH = 1200;
 const DESKTOP_BREAKPOINT = 1024;
 
+const PILL_STATUS_CLASSES = {
+  good: 'bg-green-200 dark:bg-green-900/70 text-green-800 dark:text-green-200 border-2 border-green-600 dark:border-green-500',
+  conflict: 'bg-red-200 dark:bg-red-900/70 text-red-800 dark:text-red-200 border border-dashed border-red-600 dark:border-red-500',
+  unmatched: 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
+} as const;
+
+const PILL_SWATCH_CLASSES = {
+  good: 'bg-green-200 dark:bg-green-800 border-2 border-green-600 dark:border-green-500',
+  conflict: 'bg-red-200 dark:bg-red-800 border border-dashed border-red-600 dark:border-red-500',
+  unmatched: 'bg-gray-200 dark:bg-gray-600',
+} as const;
+
 
 
 export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssignments, allSessionBlocks, scheduleConflicts, onSessionBlocksChange, isOpen, onToggle }: PreferencesPanelProps) {
@@ -326,17 +338,17 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
         <h3 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-3">Summary</h3>
         <div className="flex flex-wrap gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-green-200 rounded-full border-2 border-green-600"></span>
+            <span className={`w-3 h-3 rounded-full ${PILL_SWATCH_CLASSES.good}`}></span>
             <span className="text-green-800 dark:text-green-200 font-medium">{pillCounts.greenCount}</span>
             <span className="text-gray-600 dark:text-gray-400">Good/Assigned</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-red-200 rounded-full border border-dashed border-red-600"></span>
+            <span className={`w-3 h-3 rounded-full ${PILL_SWATCH_CLASSES.conflict}`}></span>
             <span className="text-red-800 dark:text-red-200 font-medium">{pillCounts.redCount}</span>
             <span className="text-gray-600 dark:text-gray-400">Conflicts</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-gray-200 rounded-full"></span>
+            <span className={`w-3 h-3 rounded-full ${PILL_SWATCH_CLASSES.unmatched}`}></span>
             <span className="text-gray-800 dark:text-gray-200 font-medium">{pillCounts.grayCount}</span>
             <span className="text-gray-600 dark:text-gray-400">Unassigned/Mismatched</span>
           </div>
@@ -405,8 +417,8 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                           <span
                             key={groupIndex}
                             className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${hasGroupConflict(entrant.id, groupId)
-                              ? 'bg-red-200 text-red-800 border border-dashed border-red-600'
-                              : 'bg-green-200 text-green-800 border-2 border-green-600'
+                              ? PILL_STATUS_CLASSES.conflict
+                              : PILL_STATUS_CLASSES.good
                               }`}
                           >
                             {groupName}
@@ -426,8 +438,8 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                           block => block.type === entrant.preference
                         );
                         return hasMatchingSessionType
-                          ? 'bg-green-200 text-green-800 border-2 border-green-600'
-                          : 'bg-red-200 text-red-800 border border-dashed border-red-600';
+                          ? PILL_STATUS_CLASSES.good
+                          : PILL_STATUS_CLASSES.conflict;
                       })()
                         }`}
                     >
@@ -439,8 +451,8 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                   {judges.find(j => j.id === entrant.judgePreference1) && (
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference1)
-                        ? 'bg-green-200 text-green-800 border-2 border-green-600'
-                        : 'bg-gray-200 text-gray-600'
+                        ? PILL_STATUS_CLASSES.good
+                        : PILL_STATUS_CLASSES.unmatched
                         }`}
                     >
                       {(() => {
@@ -460,8 +472,8 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                   {judges.find(j => j.id === entrant.judgePreference2) && (
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference2)
-                        ? 'bg-green-200 text-green-800 border-2 border-green-600'
-                        : 'bg-gray-200 text-gray-600'
+                        ? PILL_STATUS_CLASSES.good
+                        : PILL_STATUS_CLASSES.unmatched
                         }`}
                     >
                       {(() => {
@@ -481,8 +493,8 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                   {judges.find(j => j.id === entrant.judgePreference3) && (
                     <span
                       className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference3)
-                        ? 'bg-green-200 text-green-800 border-2 border-green-600'
-                        : 'bg-gray-200 text-gray-600'
+                        ? PILL_STATUS_CLASSES.good
+                        : PILL_STATUS_CLASSES.unmatched
                         }`}
                     >
                       {(() => {
@@ -541,15 +553,15 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
       aria-label="Open preference panel"
     >
       <span className="flex items-center gap-1">
-        <span className="w-2 h-2 bg-green-400 rounded-full border-2 border-green-600"></span>
+        <span className={`w-2 h-2 rounded-full ${PILL_SWATCH_CLASSES.good}`}></span>
         <span>{pillCounts.greenCount}</span>
       </span>
       <span className="flex items-center gap-1">
-        <span className="w-2 h-2 bg-red-400 rounded-full border border-dashed border-red-600"></span>
+        <span className={`w-2 h-2 rounded-full ${PILL_SWATCH_CLASSES.conflict}`}></span>
         <span>{pillCounts.redCount}</span>
       </span>
       <span className="flex items-center gap-1">
-        <span className="w-2 h-2 bg-gray-400 rounded-full"></span>
+        <span className={`w-2 h-2 rounded-full ${PILL_SWATCH_CLASSES.unmatched}`}></span>
         <span>{pillCounts.grayCount}</span>
       </span>
     </button>

@@ -6,7 +6,7 @@ import SessionBlockComponent from './SessionBlock';
 import { TIME_CONFIG, getSessionHeight } from '../config/timeConfig';
 import { useSettings } from '../contexts/useSettings';
 import { useEntrant } from '../contexts/useEntrant';
-import { getCategoryColor } from '../config/categoryConfig';
+import { getCategoryHeaderClass } from '../config/categoryConfig';
 import ConflictBanners from './grid/components/ConflictBanners';
 import DragPreviewOverlay from './grid/components/DragPreviewOverlay';
 import { useGroupSessionDrag } from './grid/hooks/useGroupSessionDrag';
@@ -495,13 +495,6 @@ const handleSessionDragLeave = () => {
     console.log(`Removed ${entrantSessionBlocks.length} old session blocks and created new ${newType} blocks for entrant ${entrantId}`);
   };
 
-  const getJudgeBackgroundStyle = (judgeCategory?: 'SNG' | 'MUS' | 'PER') => {
-    if (judgeCategory) {
-      return { backgroundColor: getCategoryColor(judgeCategory) };
-    }
-    return { backgroundColor: '#374151' };
-  };
-
   const getJudgePreferenceIndicator = (judgeId: string) => {
     if (!selectedEntrant) {
       return null;
@@ -542,15 +535,12 @@ const handleSessionDragLeave = () => {
               //Match heights of the judges columns
               <div key={judge.id} className="flex-1 text-center">
                 <div 
-                  className={`border-2 border-gray-300 dark:border-gray-600 text-white p-3 rounded-t-lg cursor-move flex flex-col justify-center relative h-full ${
+                  className={`border-2 border-gray-300 dark:border-gray-600 text-white p-3 rounded-t-lg cursor-move flex flex-col justify-center relative h-full ${getCategoryHeaderClass(judge.category)} ${
                     draggedJudgeId === judge.id ? 'opacity-50 scale-95' : ''
                   } ${
                     dragOverJudgeId === judge.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
                   }`}
-                  style={{ 
-                    minHeight: '80px',
-                    ...getJudgeBackgroundStyle(judge.category)
-                  }}
+                  style={{ minHeight: '80px' }}
                   draggable
                   onDragStart={(e) => handleDragStart(e, judge.id)}
                   onDragOver={(e) => handleDragOver(e, judge.id)}

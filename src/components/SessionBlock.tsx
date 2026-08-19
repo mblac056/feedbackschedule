@@ -25,6 +25,62 @@ interface SessionBlockProps {
   suppressEntrantSelectionOnDrag?: boolean;
 }
 
+type SessionBlockAppearance = {
+  background: string;
+  text: string;
+  indicator: string;
+  indicatorText: string;
+};
+
+const SESSION_BLOCK_APPEARANCE = {
+  conflictRed: {
+    background: 'bg-red-600 dark:bg-red-800',
+    text: 'text-white dark:text-red-50',
+    indicator: 'bg-red-500 dark:bg-red-700',
+    indicatorText: 'text-white',
+  },
+  conflictYellow: {
+    background: 'bg-yellow-400 dark:bg-yellow-600',
+    text: 'text-gray-900',
+    indicator: 'bg-yellow-500 dark:bg-yellow-500',
+    indicatorText: 'text-gray-900',
+  },
+  selected: {
+    background: 'bg-blue-700 dark:bg-blue-600',
+    text: 'text-white',
+    indicator: 'bg-blue-500 dark:bg-blue-400',
+    indicatorText: 'text-gray-900',
+  },
+  avoidGroup: {
+    background: 'bg-blue-400 dark:bg-blue-300',
+    text: 'text-gray-900',
+    indicator: 'bg-gray-500 dark:bg-gray-600',
+    indicatorText: 'text-white',
+  },
+  default: {
+    background: 'bg-gray-500 dark:bg-gray-700',
+    text: 'text-white dark:text-gray-100',
+    indicator: 'bg-gray-500 dark:bg-gray-600',
+    indicatorText: 'text-white',
+  },
+} as const satisfies Record<string, SessionBlockAppearance>;
+
+function getSessionBlockAppearance({
+  conflictSeverity,
+  isSelected,
+  isAvoidGroup,
+}: {
+  conflictSeverity: 'red' | 'yellow' | null;
+  isSelected: boolean;
+  isAvoidGroup: boolean;
+}): SessionBlockAppearance {
+  if (conflictSeverity === 'red') return SESSION_BLOCK_APPEARANCE.conflictRed;
+  if (conflictSeverity === 'yellow') return SESSION_BLOCK_APPEARANCE.conflictYellow;
+  if (isSelected) return SESSION_BLOCK_APPEARANCE.selected;
+  if (isAvoidGroup) return SESSION_BLOCK_APPEARANCE.avoidGroup;
+  return SESSION_BLOCK_APPEARANCE.default;
+}
+
 export default function SessionBlock({ 
   entrant, 
   type, 
@@ -55,35 +111,11 @@ export default function SessionBlock({
   const [isHiddenDuringDrag, setIsHiddenDuringDrag] = useState(false);
   const resolvedConflictSeverity = conflictSeverity ?? (hasConflict ? 'red' : null);
   const isSelected = selectedEntrant === entrant.id;
-
-  const baseBackgroundClass =
-    resolvedConflictSeverity === 'red'
-      ? 'bg-red-600'
-      : resolvedConflictSeverity === 'yellow'
-        ? 'bg-yellow-400'
-        : isSelected
-          ? 'bg-blue-700'
-          : selectedGroupsToAvoid.includes(entrant.id)
-            ? 'bg-blue-400'
-            : 'bg-gray-500';
-
-  const textColorClass =
-    resolvedConflictSeverity === 'yellow' || selectedGroupsToAvoid.includes(entrant.id)
-      ? 'text-gray-900'
-      : 'text-white';
-
-  const indicatorColorClass =
-    resolvedConflictSeverity === 'red'
-      ? 'bg-red-500'
-      : resolvedConflictSeverity === 'yellow'
-        ? 'bg-yellow-500'
-        : isSelected
-          ? 'bg-blue-500'
-          : 'bg-gray-500';
-  const indicatorTextClass =
-    resolvedConflictSeverity === 'yellow' || (!resolvedConflictSeverity && isSelected)
-      ? 'text-gray-900'
-      : 'text-white';
+  const appearance = getSessionBlockAppearance({
+    conflictSeverity: resolvedConflictSeverity,
+    isSelected,
+    isAvoidGroup: selectedGroupsToAvoid.includes(entrant.id),
+  });
 
   const handleToggleSessionSelection = (entrant: Entrant) => {
     if (entrant.id === selectedEntrant) {
@@ -159,11 +191,12 @@ export default function SessionBlock({
   }, [showContextMenu]);
 
   const className = `
-    ${baseBackgroundClass} ${textColorClass} p-1 rounded-lg shadow-md
+    ${appearance.background} ${appearance.text} p-1 rounded-lg shadow-md
     cursor-move transition-all duration-200 hover:shadow-lg
     ${isDragging || isDragged ? 'opacity-50 scale-95' : ''}
-    ${isDragOverProp ? 'ring-4 ring-amber-300 ring-opacity-80 animate-pulse shadow-xl' : ''}
-    ${isMultiSelected ? 'ring-4 ring-sky-300 ring-opacity-90' : ''}
+    ${isDragOverProp ? 'ring-4 ring-amber-300 dark:ring-amber-500 ring-opacity-80 animate-pulse shadow-xl' : ''}
+    ${isMultiSelected ? 'ring-4 ring-sky-300 dark:ring-sky-500 ring-opacity-90' : ''}
+    ${useAbsolutePositioning ? 'border border-white dark:border-gray-400' : ''}
     relative z-10
   `;
 
@@ -187,7 +220,6 @@ export default function SessionBlock({
             left: '0',
             right: '0',
             zIndex: 10,
-            border: '1px solid #fff'
           })
         }}
         data-session-id={sessionId}
@@ -202,7 +234,7 @@ export default function SessionBlock({
               e.stopPropagation();
               handleToggleSessionSelection(entrant);
             }}
-          className={`absolute -bottom-1 -left-1 w-3 h-3 rounded-full text-xs flex items-center justify-center ${indicatorColorClass} ${indicatorTextClass}`}
+          className={`absolute -bottom-1 -left-1 w-3 h-3 rounded-full text-xs flex items-center justify-center ${appearance.indicator} ${appearance.indicatorText}`}
           >
             •
           </button>
@@ -224,7 +256,7 @@ export default function SessionBlock({
       {showContextMenu && (
         <div
           ref={contextMenuRef}
-          className="fixed bg-white dark:bg-black border border-gray-300 rounded-lg shadow-lg py-1 z-50 min-w-[160px]"
+          className="fixed bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg py-1 z-50 min-w-[160px]"
           style={{
             left: contextMenuPosition.x,
             top: contextMenuPosition.y,
@@ -235,7 +267,7 @@ export default function SessionBlock({
             .map(sessionType => (
               <button
                 key={sessionType}
-                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 flex items-center"
+                className="w-full px-3 py-2 text-left text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center"
                 onClick={() => handleSessionTypeChange(sessionType)}
               >
                 Change to {sessionType}
