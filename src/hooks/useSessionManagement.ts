@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Judge, Entrant, EntrantJudgeAssignments, SessionBlock } from '../types';
 import { getJudges, getEntrants, getSettings } from '../utils/localStorage';
 import { SessionService, type SessionConflict } from '../services/SessionService';
+import { useEntrant } from '../contexts/useEntrant';
 
 interface UseSessionManagementReturn {
   judges: Judge[];
@@ -12,15 +13,14 @@ interface UseSessionManagementReturn {
   setJudges: (judges: Judge[]) => void;
   generateAllSessionBlocks: (entrants: Entrant[]) => void;
   handleSessionBlockUpdate: (updatedSessionBlock: SessionBlock) => void;
-  handleSessionBlockRemove: (sessionBlockId: string) => void;
   handleSessionBlocksReplace: (blocks: SessionBlock[]) => void;
   handleScheduledSessionsChange: (sessions: SessionBlock[]) => void;
   handleClearGrid: () => void;
   initializeEntrantJudgeAssignments: (entrants: Entrant[]) => void;
-  refreshSessionBlocks: () => void;
 }
 
 export const useSessionManagement = (): UseSessionManagementReturn => {
+  const { entrants } = useEntrant();
   const [judges, setJudges] = useState<Judge[]>([]);
   const [allSessionBlocks, setAllSessionBlocks] = useState<SessionBlock[]>([]);
   const [entrantJudgeAssignments, setEntrantJudgeAssignments] = useState<EntrantJudgeAssignments>({});
@@ -85,23 +85,14 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
   }, []);
 
   const handleScheduledSessionsChange = useCallback((sessions: SessionBlock[]) => {
-    const entrants = getEntrants();
     const newAssignments = SessionService.updateEntrantJudgeAssignments(sessions, entrants);
     setEntrantJudgeAssignments(newAssignments);
     checkScheduleConflicts(sessions, entrants);
-  }, [checkScheduleConflicts]);
+  }, [checkScheduleConflicts, entrants]);
 
   const handleSessionBlockUpdate = useCallback((updatedSessionBlock: SessionBlock) => {
     setAllSessionBlocks(prev => {
       const updated = SessionService.updateSessionBlock(prev, updatedSessionBlock);
-      schedulePersist(updated);
-      return updated;
-    });
-  }, [schedulePersist]);
-
-  const handleSessionBlockRemove = useCallback((sessionBlockId: string) => {
-    setAllSessionBlocks(prev => {
-      const updated = SessionService.removeSessionBlock(prev, sessionBlockId);
       schedulePersist(updated);
       return updated;
     });
@@ -142,33 +133,23 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     }
   }, [generateAllSessionBlocks, initializeEntrantJudgeAssignments]);
 
-  const refreshSessionBlocks = useCallback(() => {
-    flushPersist();
-    const storedEntrants = getEntrants();
-    const regeneratedBlocks = SessionService.regenerateSessionBlocks(storedEntrants, allSessionBlocks);
-    setAllSessionBlocks(regeneratedBlocks);
-    SessionService.saveSessionBlocks(regeneratedBlocks);
-  }, [allSessionBlocks, flushPersist]);
-
   useEffect(() => {
     const run = () => {
-      checkScheduleConflicts(scheduledSessions, getEntrants());
+      checkScheduleConflicts(scheduledSessions, entrants);
     };
     run();
 
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'evalmatrix_entrants' || e.key === 'evalmatrix_settings') {
+      if (e.key === 'evalmatrix_settings') {
         run();
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('entrantsUpdated', run);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('entrantsUpdated', run);
     };
-  }, [scheduledSessions, checkScheduleConflicts]);
+  }, [scheduledSessions, checkScheduleConflicts, entrants]);
 
   return {
     judges,
@@ -179,11 +160,9 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     setJudges,
     generateAllSessionBlocks,
     handleSessionBlockUpdate,
-    handleSessionBlockRemove,
     handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
     initializeEntrantJudgeAssignments,
-    refreshSessionBlocks,
   };
 };

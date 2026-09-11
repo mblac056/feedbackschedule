@@ -160,9 +160,6 @@ const reorderJudgesByPods = (judgeNumberToJudge: Map<number, Judge>, totalJudges
 
 
 const createMatrix = (threeX10Count: number, threeX20Count: number, oneXLongCount: number, threeX10Height: number, threeX20Height: number, oneXLongHeight: number, judges: Judge[], entrants: Entrant[], allSessionBlocks: SessionBlock[]): [Map<number, Judge>, Map<number, Entrant>, number[][]] => {
-  console.log('=== GENERATING SCHEDULE ===');
-  console.log(`Sessions: ${threeX10Count / 3}×3x10, ${threeX20Count / 3}×3x20, ${oneXLongCount}×1xLong | Judges: ${judges.length}`);
-
   // Step 1: Analyze and create pods
   const pods = createPods(threeX10Count, threeX20Count);
   
@@ -797,7 +794,6 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
       }
     }
 
-    console.log(`↔ Swapped pods ${podIndexA + 1} and ${podIndexB + 1} to honor first preference`);
     return true;
   };
   
@@ -983,14 +979,10 @@ const assignGroupsAndJudges = (judgeGroups: Map<number, Set<number>>, groupTypes
     }
   }
   
-  console.log(`✓ Assigned ${assignedGroups.size} groups: ${preferenceCounts.first} first, ${preferenceCounts.second} second, ${preferenceCounts.third} third, ${preferenceCounts.fallback} fallback`);
-  
   return [judgeNumberToJudge, groupNumberToGroup];
 }
 
-const judgePopularity = (judges: Judge[], groups: Entrant[]): Map<string, { first: number; second: number; third: number; category: string }> => {
-  console.log('=== JUDGE POPULARITY SUMMARY ===');
-  
+const judgePopularity = (judges: Judge[], groups: Entrant[]): Map<string, { first: number; second: number; third: number; category: string }> => { 
   // Create a map to track counts for each judge
   const judgeStats = new Map<string, { first: number; second: number; third: number; category: string }>();
   
@@ -1012,14 +1004,6 @@ const judgePopularity = (judges: Judge[], groups: Entrant[]): Map<string, { firs
     if (group.judgePreference3) {
       const stats = judgeStats.get(group.judgePreference3);
       if (stats) stats.third++;
-    }
-  }
-  
-  // Output summary for each judge
-  for (const judge of judges) {
-    const stats = judgeStats.get(judge.id);
-    if (stats) {
-      console.log(`  ${judge.name} (${stats.category}) - First: ${stats.first}, Second: ${stats.second}, Third: ${stats.third}`);
     }
   }
   

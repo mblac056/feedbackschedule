@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
-import type { Entrant, Judge } from '../types';
-import { getEntrants, getJudges, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants } from '../utils/localStorage';
-import { SessionService } from '../services/SessionService';
+import { useState, useEffect, useRef } from 'react';
+import type { Entrant, Judge, SessionBlock } from '../types';
+import { saveEntrants, reorderSessionBlocksByEntrants } from '../utils/localStorage';
+import { reorderEntrantsByIds } from '../utils/entrantOrder';
+import { buildBlocksAfterEntrantEdits } from '../utils/entrantSessionBlocks';
+import { useEntrant } from '../contexts/useEntrant';
 import CSVImport from './CSVImport';
 import PreferencesImport from './PreferencesImport';
 import EntrantRow from './EntrantRow';
@@ -11,14 +13,23 @@ interface EntrantsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onModalClose?: () => void;
-  onSessionBlocksChange?: () => void;
+  judges: Judge[];
+  sessionBlocks: SessionBlock[];
+  onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
 }
 
 type SortColumn = 'score' | 'name' | 'include' | 'overallSF' | 'overallF' | 'evalOnly';
 
-export default function EntrantsModal({ isOpen, onClose, onModalClose, onSessionBlocksChange }: EntrantsModalProps) {
-  const [entrants, setEntrants] = useState<Entrant[]>([]);
-  const [judges, setJudges] = useState<Judge[]>([]);
+export default function EntrantsModal({
+  isOpen,
+  onClose,
+  onModalClose,
+  judges,
+  sessionBlocks,
+  onSessionBlocksReplace,
+}: EntrantsModalProps) {
+  const { entrants: storedEntrants } = useEntrant();
+  const [entrants, setEntrants] = useState<Entrant[]>(storedEntrants);
   const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
   const [dragOverEntrantId, setDragOverEntrantId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
@@ -32,20 +43,20 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   const { settings, setSettings } = useSettings();
   
 
+  const wasOpenRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
-      const storedEntrants = getEntrants();
-      const storedJudges = getJudges();
+    if (isOpen && !wasOpenRef.current) {
       setEntrants(storedEntrants);
-      setJudges(storedJudges);
-      setOriginalEntrants(JSON.parse(JSON.stringify(storedEntrants))); // Deep copy
-      setShowImport(false); // Reset import state when modal opens
-      setShowPreferencesImport(false); // Reset preferences import state when modal opens
+      setOriginalEntrants(JSON.parse(JSON.stringify(storedEntrants)));
+      setShowImport(false);
+      setShowPreferencesImport(false);
       setShowConfirmClose(false);
-      setSortColumn(null); // Reset sort when modal opens
+      setSortColumn(null);
       setSortDirection('asc');
     }
-  }, [isOpen]);
+    wasOpenRef.current = isOpen;
+  }, [isOpen, storedEntrants]);
 
   const handleAddEntrant = () => {
     const newEntrant: Entrant = {
@@ -67,45 +78,13 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
   };
 
   const performSaveAndClose = () => {
-    // Get current session blocks
-    const currentSessionBlocks = getSessionBlocks();
-    let updatedSessionBlocks = [...currentSessionBlocks];
+    if (!saveEntrants(entrants)) return;
 
-    // Process each entrant
-    entrants.forEach(entrant => {
-      if (entrant.includeInSchedule) {
-        // Check if this entrant already has session blocks
-        const existingBlocks = currentSessionBlocks.filter(block => block.entrantId === entrant.id);
+    onSessionBlocksReplace(buildBlocksAfterEntrantEdits(sessionBlocks, entrants));
 
-        if (existingBlocks.length === 0) {
-          // Create new session blocks for this entrant using SessionService
-          const newSessionBlocks = SessionService.generateSessionBlocks([entrant]);
-          updatedSessionBlocks.push(...newSessionBlocks);
-        }
-      } else {
-        // Remove all session blocks for this entrant
-        updatedSessionBlocks = updatedSessionBlocks.filter(block => block.entrantId !== entrant.id);
-      }
-    });
-
-    // Save updated session blocks
-    saveSessionBlocks(updatedSessionBlocks);
-
-    // Save all local changes to localStorage before closing
-    saveEntrants(entrants);
-
-    // Notify parent component that session blocks may have changed
-    if (onSessionBlocksChange) {
-      onSessionBlocksChange();
-    }
-
-    // Update original to reflect saved state
     setOriginalEntrants(JSON.parse(JSON.stringify(entrants)));
     onClose();
-    // Notify parent component that modal has closed
-    if (onModalClose) {
-      onModalClose();
-    }
+    onModalClose?.();
   };
 
   const handleSaveAndClose = () => {
@@ -178,26 +157,13 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
     e.preventDefault();
     if (!draggedEntrantId || draggedEntrantId === targetEntrantId) return;
 
-    const draggedIndex = entrants.findIndex(e => e.id === draggedEntrantId);
-    const targetIndex = entrants.findIndex(e => e.id === targetEntrantId);
+    const reordered = reorderEntrantsByIds(entrants, draggedEntrantId, targetEntrantId);
+    if (!reordered) return;
 
-    if (draggedIndex === -1 || targetIndex === -1) return;
-
-    const newEntrants = [...entrants];
-    const [draggedEntrant] = newEntrants.splice(draggedIndex, 1);
-    newEntrants.splice(targetIndex, 0, draggedEntrant);
-
-    setEntrants(newEntrants);
-
-    // Save the reordered entrants to localStorage
-    saveEntrants(newEntrants);
-
-    // Get current session blocks and reorder them based on new entrant order
-    const currentSessionBlocks = getSessionBlocks();
-    const reorderedSessionBlocks = reorderSessionBlocksByEntrants(currentSessionBlocks, newEntrants);
-
-    // Save reordered session blocks to localStorage
-    saveSessionBlocks(reorderedSessionBlocks);
+    setEntrants(reordered);
+    if (saveEntrants(reordered)) {
+      onSessionBlocksReplace(reorderSessionBlocksByEntrants(sessionBlocks, reordered));
+    }
 
     setDraggedEntrantId(null);
     setDragOverEntrantId(null);
@@ -262,10 +228,7 @@ export default function EntrantsModal({ isOpen, onClose, onModalClose, onSession
       });
 
       saveEntrants(sortedEntrants);
-
-      const currentSessionBlocks = getSessionBlocks();
-      const reorderedSessionBlocks = reorderSessionBlocksByEntrants(currentSessionBlocks, sortedEntrants);
-      saveSessionBlocks(reorderedSessionBlocks);
+      onSessionBlocksReplace(reorderSessionBlocksByEntrants(sessionBlocks, sortedEntrants));
 
       return sortedEntrants;
     });

@@ -24,7 +24,6 @@ function CreatePage() {
     handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
-    refreshSessionBlocks,
   } = useSessionManagement();
 
   const [isJudgesModalOpen, setIsJudgesModalOpen] = useState(false);
@@ -72,14 +71,7 @@ function CreatePage() {
   };
 
   const handleEntrantsModalClose = () => {
-    // This will trigger a refresh of the PreferenceCheckTable
-    // by forcing a re-render when the modal closes
     setIsEntrantsModalOpen(false);
-  };
-
-  const handleSessionBlocksChange = () => {
-    // Refresh session blocks when entrants change
-    refreshSessionBlocks();
   };
 
   const handleCompleteReset = () => {
@@ -145,7 +137,9 @@ function CreatePage() {
           isOpen={isEntrantsModalOpen}
           onClose={() => setIsEntrantsModalOpen(false)}
           onModalClose={handleEntrantsModalClose}
-          onSessionBlocksChange={handleSessionBlocksChange}
+          judges={judges}
+          sessionBlocks={allSessionBlocks}
+          onSessionBlocksReplace={handleSessionBlocksReplace}
         />
 
         <SettingsModal
