@@ -1,17 +1,14 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Judge, Entrant, EntrantJudgeAssignments, SessionBlock } from '../types';
-import { getJudges, getEntrants } from '../utils/localStorage';
+import { getJudges, getEntrants, getSettings } from '../utils/localStorage';
 import { SessionService, type SessionConflict } from '../services/SessionService';
 
 interface UseSessionManagementReturn {
-  // State
   judges: Judge[];
   allSessionBlocks: SessionBlock[];
   scheduledSessions: SessionBlock[];
   entrantJudgeAssignments: EntrantJudgeAssignments;
   scheduleConflicts: SessionConflict[];
-
-  // Actions
   setJudges: (judges: Judge[]) => void;
   generateAllSessionBlocks: (entrants: Entrant[]) => void;
   handleSessionBlockUpdate: (updatedSessionBlock: SessionBlock) => void;
@@ -27,68 +24,95 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
   const [allSessionBlocks, setAllSessionBlocks] = useState<SessionBlock[]>([]);
   const [entrantJudgeAssignments, setEntrantJudgeAssignments] = useState<EntrantJudgeAssignments>({});
   const [scheduleConflicts, setScheduleConflicts] = useState<SessionConflict[]>([]);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestBlocksRef = useRef<SessionBlock[] | null>(null);
 
-  // Computed property: scheduled sessions are just session blocks that are scheduled
   const scheduledSessions: SessionBlock[] = useMemo(() => {
     return SessionService.getScheduledSessions(allSessionBlocks);
   }, [allSessionBlocks]);
 
-  // Generate all session blocks for all entrants
+  const flushPersist = useCallback(() => {
+    if (persistTimerRef.current != null) {
+      clearTimeout(persistTimerRef.current);
+      persistTimerRef.current = null;
+    }
+    if (latestBlocksRef.current) {
+      SessionService.saveSessionBlocks(latestBlocksRef.current);
+      latestBlocksRef.current = null;
+    }
+  }, []);
+
+  const schedulePersist = useCallback((blocks: SessionBlock[]) => {
+    latestBlocksRef.current = blocks;
+    if (persistTimerRef.current != null) return;
+    persistTimerRef.current = setTimeout(() => {
+      persistTimerRef.current = null;
+      if (latestBlocksRef.current) {
+        SessionService.saveSessionBlocks(latestBlocksRef.current);
+        latestBlocksRef.current = null;
+      }
+    }, 0);
+  }, []);
+
+  useEffect(() => () => flushPersist(), [flushPersist]);
+
+  useEffect(() => {
+    const onFlush = () => flushPersist();
+    window.addEventListener('evalmatrix:flush-persist', onFlush);
+    window.addEventListener('beforeunload', onFlush);
+    return () => {
+      window.removeEventListener('evalmatrix:flush-persist', onFlush);
+      window.removeEventListener('beforeunload', onFlush);
+    };
+  }, [flushPersist]);
+
   const generateAllSessionBlocks = useCallback((entrants: Entrant[]) => {
     const sessionBlocks = SessionService.generateSessionBlocks(entrants);
     setAllSessionBlocks(sessionBlocks);
     SessionService.saveSessionBlocks(sessionBlocks);
   }, []);
 
-  // Initialize entrant-judge assignments from localStorage or other sources
   const initializeEntrantJudgeAssignments = useCallback((entrants: Entrant[]) => {
     const initialAssignments = SessionService.initializeEntrantJudgeAssignments(entrants);
     setEntrantJudgeAssignments(initialAssignments);
   }, []);
 
-  // Check for schedule conflicts between entrants and their groups to avoid
   const checkScheduleConflicts = useCallback((sessions: SessionBlock[], entrants: Entrant[]) => {
-    const conflicts = SessionService.detectConflicts(sessions, entrants);
+    const conflicts = SessionService.detectConflicts(sessions, entrants, getSettings());
     setScheduleConflicts(conflicts);
     SessionService.logConflicts(conflicts, entrants);
   }, []);
 
-  // Update entrant-judge assignments when sessions change
   const handleScheduledSessionsChange = useCallback((sessions: SessionBlock[]) => {
     const entrants = getEntrants();
     const newAssignments = SessionService.updateEntrantJudgeAssignments(sessions, entrants);
     setEntrantJudgeAssignments(newAssignments);
-    
-    // Check for schedule conflicts with groups to avoid
     checkScheduleConflicts(sessions, entrants);
   }, [checkScheduleConflicts]);
 
-  // Handle session block updates (when a session is scheduled or unscheduled)
   const handleSessionBlockUpdate = useCallback((updatedSessionBlock: SessionBlock) => {
     setAllSessionBlocks(prev => {
       const updated = SessionService.updateSessionBlock(prev, updatedSessionBlock);
-      SessionService.saveSessionBlocks(updated);
+      schedulePersist(updated);
       return updated;
     });
-  }, []);
+  }, [schedulePersist]);
 
-  // Handle removing session blocks by ID
   const handleSessionBlockRemove = useCallback((sessionBlockId: string) => {
     setAllSessionBlocks(prev => {
       const updated = SessionService.removeSessionBlock(prev, sessionBlockId);
-      SessionService.saveSessionBlocks(updated);
+      schedulePersist(updated);
       return updated;
     });
-  }, []);
+  }, [schedulePersist]);
 
-  // Handle clearing the grid when settings change
   const handleClearGrid = useCallback(() => {
+    flushPersist();
     const clearedSessionBlocks = SessionService.clearGrid(allSessionBlocks);
     setAllSessionBlocks(clearedSessionBlocks);
     SessionService.saveSessionBlocks(clearedSessionBlocks);
-  }, [allSessionBlocks]);
+  }, [allSessionBlocks, flushPersist]);
 
-  // Initialize data on mount
   useEffect(() => {
     const storedJudges = getJudges();
     const storedEntrants = getEntrants();
@@ -96,79 +120,55 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     
     setJudges(storedJudges);
     
-    // Clean up session blocks that reference non-existent entrants
     const validSessionBlocks = SessionService.cleanSessionBlocks(storedSessionBlocks, storedEntrants);
     
-    // Save cleaned data back to localStorage if any cleanup was needed
     if (validSessionBlocks.length !== storedSessionBlocks.length) {
       SessionService.saveSessionBlocks(validSessionBlocks);
     }
     
-    // Initialize entrant-judge assignments from existing data
     initializeEntrantJudgeAssignments(storedEntrants);
     
-    // If we have stored session blocks, use them; otherwise generate new ones
     if (validSessionBlocks.length > 0) {
       setAllSessionBlocks(validSessionBlocks);
     } else {
-      // Generate all session blocks
       generateAllSessionBlocks(storedEntrants);
     }
   }, [generateAllSessionBlocks, initializeEntrantJudgeAssignments]);
 
-  // Method to refresh session blocks (called when entrants change)
   const refreshSessionBlocks = useCallback(() => {
+    flushPersist();
     const storedEntrants = getEntrants();
     const regeneratedBlocks = SessionService.regenerateSessionBlocks(storedEntrants, allSessionBlocks);
     setAllSessionBlocks(regeneratedBlocks);
     SessionService.saveSessionBlocks(regeneratedBlocks);
-  }, [allSessionBlocks]);
+  }, [allSessionBlocks, flushPersist]);
 
-  // Check for conflicts whenever scheduledSessions changes
   useEffect(() => {
-    const entrants = getEntrants();
-    checkScheduleConflicts(scheduledSessions, entrants);
-  }, [scheduledSessions, checkScheduleConflicts]);
-
-  // Also check conflicts when entrants data changes (for groupsToAvoid updates)
-  useEffect(() => {
-    const checkConflictsOnEntrantChange = () => {
-      const entrants = getEntrants();
-      checkScheduleConflicts(scheduledSessions, entrants);
+    const run = () => {
+      checkScheduleConflicts(scheduledSessions, getEntrants());
     };
-    
-    // Set up listeners for entrant data changes
+    run();
+
     const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'evalmatrix_entrants' && e.newValue) {
-        checkConflictsOnEntrantChange();
+      if (e.key === 'evalmatrix_entrants' || e.key === 'evalmatrix_settings') {
+        run();
       }
     };
-    
-    const handleEntrantsUpdated = () => {
-      checkConflictsOnEntrantChange();
-    };
-    
+
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('entrantsUpdated', handleEntrantsUpdated);
-    
-    // Also check immediately in case data was updated in the same tab
-    checkConflictsOnEntrantChange();
-    
+    window.addEventListener('entrantsUpdated', run);
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('entrantsUpdated', handleEntrantsUpdated);
+      window.removeEventListener('entrantsUpdated', run);
     };
   }, [scheduledSessions, checkScheduleConflicts]);
 
   return {
-    // State
     judges,
     allSessionBlocks,
     scheduledSessions,
     entrantJudgeAssignments,
     scheduleConflicts,
-
-    // Actions
     setJudges,
     generateAllSessionBlocks,
     handleSessionBlockUpdate,

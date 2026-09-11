@@ -5,7 +5,6 @@ import { useSettings } from '../contexts/useSettings';
 import type { SessionSettings } from '../config/timeConfig';
 import { LocalStorageService } from '../utils/localStorage';
 import { filterCodePrefix } from '../utils/publishCodes';
-import { clearPublishCredentials } from '../utils/publishStorage';
 
 interface Settings extends SessionSettings {
   feedbackStart: string;
@@ -87,7 +86,6 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       onClearGrid();
     }
     
-    // Save settings using LocalStorageService (only SessionSettings part)
     const sessionSettings: SessionSettings = {
       oneXLongLength: settings.oneXLongLength,
       threeX20Length: settings.threeX20Length,
@@ -97,18 +95,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       exportName: settings.exportName ?? '',
       codePrefix: settings.codePrefix ?? '',
     };
-    LocalStorageService.saveSettings(sessionSettings);
-    
-    // Update the context settings with all settings (include exportName/codePrefix so context save doesn't overwrite them)
-    setContextSettings({
-      oneXLongLength: settings.oneXLongLength,
-      threeX20Length: settings.threeX20Length,
-      threeX10Length: settings.threeX10Length,
-      startTime: settings.startTime,
-      moving: settings.moving as 'judges' | 'groups',
-      exportName: settings.exportName ?? '',
-      codePrefix: settings.codePrefix ?? '',
-    });
+    setContextSettings(sessionSettings);
     
     setShowResetWarning(false);
     setShowValidationError(false);
@@ -123,12 +110,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
 
   const handleCompleteReset = () => {
     // Clear all data using LocalStorageService
-    LocalStorageService.saveJudges([]);
-    LocalStorageService.saveEntrants([]);
-    LocalStorageService.saveSessionBlocks([]);
-    LocalStorageService.clearSettings();
-    LocalStorageService.savePreferenceNotes('');
-    clearPublishCredentials();
+    LocalStorageService.clearAll();
     
     // Reset settings to default
     setSettings(DEFAULT_SETTINGS);

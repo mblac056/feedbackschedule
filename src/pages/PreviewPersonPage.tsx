@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import PublicPersonSchedule from '../components/public/PublicPersonSchedule';
 import { buildPublishedPayload } from '../utils/buildPublishedPayload';
@@ -6,12 +7,15 @@ import { getEntrants, getJudges, getSessionBlocks, getSettings } from '../utils/
 export default function PreviewPersonPage() {
   const { personSlug = '' } = useParams<{ personSlug: string }>();
 
-  const payload = buildPublishedPayload({
-    judges: getJudges(),
-    entrants: getEntrants(),
-    sessionBlocks: getSessionBlocks(),
-    settings: getSettings(),
-  });
+  const payload = useMemo(() => {
+    window.dispatchEvent(new Event('evalmatrix:flush-persist'));
+    return buildPublishedPayload({
+      judges: getJudges(),
+      entrants: getEntrants(),
+      sessionBlocks: getSessionBlocks(),
+      settings: getSettings(),
+    });
+  }, []);
 
   return (
     <PublicPersonSchedule

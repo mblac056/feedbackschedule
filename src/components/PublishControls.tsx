@@ -4,8 +4,9 @@ import { FaChevronDown, FaCopy, FaCheck } from 'react-icons/fa';
 import { buildPublishedPayload } from '../utils/buildPublishedPayload';
 import { getEntrants, getJudges, getSessionBlocks, getSettings } from '../utils/localStorage';
 import { getPublishCredentials, setPublishCredentials } from '../utils/publishStorage';
-import { putPublishedSchedule, ScheduleApiError } from '../utils/scheduleApi';
+import { putPublishedSchedule, ScheduleApiError, userMessageForApiError } from '../utils/scheduleApi';
 import { formatCode, generateCode, generateEditToken } from '../utils/publishCodes';
+import { invalidatePublishedScheduleCache } from '../utils/publishedScheduleCache';
 
 const MAX_COLLISION_RETRIES = 5;
 
@@ -15,6 +16,7 @@ type PublishControlsProps = {
 };
 
 function buildCurrentPayload() {
+  window.dispatchEvent(new Event('evalmatrix:flush-persist'));
   return buildPublishedPayload({
     judges: getJudges(),
     entrants: getEntrants(),
@@ -33,7 +35,9 @@ async function publishWithNewCode(): Promise<string> {
     const editToken = generateEditToken();
     try {
       await putPublishedSchedule(code, editToken, payload);
-      setPublishCredentials(code, editToken);
+      if (!setPublishCredentials(code, editToken)) {
+        throw new Error('Published, but this browser could not save the edit token. Export a backup with credentials immediately.');
+      }
       return code;
     } catch (err) {
       lastError = err;
@@ -95,6 +99,7 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
             buildCurrentPayload()
           );
           setLastPublishedCode(credentials.code);
+          invalidatePublishedScheduleCache(credentials.code);
         } catch (err) {
           if (err instanceof ScheduleApiError && err.status === 403) {
             setError('Cannot update this schedule (edit token rejected). Use “Publish as new”.');
@@ -105,9 +110,10 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
       } else {
         const code = await publishWithNewCode();
         setLastPublishedCode(code);
+        invalidatePublishedScheduleCache(code);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Publish failed');
+      setError(userMessageForApiError(err, 'Publish failed'));
     } finally {
       setBusy(false);
     }
@@ -121,8 +127,9 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
     try {
       const code = await publishWithNewCode();
       setLastPublishedCode(code);
+      invalidatePublishedScheduleCache(code);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Publish failed');
+      setError(userMessageForApiError(err, 'Publish failed'));
     } finally {
       setBusy(false);
     }

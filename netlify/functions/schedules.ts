@@ -1,15 +1,24 @@
 import type { Context } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { parsePublishedSchedulePayload, PayloadValidationError } from '../../src/utils/publishedScheduleSchema';
 
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const CODE_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const MAX_BODY_CHARS = 512_000;
+const GET_RATE_LIMIT = 60;
+const PUT_RATE_LIMIT = 15;
+const RATE_WINDOW_MS = 60_000;
+const ALLOWED_ORIGINS = new Set([
+  'https://feedbackschedule.com',
+  'https://www.feedbackschedule.com',
+]);
 
 type BlobRecord = {
   payload: unknown;
   editTokenHash: string;
   updatedAt: string;
+  expiresAt: string;
 };
 
 function normalizeCode(input: string): string {
@@ -35,11 +44,21 @@ function tokensEqual(aHex: string, bHex: string): boolean {
   }
 }
 
-function corsHeaders(): Record<string, string> {
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.has(origin)) return true;
+  if (origin.endsWith('.netlify.app') && origin.startsWith('https://')) return true;
+  if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) return true;
+  return false;
+}
+
+function corsHeaders(req: Request): Record<string, string> {
+  const origin = req.headers.get('Origin') || '';
+  const allowOrigin = isAllowedOrigin(origin) ? origin : 'https://feedbackschedule.com';
   return {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'GET,PUT,OPTIONS',
+    Vary: 'Origin',
   };
 }
 
@@ -50,85 +69,157 @@ function noCacheHeaders(): Record<string, string> {
   };
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function json(status: number, body: unknown) {
+function json(req: Request, status: number, body: unknown, extra?: Record<string, string>) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'Content-Type': 'application/json', ...noCacheHeaders(), ...corsHeaders() },
+    headers: {
+      'Content-Type': 'application/json',
+      ...noCacheHeaders(),
+      ...corsHeaders(req),
+      ...(extra ?? {}),
+    },
   });
+}
+
+function clientIp(req: Request): string {
+  return (
+    req.headers.get('x-nf-client-connection-ip') ||
+    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    'unknown'
+  );
+}
+
+async function enforceRateLimit(
+  req: Request,
+  store: ReturnType<typeof getStore>,
+  kind: 'GET' | 'PUT'
+): Promise<Response | null> {
+  const limit = kind === 'GET' ? GET_RATE_LIMIT : PUT_RATE_LIMIT;
+  const bucket = Math.floor(Date.now() / RATE_WINDOW_MS);
+  const ipHash = hashToken(clientIp(req)).slice(0, 16);
+  const key = `_rl:${kind}:${ipHash}:${bucket}`;
+  const current = (await store.get(key, { type: 'json' })) as { n?: number } | null;
+  const n = (current?.n ?? 0) + 1;
+  if (n > limit) {
+    return json(req, 429, { error: 'Too many requests' }, { 'Retry-After': '60' });
+  }
+  await store.setJSON(key, { n });
+  return null;
+}
+
+function isExpired(record: BlobRecord): boolean {
+  const expiresAt = Date.parse(record.expiresAt);
+  if (Number.isFinite(expiresAt)) return Date.now() > expiresAt;
+  const updatedAt = Date.parse(record.updatedAt);
+  if (!Number.isFinite(updatedAt)) return true;
+  return Date.now() - updatedAt > TTL_MS;
 }
 
 export default async (req: Request, _context: Context) => {
   if (req.method === 'OPTIONS') {
-    return new Response('', { status: 204, headers: { ...noCacheHeaders(), ...corsHeaders() } });
+    return new Response('', { status: 204, headers: { ...noCacheHeaders(), ...corsHeaders(req) } });
   }
 
   const url = new URL(req.url);
-  // Expected path after redirect: /api/schedules/:code or function path with code segment
   const parts = url.pathname.split('/').filter(Boolean);
   const code = normalizeCode(url.searchParams.get('code') || parts[parts.length - 1] || '');
   if (!isValidCode(code)) {
-    return json(400, { error: 'Invalid code' });
+    return json(req, 400, { error: 'Invalid code' });
   }
 
   const store = getStore('published-schedules');
 
+  try {
+    const limited = await enforceRateLimit(req, store, req.method === 'PUT' ? 'PUT' : 'GET');
+    if (limited) return limited;
+  } catch (error) {
+    console.error('Rate limit check failed', error);
+  }
+
   if (req.method === 'GET') {
     const raw = await store.get(code, { type: 'json' });
-    if (!raw) return json(404, { error: 'Not found' });
+    if (!raw) return json(req, 404, { error: 'Not found' });
     const record = raw as BlobRecord;
-    if (Date.now() - Date.parse(record.updatedAt) > TTL_MS) {
+    if (isExpired(record)) {
       await store.delete(code);
-      return json(404, { error: 'Expired' });
+      return json(req, 404, { error: 'Expired' });
     }
-    return json(200, { payload: record.payload, updatedAt: record.updatedAt });
+    try {
+      parsePublishedSchedulePayload(record.payload);
+    } catch {
+      return json(req, 422, { error: 'Stored payload is invalid' });
+    }
+    return json(req, 200, { payload: record.payload, updatedAt: record.updatedAt });
   }
 
   if (req.method === 'PUT') {
-    const contentLength = req.headers.get('Content-Length');
-    if (contentLength !== null) {
-      const len = parseInt(contentLength, 10);
-      if (!Number.isNaN(len) && len > MAX_BODY_CHARS) {
-        return json(400, { error: 'Request body too large' });
-      }
+    let rawBody: string;
+    try {
+      rawBody = await req.text();
+    } catch {
+      return json(req, 400, { error: 'Invalid body' });
+    }
+    if (rawBody.length > MAX_BODY_CHARS) {
+      return json(req, 400, { error: 'Request body too large' });
     }
 
     let body: { editToken?: string; payload?: unknown };
     try {
-      body = await req.json();
+      body = JSON.parse(rawBody) as { editToken?: string; payload?: unknown };
     } catch {
-      return json(400, { error: 'Invalid JSON' });
-    }
-    if (JSON.stringify(body).length > MAX_BODY_CHARS) {
-      return json(400, { error: 'Request body too large' });
+      return json(req, 400, { error: 'Invalid JSON' });
     }
     if (!body.editToken || typeof body.editToken !== 'string' || body.payload === undefined) {
-      return json(400, { error: 'editToken and payload required' });
+      return json(req, 400, { error: 'editToken and payload required' });
     }
-    if (!isPlainObject(body.payload)) {
-      return json(400, { error: 'payload must be a plain object' });
+
+    let payload;
+    try {
+      payload = parsePublishedSchedulePayload(body.payload);
+    } catch (error) {
+      const message = error instanceof PayloadValidationError ? error.message : 'Invalid payload';
+      return json(req, 400, { error: message });
     }
 
     const existing = (await store.get(code, { type: 'json' })) as BlobRecord | null;
     const incomingHash = hashToken(body.editToken);
 
-    if (existing) {
+    if (existing && !isExpired(existing)) {
       if (!tokensEqual(existing.editTokenHash, incomingHash)) {
-        return json(403, { error: 'Forbidden' });
+        return json(req, 403, { error: 'Forbidden' });
+      }
+    } else if (existing && isExpired(existing)) {
+      await store.delete(code);
+    }
+
+    const now = new Date();
+    const record: BlobRecord = {
+      payload,
+      editTokenHash: existing && !isExpired(existing) ? existing.editTokenHash : incomingHash,
+      updatedAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + TTL_MS).toISOString(),
+    };
+
+    const creating = !existing || isExpired(existing);
+    try {
+      if (creating) {
+        await store.setJSON(code, record, { onlyIfNew: true } as { onlyIfNew: boolean });
+      } else {
+        await store.setJSON(code, record);
+      }
+    } catch {
+      return json(req, 409, { error: 'Code already taken' });
+    }
+
+    if (creating) {
+      const written = (await store.get(code, { type: 'json' })) as BlobRecord | null;
+      if (!written || !tokensEqual(written.editTokenHash, incomingHash)) {
+        return json(req, 409, { error: 'Code already taken' });
       }
     }
 
-    const record: BlobRecord = {
-      payload: body.payload,
-      editTokenHash: existing?.editTokenHash ?? incomingHash,
-      updatedAt: new Date().toISOString(),
-    };
-    await store.setJSON(code, record);
-    return json(200, { ok: true, updatedAt: record.updatedAt });
+    return json(req, 200, { ok: true, updatedAt: record.updatedAt });
   }
 
-  return json(405, { error: 'Method not allowed' });
+  return json(req, 405, { error: 'Method not allowed' });
 };

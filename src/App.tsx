@@ -1,4 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary';
+import PersistFailureBanner from './components/PersistFailureBanner';
+import PWAUpdatePrompt from './components/PWAUpdatePrompt';
 import GoogleAnalytics from './components/GoogleAnalytics';
 import AdminGuidePage from './pages/AdminGuidePage';
 import CreatePage from './pages/CreatePage';
@@ -10,8 +13,10 @@ import PublishedPersonPage from './pages/PublishedPersonPage';
 
 export default function App() {
   return (
-    <>
+    <ErrorBoundary>
       <GoogleAnalytics />
+      <PersistFailureBanner />
+      <PWAUpdatePrompt />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/create" element={<CreatePage />} />
@@ -21,6 +26,6 @@ export default function App() {
         <Route path="/:code" element={<PublishedHubPage />} />
         <Route path="/:code/:personSlug" element={<PublishedPersonPage />} />
       </Routes>
-    </>
+    </ErrorBoundary>
   );
 }

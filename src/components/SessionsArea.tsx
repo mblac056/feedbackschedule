@@ -3,11 +3,12 @@ import GridSchedule from "./GridSchedule";
 import { useState, useEffect, useMemo } from "react";
 import type { Judge, SessionBlock } from "../types";
 //import { saveJudges, clearGrid, saveSettings } from "../utils/localStorage";
-import { saveJudges, clearGrid, getEntrants } from "../utils/localStorage";
+import { saveJudges, clearGrid } from "../utils/localStorage";
 import type { DraggedSessionData } from "../types";
 import { generatePDF } from "../utils/printFiles";
 import { FaChevronDown } from "react-icons/fa";
 import { useSettings } from "../contexts/useSettings";
+import { useEntrant } from "../contexts/useEntrant";
 import { getSessionDurationMinutes } from "../config/timeConfig";
 import { populateGrid } from "../utils/populateGrid";
 import { getConflictDetails } from "../utils/scheduleHelpers";
@@ -38,11 +39,11 @@ type SessionsAreaProps = {
 export default function SessionsArea({judges, setJudges, refreshKey, onScheduledSessionsChange, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlockRemove, entrantJudgeAssignments, scheduleConflicts }: SessionsAreaProps) {
     //const { settings, setSettings } = useSettings();
     const { settings } = useSettings();
+    const { entrants } = useEntrant();
     const [draggedSessionData, setDraggedSessionData] = useState<DraggedSessionData | null>(null);
     const [totalDuration, setTotalDuration] = useState<number>(0);
     const [showPrintDropdown, setShowPrintDropdown] = useState<boolean>(false);
   const activeJudges = useMemo(() => judges.filter(j => j.active !== false), [judges]);
-  const entrants = useMemo(() => getEntrants(), []);
   const conflictDetails = useMemo(
     () => getConflictDetails(scheduledSessions, activeJudges, entrants, settings),
     [scheduledSessions, activeJudges, entrants, settings]
@@ -218,6 +219,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                     Clear Grid
                   </button>) : (
                   <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
+                    window.dispatchEvent(new Event('evalmatrix:flush-persist'));
                     const reordered = populateGrid(allSessionBlocks, activeJudges, onSessionBlockUpdate, settings);
                     if (reordered && reordered.length > 0) {
                       handleJudgesReorder(reordered);

@@ -49,14 +49,17 @@ export const convertToJSON = (data: ExportData): string => {
 // Parse JSON string back to object
 export const parseJSON = (jsonString: string): ExportData | null => {
   try {
-    const data = JSON.parse(jsonString);
-    console.log('Parsed data:', data);
-    return data as ExportData;
-  } catch (error) {
-    console.error('Error parsing JSON:', error);
+    const data: unknown = JSON.parse(jsonString);
+    if (!isRecord(data)) return null;
+    return data as unknown as ExportData;
+  } catch {
     return null;
   }
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 function applyPublishCredentialsFromImport(publish: unknown): void {
   if (
@@ -74,7 +77,6 @@ function applyPublishCredentialsFromImport(publish: unknown): void {
   clearPublishCredentials();
 }
 
-// Generate export data from current localStorage state
 export const generateExportData = (): ExportData => {
   const credentials = getPublishCredentials();
   return {
@@ -96,25 +98,15 @@ export const importData = (jsonString: string): ImportResult => {
       return { success: false, message: 'Please paste JSON data to import' };
     }
 
-    console.log('Starting import with data:', jsonString.substring(0, 200) + '...');
     const parsedData = parseJSON(jsonString);
-    console.log('Parsed data result:', parsedData);
-    
     if (!parsedData) {
       return { success: false, message: 'Invalid JSON format. Please check your data and try again.' };
     }
 
-    // Validate the data structure
     if (!Array.isArray(parsedData.judges) || !Array.isArray(parsedData.entrants)) {
       throw new Error('Invalid data structure');
     }
 
-    // Clean up any invalid data before saving
-    console.log('Raw settings:', parsedData.settings);
-    console.log('Raw judges:', parsedData.judges);
-    console.log('Raw entrants:', parsedData.entrants);
-    console.log('Raw sessionBlocks:', parsedData.sessionBlocks);
-    
     const cleanJudges = parsedData.judges
       .filter(judge => judge && judge.id && judge.name)
       .map(judge => ({ ...judge, active: judge.active !== false }));
@@ -133,18 +125,19 @@ export const importData = (jsonString: string): ImportResult => {
       exportName: parsedData.settings?.exportName ?? '',
       codePrefix: parsedData.settings?.codePrefix ?? '',
     };
-    
-    console.log('Clean settings:', cleanSettings);
-    console.log('Clean judges:', cleanJudges);
-    console.log('Clean entrants:', cleanEntrants);
-    console.log('Clean sessionBlocks:', cleanSessionBlocks);
 
-    // Save to localStorage
-    saveSettings(cleanSettings);
-    saveJudges(cleanJudges);
-    saveEntrants(cleanEntrants);
-    saveSessionBlocks(cleanSessionBlocks);
-    
+    const saved =
+      saveSettings(cleanSettings) &&
+      saveJudges(cleanJudges) &&
+      saveEntrants(cleanEntrants) &&
+      saveSessionBlocks(cleanSessionBlocks);
+    if (!saved) {
+      return {
+        success: false,
+        message: 'Import parsed, but this browser could not save the data. Free storage space and try again.',
+      };
+    }
+
     // Import preference notes if present
     if (parsedData.preferenceNotes !== undefined) {
       savePreferenceNotes(parsedData.preferenceNotes || '');

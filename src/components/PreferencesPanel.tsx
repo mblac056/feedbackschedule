@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { Entrant, Judge, EntrantJudgeAssignments, SessionBlock } from '../types';
-import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants, getSettings, getPreferenceNotes, savePreferenceNotes } from '../utils/localStorage';
+import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants, getPreferenceNotes, savePreferenceNotes } from '../utils/localStorage';
 import { useEntrant } from '../contexts/useEntrant.ts';
+import { useSettings } from '../contexts/useSettings.ts';
 import { getCategoryColor } from '../config/categoryConfig';
 import { calculateTotalByeLength } from '../utils/printFiles';
 
@@ -55,7 +56,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
   const resizeStartXRef = useRef<number>(0);
   const resizeStartWidthRef = useRef<number>(DEFAULT_PANEL_WIDTH);
   const { selectedEntrant, setSelectedEntrant } = useEntrant();
-  const settings = getSettings();
+  const { settings } = useSettings();
 
   const getMaxPanelWidth = useCallback(
     () => Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, window.innerWidth - 80)),

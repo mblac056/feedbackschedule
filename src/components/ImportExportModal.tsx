@@ -92,7 +92,8 @@ export default function ImportExportModal({ isOpen, onClose }: ImportExportModal
           <div className="space-y-3">
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Export Data</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              Download all your judges, entrants, settings, and session data as a JSON file.
+              Download judges, entrants, settings, and session data as a JSON file.
+              If this browser has published, the file also includes the code and edit token so another device can update the same listing.
             </p>
             <button
               onClick={handleExport}
@@ -115,6 +116,7 @@ export default function ImportExportModal({ isOpen, onClose }: ImportExportModal
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Import Data</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Upload a JSON file to restore your data. This will replace all current data.
+              If the file has no publish credentials, this browser’s publish identity will be cleared.
             </p>
             <div className="relative">
               <input

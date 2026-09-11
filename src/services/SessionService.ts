@@ -1,4 +1,6 @@
 import type { Entrant, SessionBlock, EntrantJudgeAssignments } from '../types';
+import type { SessionSettings } from '../config/timeConfig';
+import { getSessionDurationMinutes } from '../config/timeConfig';
 import { LocalStorageService } from '../utils/localStorage';
 
 export interface SessionConflict {
@@ -213,12 +215,11 @@ export class SessionService {
   /**
    * Calculate session duration in row slots
    */
-  private static getSessionDurationRows(sessionType: string): number {
-    // Use default durations for conflict detection (these should match the settings)
-    const durationMinutes = sessionType === '1xLong' ? 40 : 
-                           sessionType === '3x20' ? 20 : 
-                           10; // 3x10
-    // Convert minutes to row slots (assuming 5-minute slots)
+  private static getSessionDurationRows(sessionType: string, settings?: SessionSettings): number {
+    const durationMinutes = getSessionDurationMinutes(
+      sessionType as '1xLong' | '3x20' | '3x10',
+      settings
+    );
     return Math.ceil(durationMinutes / 5);
   }
 
@@ -241,34 +242,36 @@ export class SessionService {
   /**
    * Detect schedule conflicts between entrants and their groups to avoid
    */
-  static detectConflicts(sessions: SessionBlock[], entrants: Entrant[]): SessionConflict[] {
+  static detectConflicts(
+    sessions: SessionBlock[],
+    entrants: Entrant[],
+    settings?: SessionSettings
+  ): SessionConflict[] {
     const conflicts: SessionConflict[] = [];
 
-    // Check each entrant for conflicts
     entrants.forEach(entrant => {
       if (!entrant.groupsToAvoid || entrant.groupsToAvoid.length === 0) {
-        return; // Skip if no groups to avoid
+        return;
       }
 
       const groupsToAvoidIds = entrant.groupsToAvoid;
-      
-      // Find this entrant's scheduled sessions
-      const entrantSessions = sessions.filter(s => s.entrantId === entrant.id);
+      const entrantSessions = sessions.filter(
+        s => s.entrantId === entrant.id && s.startRowIndex !== undefined
+      );
       
       entrantSessions.forEach(session => {
-        const sessionDuration = this.getSessionDurationRows(session.type);
+        const sessionDuration = this.getSessionDurationRows(session.type, settings);
         
-        // Check all other sessions for overlaps
         sessions.forEach(otherSession => {
-          if (otherSession.entrantId === entrant.id) return; // Skip self
+          if (otherSession.entrantId === entrant.id) return;
+          if (otherSession.startRowIndex === undefined) return;
           
-          const otherSessionDuration = this.getSessionDurationRows(otherSession.type);
+          const otherSessionDuration = this.getSessionDurationRows(otherSession.type, settings);
           
-          // Check if sessions overlap in row indices
           if (this.doSessionsOverlap(
             session.startRowIndex!, 
             sessionDuration, 
-            otherSession.startRowIndex!, 
+            otherSession.startRowIndex, 
             otherSessionDuration
           )) {
             const conflictingEntrant = entrants.find(e => e.id === otherSession.entrantId);
@@ -301,28 +304,22 @@ export class SessionService {
    * Log conflicts to console (for debugging)
    */
   static logConflicts(conflicts: SessionConflict[], entrants: Entrant[]): void {
-    if (conflicts.length > 0) {
-      console.warn('Schedule conflicts detected with groups to avoid:', conflicts);
-      
-      // Group conflicts by entrant for better readability
-      const conflictsByEntrant = conflicts.reduce((acc, conflict) => {
-        if (!acc[conflict.entrantId]) {
-          acc[conflict.entrantId] = [];
-        }
-        acc[conflict.entrantId].push(conflict);
-        return acc;
-      }, {} as Record<string, SessionConflict[]>);
-      
-      Object.entries(conflictsByEntrant).forEach(([entrantId, entrantConflicts]) => {
-        const entrant = entrants.find(e => e.id === entrantId);
-        console.warn(`${entrant?.name} has ${entrantConflicts.length} conflict(s):`);
-        entrantConflicts.forEach(conflict => {
-          console.warn(`  - At ${conflict.timeSlot}: conflicting with ${conflict.conflictingEntrantName} (${conflict.conflictingGroup})`);
-        });
-      });
-    /*} else {
-      console.log('No schedule conflicts detected with groups to avoid.');
-    */
+    if (!import.meta.env.DEV || conflicts.length === 0) return;
+
+    const conflictsByEntrant = conflicts.reduce((acc, conflict) => {
+      if (!acc[conflict.entrantId]) {
+        acc[conflict.entrantId] = [];
       }
+      acc[conflict.entrantId].push(conflict);
+      return acc;
+    }, {} as Record<string, SessionConflict[]>);
+
+    Object.entries(conflictsByEntrant).forEach(([entrantId, entrantConflicts]) => {
+      const entrant = entrants.find(e => e.id === entrantId);
+      console.warn(`${entrant?.name} has ${entrantConflicts.length} conflict(s):`);
+      entrantConflicts.forEach(conflict => {
+        console.warn(`  - At ${conflict.timeSlot}: conflicting with ${conflict.conflictingEntrantName} (${conflict.conflictingGroup})`);
+      });
+    });
   }
 }

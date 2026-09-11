@@ -21,10 +21,37 @@ const DEFAULT_SETTINGS: SessionSettings = {
   codePrefix: '',
 };
 
+function isQuotaExceeded(error: unknown): boolean {
+  return (
+    error instanceof DOMException &&
+    (error.name === 'QuotaExceededError' || error.code === 22 || error.code === 1014)
+  );
+}
+
+function notifyPersist(operation: string, ok: boolean, error?: unknown): void {
+  window.dispatchEvent(
+    new CustomEvent(ok ? 'evalmatrix:persist-ok' : 'evalmatrix:persist-failed', {
+      detail: { operation, quotaExceeded: !ok && isQuotaExceeded(error) },
+    })
+  );
+}
+
 // Enhanced localStorage service with consistent error handling and logging
 export class LocalStorageService {
   private static logError(operation: string, error: unknown): void {
     console.error(`LocalStorageService.${operation} failed:`, error);
+  }
+
+  private static write(key: string, value: string, operation: string): boolean {
+    try {
+      localStorage.setItem(key, value);
+      notifyPersist(operation, true);
+      return true;
+    } catch (error) {
+      this.logError(operation, error);
+      notifyPersist(operation, false, error);
+      return false;
+    }
   }
 
   /*private static logSuccess(operation: string, data?: unknown): void {
@@ -48,13 +75,8 @@ export class LocalStorageService {
     }
   }
 
-  static saveJudges(judges: Judge[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.JUDGES, JSON.stringify(judges));
-      //this.logSuccess('saveJudges', judges);
-    } catch (error) {
-      this.logError('saveJudges', error);
-    }
+  static saveJudges(judges: Judge[]): boolean {
+    return this.write(STORAGE_KEYS.JUDGES, JSON.stringify(judges), 'saveJudges');
   }
 
   // Entrants operations
@@ -97,16 +119,12 @@ export class LocalStorageService {
     }
   }
 
-  static saveEntrants(entrants: Entrant[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.ENTRANTS, JSON.stringify(entrants));
-      //this.logSuccess('saveEntrants', entrants);
-      
-      // Dispatch custom event to notify components of entrant data changes
+  static saveEntrants(entrants: Entrant[]): boolean {
+    const ok = this.write(STORAGE_KEYS.ENTRANTS, JSON.stringify(entrants), 'saveEntrants');
+    if (ok) {
       window.dispatchEvent(new CustomEvent('entrantsUpdated', { detail: entrants }));
-    } catch (error) {
-      this.logError('saveEntrants', error);
     }
+    return ok;
   }
 
   // Settings operations
@@ -128,13 +146,8 @@ export class LocalStorageService {
     }
   }
 
-  static saveSettings(settings: SessionSettings): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
-      //this.logSuccess('saveSettings', settings);
-    } catch (error) {
-      this.logError('saveSettings', error);
-    }
+  static saveSettings(settings: SessionSettings): boolean {
+    return this.write(STORAGE_KEYS.SETTINGS, JSON.stringify(settings), 'saveSettings');
   }
 
   static clearSettings(): void {
@@ -159,13 +172,8 @@ export class LocalStorageService {
     }
   }
 
-  static saveSessionBlocks(sessionBlocks: SessionBlock[]): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.SESSION_BLOCKS, JSON.stringify(sessionBlocks));
-      //this.logSuccess('saveSessionBlocks', sessionBlocks);
-    } catch (error) {
-      this.logError('saveSessionBlocks', error);
-    }
+  static saveSessionBlocks(sessionBlocks: SessionBlock[]): boolean {
+    return this.write(STORAGE_KEYS.SESSION_BLOCKS, JSON.stringify(sessionBlocks), 'saveSessionBlocks');
   }
 
   // Preference Notes operations
@@ -179,12 +187,8 @@ export class LocalStorageService {
     }
   }
 
-  static savePreferenceNotes(notes: string): void {
-    try {
-      localStorage.setItem(STORAGE_KEYS.PREFERENCE_NOTES, notes);
-    } catch (error) {
-      this.logError('savePreferenceNotes', error);
-    }
+  static savePreferenceNotes(notes: string): boolean {
+    return this.write(STORAGE_KEYS.PREFERENCE_NOTES, notes, 'savePreferenceNotes');
   }
 
   // Utility methods
@@ -193,7 +197,7 @@ export class LocalStorageService {
       Object.values(STORAGE_KEYS).forEach(key => {
         localStorage.removeItem(key);
       });
-      //this.logSuccess('clearAll');
+      localStorage.removeItem('evalmatrix_publish_credentials');
     } catch (error) {
       this.logError('clearAll', error);
     }
@@ -216,7 +220,7 @@ export class LocalStorageService {
 
 // Judges functions
 export const getJudges = (): Judge[] => LocalStorageService.getJudges();
-export const saveJudges = (judges: Judge[]): void => LocalStorageService.saveJudges(judges);
+export const saveJudges = (judges: Judge[]): boolean => LocalStorageService.saveJudges(judges);
 
 export const addJudge = (judge: Judge): Judge[] => {
   const judges = LocalStorageService.getJudges();
@@ -243,7 +247,7 @@ export const removeJudge = (judgeId: string): Judge[] => {
 
 // Entrants functions
 export const getEntrants = (): Entrant[] => LocalStorageService.getEntrants();
-export const saveEntrants = (entrants: Entrant[]): void => LocalStorageService.saveEntrants(entrants);
+export const saveEntrants = (entrants: Entrant[]): boolean => LocalStorageService.saveEntrants(entrants);
 
 export const addEntrant = (entrant: Entrant): Entrant[] => {
   const entrants = LocalStorageService.getEntrants();
@@ -270,15 +274,15 @@ export const removeEntrant = (entrantId: string): Entrant[] => {
 
 // Settings functions
 export const getSettings = (): SessionSettings => LocalStorageService.getSettings();
-export const saveSettings = (settings: SessionSettings): void => LocalStorageService.saveSettings(settings);
+export const saveSettings = (settings: SessionSettings): boolean => LocalStorageService.saveSettings(settings);
 
 // Session Blocks functions
 export const getSessionBlocks = (): SessionBlock[] => LocalStorageService.getSessionBlocks();
-export const saveSessionBlocks = (sessionBlocks: SessionBlock[]): void => LocalStorageService.saveSessionBlocks(sessionBlocks);
+export const saveSessionBlocks = (sessionBlocks: SessionBlock[]): boolean => LocalStorageService.saveSessionBlocks(sessionBlocks);
 
 // Preference Notes functions
 export const getPreferenceNotes = (): string => LocalStorageService.getPreferenceNotes();
-export const savePreferenceNotes = (notes: string): void => LocalStorageService.savePreferenceNotes(notes);
+export const savePreferenceNotes = (notes: string): boolean => LocalStorageService.savePreferenceNotes(notes);
 
 // Utility function to clear the grid by unscheduling all session blocks
 export const clearGrid = (sessionBlocks: SessionBlock[]): SessionBlock[] => {

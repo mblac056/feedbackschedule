@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { DragEvent as ReactDragEvent } from 'react';
 import type { Judge, Entrant, SessionBlock, DraggedSessionData } from '../types';
-import { saveSettings } from '../utils/localStorage';
 import SessionBlockComponent from './SessionBlock';
 import { TIME_CONFIG, getSessionHeight } from '../config/timeConfig';
 import { useSettings } from '../contexts/useSettings';
@@ -87,7 +86,6 @@ export default function GridSchedule({ judges, onJudgesReorder, onSessionAssigne
       // Update settings
       const newSettings = { ...settings, startTime: tempStartTime };
       setSettings(newSettings);
-      saveSettings(newSettings);
     } else {
       // Reset to original value if invalid
       setTempStartTime(settings.startTime);

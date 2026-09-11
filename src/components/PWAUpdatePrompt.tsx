@@ -1,30 +1,43 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 // @ts-ignore - virtual module provided by vite-plugin-pwa
 import { useRegisterSW } from 'virtual:pwa-register/react'
 
+const EDITOR_PREFIXES = ['/create', '/preview', '/admin-guide'];
+
 export default function PWAUpdatePrompt() {
+  const location = useLocation();
+  const isEditor = EDITOR_PREFIXES.some((prefix) => location.pathname.startsWith(prefix));
   const {
     offlineReady: [offlineReady],
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegistered(r: ServiceWorkerRegistration | undefined) {
-      console.log('SW Registered: ', r)
+    onRegistered() {
+      /* registered */
     },
     onRegisterError(error: Error) {
-      console.log('SW registration error', error)
+      if (import.meta.env.DEV) {
+        console.log('SW registration error', error);
+      }
     },
   })
 
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false)
 
   useEffect(() => {
-    if (needRefresh) {
-      setShowUpdatePrompt(true)
+    if (!needRefresh) return;
+    if (isEditor) {
+      setShowUpdatePrompt(true);
+      return;
     }
-  }, [needRefresh])
+    void updateServiceWorker(true);
+  }, [needRefresh, isEditor, updateServiceWorker])
 
-  if (!showUpdatePrompt && !offlineReady) {
+  if (isEditor && !showUpdatePrompt && !offlineReady) {
+    return null
+  }
+  if (!isEditor) {
     return null
   }
 
@@ -64,4 +77,3 @@ export default function PWAUpdatePrompt() {
     </div>
   )
 }
-

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useEntrant, SettingsProvider } from '../contexts'
+import { SettingsProvider } from '../contexts'
 import { useSessionManagement } from '../hooks/useSessionManagement'
-import { getEntrants, getJudges } from '../utils/localStorage'
+import { getJudges } from '../utils/localStorage'
 import Header from '../components/Header'
 import JudgesModal from '../components/JudgesModal'
 import EntrantsModal from '../components/EntrantsModal'
@@ -11,10 +11,8 @@ import PreferencesPanel from '../components/PreferencesPanel'
 import SessionsArea from '../components/SessionsArea'
 import EmptyState from '../components/EmptyState';
 import Footer from '../components/Footer';
-import PWAUpdatePrompt from '../components/PWAUpdatePrompt';
 
 function CreatePage() {
-  const { setEntrants } = useEntrant();
   const {
     judges,
     allSessionBlocks,
@@ -34,28 +32,6 @@ function CreatePage() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isImportExportModalOpen, setIsImportExportModalOpen] = useState(false);
   const [isPreferencesOpen, setIsPreferencesOpen] = useState(false);
-
-  // Keep entrant context synced with localStorage updates.
-  useEffect(() => {
-    const syncEntrants = () => {
-      setEntrants(getEntrants());
-    };
-
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'evalmatrix_entrants') {
-        syncEntrants();
-      }
-    };
-
-    syncEntrants();
-    window.addEventListener('entrantsUpdated', syncEntrants);
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('entrantsUpdated', syncEntrants);
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [setEntrants]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -188,7 +164,6 @@ function CreatePage() {
         />
 
         <Footer showAdminGuide />
-        <PWAUpdatePrompt />
       </div>
     </SettingsProvider>
   )

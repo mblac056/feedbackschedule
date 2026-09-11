@@ -32,12 +32,30 @@ export function filterCodePrefix(value: string): string {
     .slice(0, 3);
 }
 
+function randomInt(maxExclusive: number): number {
+  const cryptoObj = globalThis.crypto;
+  if (!cryptoObj?.getRandomValues) {
+    throw new Error('Secure randomness is unavailable');
+  }
+  if (maxExclusive <= 0 || maxExclusive > 256) {
+    throw new Error('randomInt maxExclusive out of range');
+  }
+  const limit = Math.floor(256 / maxExclusive) * maxExclusive;
+  const buf = new Uint8Array(1);
+  let value = 0;
+  do {
+    cryptoObj.getRandomValues(buf);
+    value = buf[0];
+  } while (value >= limit);
+  return value % maxExclusive;
+}
+
 export function generateCode(prefix?: string): string {
   const rawPrefix = prefix ? normalizeCode(prefix).slice(0, 3) : '';
   const prefixChars = [...rawPrefix].filter((ch) => CODE_CHARSET.includes(ch)).join('');
   let out = prefixChars;
   while (out.length < 6) {
-    out += RANDOM_CODE_ALPHABET[Math.floor(Math.random() * RANDOM_CODE_ALPHABET.length)];
+    out += RANDOM_CODE_ALPHABET[randomInt(RANDOM_CODE_ALPHABET.length)];
   }
   return out;
 }

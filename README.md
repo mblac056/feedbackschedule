@@ -10,7 +10,7 @@ A comprehensive feedback scheduling system designed for barbershop singing compe
 ## Live Demo
 
 **Primary Site**: [feedbackschedule.com](https://feedbackschedule.com)  
-**GitHub Pages**: [mblac056.github.io/feedbackschedule](https://mblac056.github.io/feedbackschedule)
+**GitHub**: [https://github.com/mblac056/feedbackschedule](https://github.com/mblac056/feedbackschedule)
 
 ## Features
 
