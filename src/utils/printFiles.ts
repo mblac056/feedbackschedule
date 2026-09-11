@@ -1,5 +1,6 @@
 import type { Judge, SessionBlock } from '../types';
 import { getEntrants, getSettings, getPreferenceNotes } from './localStorage';
+import { countPreferencePills } from './preferencePills';
 import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '../config/timeConfig';
 import jsPDF from 'jspdf';
 import { generateMatrixPage } from './printTemplate-matrix';
@@ -499,62 +500,13 @@ export function generatePreferenceCheckData(
 ): PreferenceCheckData {
   const entrants = getEntrants();
   const settings = getSettings();
-  
-  // Helper function to check if a group has conflicts for a specific entrant
-  const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
-    if (!scheduleConflicts) return false;
-    return scheduleConflicts.some(conflict => 
-      conflict.entrantId === entrantId && conflict.conflictingEntrantId === groupId
-    );
-  };
-  
-  // Function to count different types of pills (same logic as PreferencesPanel)
-  const getPillCounts = () => {
-    let greenCount = 0;
-    let redCount = 0;
-    let grayCount = 0;
-
-    const includedEntrants = entrants.filter(e => e.includeInSchedule);
-    
-    includedEntrants.forEach(entrant => {
-      // Count group pills
-      if (entrant.groupsToAvoid && Array.isArray(entrant.groupsToAvoid)) {
-        entrant.groupsToAvoid.forEach(groupId => {
-          if (hasGroupConflict(entrant.id, groupId)) {
-            redCount++;
-          } else {
-            greenCount++;
-          }
-        });
-      }
-
-      // Count preference pills
-      if (entrant.preference) {
-        // Check if any session blocks (scheduled or unscheduled) match their preference
-        const entrantSessionBlocks = allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
-        const hasMatchingSessionType = entrantSessionBlocks.some(block => block.type === entrant.preference);
-        
-        if (hasMatchingSessionType) {
-          greenCount++;
-        } else {
-          redCount++;
-        }
-      }
-
-      // Count judge preference pills
-      [entrant.judgePreference1, entrant.judgePreference2, entrant.judgePreference3].forEach(judgeId => {
-        if (judgeId && judges.find(j => j.id === judgeId)) {
-          if (entrantJudgeAssignments?.[entrant.id]?.includes(judgeId)) {
-            greenCount++;
-          } else {
-            grayCount++;
-          }
-        }
-      });
-    });
-
-    return { greenCount, redCount, grayCount };
-  };
+  const pillCounts = countPreferencePills({
+    entrants,
+    judges,
+    sessionBlocks: allSessionBlocks,
+    assignments: entrantJudgeAssignments,
+    conflicts: scheduleConflicts,
+  });
 
   // Calculate total bye lengths for each entrant
   const entrantByeLengths: { [entrantId: string]: number } = {};
@@ -613,7 +565,7 @@ export function generatePreferenceCheckData(
     scheduledSessions: scheduledSessions?.map(s => ({ session: { entrantId: s.entrantId, type: s.type } })),
     allSessionBlocks: allSessionBlocks?.map(s => ({ entrantId: s.entrantId, type: s.type })),
     scheduleConflicts,
-    pillCounts: getPillCounts(),
+    pillCounts,
     entrantByeLengths,
     preferenceNotes: getPreferenceNotes() || undefined
   };

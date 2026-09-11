@@ -2,6 +2,18 @@ import html2pdf from 'html2pdf.js';
 import type { Entrant, Judge, EntrantJudgeAssignments } from '../types';
 import { getCategoryColor } from '../config/categoryConfig';
 import { getSettings } from './localStorage';
+import {
+  getAvoidGroupPillStatus,
+  getJudgePreferencePillStatus,
+  getSessionPreferencePillStatus,
+  hasGroupConflict,
+} from './preferencePills';
+
+const PILL_CLASS = {
+  good: 'green',
+  conflict: 'red',
+  unmatched: 'gray',
+} as const;
 
 export interface PreferenceCheckData {
   entrants: Entrant[];
@@ -50,14 +62,6 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
   };
 
   const title = feedbackRound ? `Preference Check - ${escapeHtml(feedbackRound)}` : 'Preference Check';
-
-  // Helper function to check if a group has conflicts for a specific entrant
-  const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
-    if (!data.scheduleConflicts) return false;
-    return data.scheduleConflicts.some(conflict => 
-      conflict.entrantId === entrantId && conflict.conflictingEntrantId === groupId
-    );
-  };
 
   // Filter included entrants
   const includedEntrants = data.entrants.filter(e => e.includeInSchedule);
@@ -148,8 +152,9 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
       entrant.groupsToAvoid.forEach(groupId => {
         const groupEntrant = data.entrants.find(e => e.id === groupId);
         const groupName = groupEntrant?.name || 'Unknown Group';
-        const hasConflict = hasGroupConflict(entrant.id, groupId);
-        const pillClass = hasConflict ? 'red' : 'green';
+        const pillClass = PILL_CLASS[
+          getAvoidGroupPillStatus(hasGroupConflict(data.scheduleConflicts, entrant.id, groupId))
+        ];
         html += `<span class="pill ${pillClass}">${groupName}</span>`;
       });
     }
@@ -158,9 +163,12 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
     // Preference column
     html += '<td>';
     if (entrant.preference) {
-      const entrantSessionBlocks = data.allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
-      const hasMatchingSessionType = entrantSessionBlocks.some(block => block.type === entrant.preference);
-      const pillClass = hasMatchingSessionType ? 'green' : 'red';
+      const pillClass = PILL_CLASS[
+        getSessionPreferencePillStatus(
+          entrant.preference,
+          data.allSessionBlocks?.filter(block => block.entrantId === entrant.id) || []
+        ) ?? 'conflict'
+      ];
       html += `<span class="pill ${pillClass}">${entrant.preference}</span>`;
     }
     html += '</td>';
@@ -171,8 +179,11 @@ export async function generatePreferenceCheckPage(data: PreferenceCheckData): Pr
       if (judgeId) {
         const judge = data.judges.find(j => j.id === judgeId);
         if (judge) {
-          const isAssigned = data.entrantJudgeAssignments?.[entrant.id]?.includes(judgeId);
-          const pillClass = isAssigned ? 'green' : 'gray';
+          const pillClass = PILL_CLASS[
+            getJudgePreferencePillStatus(
+              Boolean(data.entrantJudgeAssignments?.[entrant.id]?.includes(judgeId))
+            )
+          ];
           const dotColor = judge.category ? getCategoryColor(judge.category) : '';
           html += `<span class="pill ${pillClass}">`;
           if (judge.category) {

@@ -21,7 +21,7 @@ function CreatePage() {
     scheduleConflicts,
     setJudges,
     handleSessionBlockUpdate,
-    handleSessionBlockRemove,
+    handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
     refreshSessionBlocks,
@@ -112,12 +112,11 @@ function CreatePage() {
                 <SessionsArea 
                   judges={judges} 
                   setJudges={setJudges}
-                  refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
                   onScheduledSessionsChange={handleScheduledSessionsChange}
                   scheduledSessions={scheduledSessions}
                   allSessionBlocks={allSessionBlocks}
                   onSessionBlockUpdate={handleSessionBlockUpdate}
-                  onSessionBlockRemove={handleSessionBlockRemove}
+                  onSessionBlocksReplace={handleSessionBlocksReplace}
                   entrantJudgeAssignments={entrantJudgeAssignments}
                   scheduleConflicts={scheduleConflicts}
                 />
@@ -125,11 +124,10 @@ function CreatePage() {
               
               <PreferencesPanel 
                 judges={judges} 
-                refreshKey={isEntrantsModalOpen ? 'open' : 'closed'}
                 entrantJudgeAssignments={entrantJudgeAssignments}
                 allSessionBlocks={allSessionBlocks}
                 scheduleConflicts={scheduleConflicts}
-                onSessionBlocksChange={handleSessionBlocksChange}
+                onSessionBlocksReplace={handleSessionBlocksReplace}
                 isOpen={isPreferencesOpen}
                 onToggle={handlePreferencesToggle}
               />

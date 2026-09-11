@@ -19,12 +19,11 @@ import PublishControls from "./PublishControls";
 type SessionsAreaProps = {
     judges: Judge[];
     setJudges: (judges: Judge[]) => void;
-    refreshKey: string;
     onScheduledSessionsChange?: (sessions: SessionBlock[]) => void;
     allSessionBlocks: SessionBlock[];
     scheduledSessions: SessionBlock[];
     onSessionBlockUpdate: (sessionBlock: SessionBlock) => void;
-    onSessionBlockRemove: (sessionBlockId: string) => void;
+    onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
     entrantJudgeAssignments?: { [entrantId: string]: string[] };
     scheduleConflicts?: Array<{
         entrantId: string;
@@ -36,7 +35,7 @@ type SessionsAreaProps = {
     }>;
 }
 
-export default function SessionsArea({judges, setJudges, refreshKey, onScheduledSessionsChange, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlockRemove, entrantJudgeAssignments, scheduleConflicts }: SessionsAreaProps) {
+export default function SessionsArea({judges, setJudges, onScheduledSessionsChange, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlocksReplace, entrantJudgeAssignments, scheduleConflicts }: SessionsAreaProps) {
     //const { settings, setSettings } = useSettings();
     const { settings } = useSettings();
     const { entrants } = useEntrant();
@@ -220,9 +219,10 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
                   </button>) : (
                   <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
                     window.dispatchEvent(new Event('evalmatrix:flush-persist'));
-                    const reordered = populateGrid(allSessionBlocks, activeJudges, onSessionBlockUpdate, settings);
-                    if (reordered && reordered.length > 0) {
-                      handleJudgesReorder(reordered);
+                    const result = populateGrid(allSessionBlocks, activeJudges, entrants, settings);
+                    onSessionBlocksReplace(result.blocks);
+                    if (result.judges.length > 0) {
+                      handleJudgesReorder(result.judges);
                     }
                     //handlePopulateGrid(allSessionBlocks, judges, onSessionBlockUpdate, settings);
                   }}>
@@ -304,7 +304,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
             scheduledSessions={scheduledSessions}
             allSessionBlocks={allSessionBlocks}
             onSessionBlockUpdate={onSessionBlockUpdate}
-            onSessionBlockRemove={onSessionBlockRemove}
+            onSessionBlocksReplace={onSessionBlocksReplace}
             onSessionDragStart={(sessionData) => {
               setDraggedSessionData(sessionData);
             }}
@@ -314,7 +314,6 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
       <div className="mobile-scroll-container">
         <UnassignedSessions 
           allSessionBlocks={allSessionBlocks}
-          refreshKey={refreshKey}
           onSessionUnscheduled={(sessionData) => {
             // Find the session block and unschedule it instead of removing it
             const sessionBlock = allSessionBlocks.find(block => 
@@ -333,8 +332,7 @@ export default function SessionsArea({judges, setJudges, refreshKey, onScheduled
               onSessionBlockUpdate(updatedBlock);
             }
           }}
-          onSessionBlockUpdate={onSessionBlockUpdate}
-          onSessionBlockRemove={onSessionBlockRemove}
+          onSessionBlocksReplace={onSessionBlocksReplace}
         />
       </div>
       </div>

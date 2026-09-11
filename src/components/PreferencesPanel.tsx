@@ -1,15 +1,22 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import type { Entrant, Judge, EntrantJudgeAssignments, SessionBlock } from '../types';
-import { getEntrants, saveEntrants, getSessionBlocks, saveSessionBlocks, reorderSessionBlocksByEntrants, getPreferenceNotes, savePreferenceNotes } from '../utils/localStorage';
+import { useEffect, useMemo } from 'react';
+import type { Judge, EntrantJudgeAssignments, SessionBlock } from '../types';
 import { useEntrant } from '../contexts/useEntrant.ts';
 import { useSettings } from '../contexts/useSettings.ts';
 import { getCategoryColor } from '../config/categoryConfig';
 import { calculateTotalByeLength } from '../utils/printFiles';
-
+import {
+  countPreferencePills,
+  getAvoidGroupPillStatus,
+  getJudgePreferencePillStatus,
+  getSessionPreferencePillStatus,
+  hasGroupConflict,
+} from '../utils/preferencePills';
+import { useEntrantReorder } from './preferences/hooks/useEntrantReorder';
+import { usePanelResize } from './preferences/hooks/usePanelResize';
+import { usePreferenceNotes } from './preferences/hooks/usePreferenceNotes';
 
 interface PreferencesPanelProps {
   judges: Judge[];
-  refreshKey?: string;
   entrantJudgeAssignments?: EntrantJudgeAssignments;
   allSessionBlocks?: SessionBlock[];
   scheduleConflicts?: Array<{
@@ -20,15 +27,10 @@ interface PreferencesPanelProps {
     conflictingEntrantName: string;
     timeSlot: string;
   }>;
-  onSessionBlocksChange?: () => void; // Callback to notify parent that session blocks have changed
+  onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
   isOpen: boolean;
   onToggle: () => void;
 }
-
-const DEFAULT_PANEL_WIDTH = 800;
-const MIN_PANEL_WIDTH = 520;
-const MAX_PANEL_WIDTH = 1200;
-const DESKTOP_BREAKPOINT = 1024;
 
 const PILL_STATUS_CLASSES = {
   good: 'bg-green-200 dark:bg-green-900/70 text-green-800 dark:text-green-200 border-2 border-green-600 dark:border-green-500',
@@ -42,76 +44,84 @@ const PILL_SWATCH_CLASSES = {
   unmatched: 'bg-gray-200 dark:bg-gray-600',
 } as const;
 
+function formatByeLength(minutes: number): string {
+  if (minutes === 0) return '-';
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  let text = '';
+  if (hours > 0) {
+    text += `${hours}h`;
+  }
+  if (mins > 0) {
+    text += `${hours > 0 ? ' ' : ''}${mins}m`;
+  }
+  return text || '0m';
+}
 
+function JudgePreferencePill({ judge, assigned }: { judge: Judge | undefined; assigned: boolean }) {
+  if (!judge) return null;
 
-export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssignments, allSessionBlocks, scheduleConflicts, onSessionBlocksChange, isOpen, onToggle }: PreferencesPanelProps) {
-  const [entrants, setEntrants] = useState<Entrant[]>([]);
-  const [includedEntrants, setIncludedEntrants] = useState<Entrant[]>([]);
-  const [draggedEntrantId, setDraggedEntrantId] = useState<string | null>(null);
-  const [dragOverEntrantId, setDragOverEntrantId] = useState<string | null>(null);
-  const [preferenceNotes, setPreferenceNotes] = useState<string>('');
-  const [panelWidth, setPanelWidth] = useState<number>(DEFAULT_PANEL_WIDTH);
-  const [isDesktopView, setIsDesktopView] = useState<boolean>(window.innerWidth >= DESKTOP_BREAKPOINT);
-  const [isResizing, setIsResizing] = useState<boolean>(false);
-  const resizeStartXRef = useRef<number>(0);
-  const resizeStartWidthRef = useRef<number>(DEFAULT_PANEL_WIDTH);
-  const { selectedEntrant, setSelectedEntrant } = useEntrant();
+  return (
+    <span
+      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${
+        PILL_STATUS_CLASSES[getJudgePreferencePillStatus(assigned)]
+      }`}
+    >
+      {judge.category ? (
+        <span
+          className="w-2 h-2 rounded-full"
+          style={{ backgroundColor: getCategoryColor(judge.category) }}
+        />
+      ) : null}
+      {judge.name}
+    </span>
+  );
+}
+
+export default function PreferencesPanel({
+  judges,
+  entrantJudgeAssignments,
+  allSessionBlocks = [],
+  scheduleConflicts,
+  onSessionBlocksReplace,
+  isOpen,
+  onToggle,
+}: PreferencesPanelProps) {
+  const { entrants, selectedEntrant, setSelectedEntrant } = useEntrant();
   const { settings } = useSettings();
+  const { preferenceNotes, handleNotesChange } = usePreferenceNotes();
+  const { panelWidth, isDesktopView, isResizing, handleResizePointerDown } = usePanelResize();
+  const {
+    draggedEntrantId,
+    dragOverEntrantId,
+    handleDragStart,
+    handleDragOver,
+    handleDragLeave,
+    handleDrop,
+    handleDragEnd,
+  } = useEntrantReorder({
+    entrants,
+    sessionBlocks: allSessionBlocks,
+    onSessionBlocksReplace,
+  });
 
-  const getMaxPanelWidth = useCallback(
-    () => Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, window.innerWidth - 80)),
-    []
+  const includedEntrants = useMemo(
+    () => entrants.filter((entrant) => entrant.includeInSchedule),
+    [entrants]
   );
-  const clampPanelWidth = useCallback(
-    (width: number) => Math.min(getMaxPanelWidth(), Math.max(MIN_PANEL_WIDTH, width)),
-    [getMaxPanelWidth]
+
+  const pillCounts = useMemo(
+    () =>
+      countPreferencePills({
+        entrants,
+        judges,
+        sessionBlocks: allSessionBlocks,
+        assignments: entrantJudgeAssignments,
+        conflicts: scheduleConflicts,
+      }),
+    [entrants, judges, allSessionBlocks, entrantJudgeAssignments, scheduleConflicts]
   );
 
-  useEffect(() => {
-    const storedEntrants = getEntrants();
-    setEntrants(storedEntrants);
-
-    // Filter included entrants and maintain array order
-    const included = storedEntrants.filter(e => e.includeInSchedule);
-    setIncludedEntrants(included);
-
-    // Load preference notes
-    const notes = getPreferenceNotes();
-    setPreferenceNotes(notes);
-  }, [clampPanelWidth]);
-
-  // Update included entrants when entrants change
-  useEffect(() => {
-    const included = entrants.filter(e => e.includeInSchedule);
-    setIncludedEntrants(included);
-  }, [entrants]);
-
-  // Refresh entrants when refreshKey changes (modal closes)
-  useEffect(() => {
-    if (refreshKey === 'closed') {
-      const storedEntrants = getEntrants();
-      setEntrants(storedEntrants);
-    }
-  }, [refreshKey]);
-
-  useEffect(() => {
-    const handleWindowResize = () => {
-      const desktop = window.innerWidth >= DESKTOP_BREAKPOINT;
-      setIsDesktopView(desktop);
-      if (desktop) {
-        setPanelWidth(prevWidth => clampPanelWidth(prevWidth));
-      }
-    };
-
-    handleWindowResize();
-    window.addEventListener('resize', handleWindowResize);
-    return () => {
-      window.removeEventListener('resize', handleWindowResize);
-    };
-  }, [clampPanelWidth]);
-
-
-  // Add keyboard shortcut for toggling preferences panel
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
@@ -124,214 +134,27 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
     };
 
     document.addEventListener('keydown', handleKeyPress);
-
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
   }, [onToggle]);
 
-  const handleDragStart = (e: React.DragEvent, entrantId: string) => {
-    setDraggedEntrantId(entrantId);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', entrantId);
-  };
-
-  const handleDragOver = (e: React.DragEvent, entrantId: string) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (draggedEntrantId && draggedEntrantId !== entrantId) {
-      setDragOverEntrantId(entrantId);
-    }
-  };
-
-  const handleDragLeave = () => {
-    setDragOverEntrantId(null);
-  };
-
-  const handleDrop = (e: React.DragEvent, targetEntrantId: string) => {
-    e.preventDefault();
-    if (!draggedEntrantId || draggedEntrantId === targetEntrantId) return;
-
-    const draggedIndex = includedEntrants.findIndex(e => e.id === draggedEntrantId);
-    const targetIndex = includedEntrants.findIndex(e => e.id === targetEntrantId);
-
-    if (draggedIndex === -1 || targetIndex === -1) return;
-
-    // Get all entrants and reorder them
-    const allEntrants = getEntrants();
-    const draggedEntrant = allEntrants.find(e => e.id === draggedEntrantId);
-    const targetEntrant = allEntrants.find(e => e.id === targetEntrantId);
-
-    if (!draggedEntrant || !targetEntrant) return;
-
-    const draggedAllIndex = allEntrants.findIndex(e => e.id === draggedEntrantId);
-    const targetAllIndex = allEntrants.findIndex(e => e.id === targetEntrantId);
-
-    const newAllEntrants = [...allEntrants];
-    const [movedEntrant] = newAllEntrants.splice(draggedAllIndex, 1);
-    newAllEntrants.splice(targetAllIndex, 0, movedEntrant);
-
-    // Update localStorage with new entrant order
-    saveEntrants(newAllEntrants);
-
-    // Get current session blocks and reorder them based on new entrant order
-    const currentSessionBlocks = getSessionBlocks();
-    const reorderedSessionBlocks = reorderSessionBlocksByEntrants(currentSessionBlocks, newAllEntrants);
-
-    // Save reordered session blocks to localStorage
-    saveSessionBlocks(reorderedSessionBlocks);
-
-    // Update local state
-    setEntrants(newAllEntrants);
-    setIncludedEntrants(newAllEntrants.filter(e => e.includeInSchedule));
-
-    // Notify parent component that session blocks have changed
-    if (onSessionBlocksChange) {
-      onSessionBlocksChange();
-    }
-
-    setDraggedEntrantId(null);
-    setDragOverEntrantId(null);
-  };
-
-  const handleDragEnd = () => {
-    setDraggedEntrantId(null);
-    setDragOverEntrantId(null);
-  };
-
-  // Helper function to check if a group has conflicts for a specific entrant
-  const hasGroupConflict = (entrantId: string, groupId: string): boolean => {
-    if (!scheduleConflicts) return false;
-    return scheduleConflicts.some(conflict =>
-      conflict.entrantId === entrantId && conflict.conflictingEntrantId === groupId
-    );
-  };
-
-  // Helper function to format bye length for display
-  const formatByeLength = (minutes: number): string => {
-    if (minutes === 0) return '-';
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    let text = '';
-    if (hours > 0) {
-      text += `${hours}h`;
-    }
-    if (mins > 0) {
-      text += `${hours > 0 ? ' ' : ''}${mins}m`;
-    }
-    return text || '0m';
-  };
-
-  // Helper function to get total bye length for an entrant
   const getEntrantByeLength = (entrantId: string): number => {
-    if (!allSessionBlocks) return 0;
     const entrantSessions = allSessionBlocks.filter(
-      block => block.entrantId === entrantId && block.isScheduled && block.startRowIndex !== undefined
+      (block) => block.entrantId === entrantId && block.isScheduled && block.startRowIndex !== undefined
     );
     return calculateTotalByeLength(entrantSessions, settings);
   };
-  const getPillCounts = () => {
-    let greenCount = 0;
-    let redCount = 0;
-    let grayCount = 0;
 
-    includedEntrants.forEach(entrant => {
-      // Count group pills
-      if (entrant.groupsToAvoid && Array.isArray(entrant.groupsToAvoid) && entrant.groupsToAvoid.length > 0) {
-        entrant.groupsToAvoid.forEach(groupId => {
-          if (hasGroupConflict(entrant.id, groupId)) {
-            redCount++;
-          } else {
-            greenCount++;
-          }
-        });
-      }
-
-      // Count preference pills
-      if (entrant.preference) {
-        // Check if any session blocks (scheduled or unscheduled) match their preference
-        const entrantSessionBlocks = allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
-        const hasMatchingSessionType = entrantSessionBlocks.some(block => block.type === entrant.preference);
-
-        if (hasMatchingSessionType) {
-          greenCount++;
-        } else {
-          redCount++;
-        }
-      }
-
-      // Count judge preference pills
-      [entrant.judgePreference1, entrant.judgePreference2, entrant.judgePreference3].forEach(judgeId => {
-        if (judgeId && judges.find(j => j.id === judgeId)) {
-          if (entrantJudgeAssignments?.[entrant.id]?.includes(judgeId)) {
-            greenCount++;
-          } else {
-            grayCount++;
-          }
-        }
-      });
-    });
-
-    return { greenCount, redCount, grayCount };
-  };
-
-  const pillCounts = getPillCounts();
-
-  const togglePanel = () => {
-    onToggle();
-  };
-
-  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newNotes = e.target.value;
-    setPreferenceNotes(newNotes);
-    savePreferenceNotes(newNotes);
-  };
-
-  const handleResizePointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
-    if (!isDesktopView) return;
-
-    e.preventDefault();
-    resizeStartXRef.current = e.clientX;
-    resizeStartWidthRef.current = panelWidth;
-    setIsResizing(true);
-  };
-
-  useEffect(() => {
-    if (!isResizing) return;
-
-    const originalCursor = document.body.style.cursor;
-    const originalUserSelect = document.body.style.userSelect;
-
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-
-    const handlePointerMove = (e: PointerEvent) => {
-      const deltaX = resizeStartXRef.current - e.clientX;
-      const nextWidth = resizeStartWidthRef.current + deltaX;
-      setPanelWidth(clampPanelWidth(nextWidth));
-    };
-
-    const handlePointerUp = () => {
-      setIsResizing(false);
-    };
-
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-
-    return () => {
-      document.body.style.cursor = originalCursor;
-      document.body.style.userSelect = originalUserSelect;
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
-    };
-  }, [isResizing, clampPanelWidth]);
+  const groupName = (groupId: string) =>
+    entrants.find((entrant) => entrant.id === groupId)?.name || 'Unknown Group';
 
   const isEmpty = includedEntrants.length === 0;
 
   const panelBodyContent = isEmpty ? (
     <div className="text-center text-gray-500 dark:text-gray-400 py-8">
       <p>No entrants included in schedule yet.</p>
-      <p className="text-sm mt-2">Check the "Include" checkbox for entrants in the Manage Entrants modal.</p>
+      <p className="text-sm mt-2">Check the "Include" checkbox for entrants in the Entrants modal.</p>
     </div>
   ) : (
     <div className="space-y-4 min-w-0">
@@ -411,105 +234,54 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
                 <td className="px-3 py-2 border-b">
                   {entrant.groupsToAvoid && Array.isArray(entrant.groupsToAvoid) && entrant.groupsToAvoid.length > 0 && (
                     <div className="flex flex-wrap gap-1">
-                      {entrant.groupsToAvoid.map((groupId, groupIndex) => {
-                        const groupEntrant = entrants.find(e => e.id === groupId);
-                        const groupName = groupEntrant?.name || 'Unknown Group';
-                        return (
-                          <span
-                            key={groupIndex}
-                            className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${hasGroupConflict(entrant.id, groupId)
-                              ? PILL_STATUS_CLASSES.conflict
-                              : PILL_STATUS_CLASSES.good
-                              }`}
-                          >
-                            {groupName}
-                          </span>
-                        );
-                      })}
+                      {entrant.groupsToAvoid.map((groupId, groupIndex) => (
+                        <span
+                          key={groupIndex}
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${
+                            PILL_STATUS_CLASSES[
+                              getAvoidGroupPillStatus(hasGroupConflict(scheduleConflicts, entrant.id, groupId))
+                            ]
+                          }`}
+                        >
+                          {groupName(groupId)}
+                        </span>
+                      ))}
                     </div>
                   )}
                 </td>
                 <td className="px-3 py-2 border-b">
                   {entrant.preference && (
                     <span
-                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${(() => {
-                        const entrantSessionBlocks =
-                          allSessionBlocks?.filter(block => block.entrantId === entrant.id) || [];
-                        const hasMatchingSessionType = entrantSessionBlocks.some(
-                          block => block.type === entrant.preference
-                        );
-                        return hasMatchingSessionType
-                          ? PILL_STATUS_CLASSES.good
-                          : PILL_STATUS_CLASSES.conflict;
-                      })()
-                        }`}
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs ${
+                        PILL_STATUS_CLASSES[
+                          getSessionPreferencePillStatus(
+                            entrant.preference,
+                            allSessionBlocks.filter((block) => block.entrantId === entrant.id)
+                          ) ?? 'conflict'
+                        ]
+                      }`}
                     >
                       {entrant.preference}
                     </span>
                   )}
                 </td>
                 <td className="px-3 py-2 border-b">
-                  {judges.find(j => j.id === entrant.judgePreference1) && (
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference1)
-                        ? PILL_STATUS_CLASSES.good
-                        : PILL_STATUS_CLASSES.unmatched
-                        }`}
-                    >
-                      {(() => {
-                        const judge = judges.find(j => j.id === entrant.judgePreference1);
-                        return judge?.category ? (
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: getCategoryColor(judge.category) }}
-                          />
-                        ) : null;
-                      })()}
-                      {judges.find(j => j.id === entrant.judgePreference1)?.name}
-                    </span>
-                  )}
+                  <JudgePreferencePill
+                    judge={judges.find((j) => j.id === entrant.judgePreference1)}
+                    assigned={Boolean(entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference1))}
+                  />
                 </td>
                 <td className="px-3 py-2 border-b">
-                  {judges.find(j => j.id === entrant.judgePreference2) && (
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference2)
-                        ? PILL_STATUS_CLASSES.good
-                        : PILL_STATUS_CLASSES.unmatched
-                        }`}
-                    >
-                      {(() => {
-                        const judge = judges.find(j => j.id === entrant.judgePreference2);
-                        return judge?.category ? (
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: getCategoryColor(judge.category) }}
-                          />
-                        ) : null;
-                      })()}
-                      {judges.find(j => j.id === entrant.judgePreference2)?.name}
-                    </span>
-                  )}
+                  <JudgePreferencePill
+                    judge={judges.find((j) => j.id === entrant.judgePreference2)}
+                    assigned={Boolean(entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference2))}
+                  />
                 </td>
                 <td className="px-3 py-2 border-b">
-                  {judges.find(j => j.id === entrant.judgePreference3) && (
-                    <span
-                      className={`text-xs px-1.5 py-0.5 rounded-full flex items-center gap-1 ${entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference3)
-                        ? PILL_STATUS_CLASSES.good
-                        : PILL_STATUS_CLASSES.unmatched
-                        }`}
-                    >
-                      {(() => {
-                        const judge = judges.find(j => j.id === entrant.judgePreference3);
-                        return judge?.category ? (
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: getCategoryColor(judge.category) }}
-                          />
-                        ) : null;
-                      })()}
-                      {judges.find(j => j.id === entrant.judgePreference3)?.name}
-                    </span>
-                  )}
+                  <JudgePreferencePill
+                    judge={judges.find((j) => j.id === entrant.judgePreference3)}
+                    assigned={Boolean(entrantJudgeAssignments?.[entrant.id]?.includes(entrant.judgePreference3))}
+                  />
                 </td>
                 <td className="px-3 py-2 border-b">
                   <span className="text-sm font-medium">
@@ -548,7 +320,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
 
   const toggleBadge = (
     <button
-      onClick={togglePanel}
+      onClick={onToggle}
       className={`fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 border-r-0 rounded-l-lg shadow px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 flex flex-col items-center gap-2 transition-opacity duration-300 ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       aria-label="Open preference panel"
@@ -593,7 +365,7 @@ export default function PreferencesPanel({ judges, refreshKey, entrantJudgeAssig
             <div className="bg-[var(--primary-color)] text-white px-6 py-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold">Evaluation Preferences</h2>
               <button
-                onClick={togglePanel}
+                onClick={onToggle}
                 aria-label="Close preference panel"
               >
                 <svg className="w-5 h-5 hover:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">

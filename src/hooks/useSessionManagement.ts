@@ -13,6 +13,7 @@ interface UseSessionManagementReturn {
   generateAllSessionBlocks: (entrants: Entrant[]) => void;
   handleSessionBlockUpdate: (updatedSessionBlock: SessionBlock) => void;
   handleSessionBlockRemove: (sessionBlockId: string) => void;
+  handleSessionBlocksReplace: (blocks: SessionBlock[]) => void;
   handleScheduledSessionsChange: (sessions: SessionBlock[]) => void;
   handleClearGrid: () => void;
   initializeEntrantJudgeAssignments: (entrants: Entrant[]) => void;
@@ -106,6 +107,12 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     });
   }, [schedulePersist]);
 
+  const handleSessionBlocksReplace = useCallback((blocks: SessionBlock[]) => {
+    flushPersist();
+    setAllSessionBlocks(blocks);
+    SessionService.saveSessionBlocks(blocks);
+  }, [flushPersist]);
+
   const handleClearGrid = useCallback(() => {
     flushPersist();
     const clearedSessionBlocks = SessionService.clearGrid(allSessionBlocks);
@@ -173,6 +180,7 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     generateAllSessionBlocks,
     handleSessionBlockUpdate,
     handleSessionBlockRemove,
+    handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
     initializeEntrantJudgeAssignments,

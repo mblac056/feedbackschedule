@@ -1,33 +1,18 @@
 import { getSessionDurationSlots } from "../config/timeConfig";
 import type { SessionBlock, Judge, Entrant} from "../types";
-import { getEntrants } from "./localStorage";
 import type { SessionSettings } from "../config/timeConfig";
 
 
 export const populateGrid = (
   allSessionBlocks: SessionBlock[],
   judges: Judge[],
-  onSessionBlockUpdate: (sessionBlock: SessionBlock) => void,
+  entrants: Entrant[],
   sessionSettings?: SessionSettings
-): Judge[] => {
-  // First, clear all scheduled sessions to avoid conflicts
-  allSessionBlocks.forEach(block => {
-    if (block.isScheduled) {
-      const clearedBlock: SessionBlock = {
-        ...block,
-        isScheduled: false,
-        startRowIndex: undefined,
-        endRowIndex: undefined,
-        judgeId: undefined
-      };
-      onSessionBlockUpdate(clearedBlock);
-    }
-  });
-  
-  //Fetch Entrants, filtered to only include entrants that have Session Blocks from Blocks
-  const entrants = getEntrants().filter(entrant => allSessionBlocks.some(block => block.entrantId === entrant.id));
+): { blocks: SessionBlock[]; judges: Judge[] } => {
+  const relevantEntrants = entrants.filter(entrant =>
+    allSessionBlocks.some(block => block.entrantId === entrant.id)
+  );
 
-  // Count the session blocks of each type
   const threeX10Count = allSessionBlocks.filter(block => block.type === '3x10').length;
   const threeX20Count = allSessionBlocks.filter(block => block.type === '3x20').length;
   const oneXLongCount = allSessionBlocks.filter(block => block.type === '1xLong').length;
@@ -40,15 +25,34 @@ export const populateGrid = (
     getSessionDurationSlots('3x20', sessionSettings),
     getSessionDurationSlots('1xLong', sessionSettings),
     judges,
-    entrants,
+    relevantEntrants,
     allSessionBlocks
   );
-  const assignments = assignSessionBlocksToGrid(judgeNumberToJudge, groupNumberToGroup, judgeSchedules, allSessionBlocks, sessionSettings);
+  const assignments = assignSessionBlocksToGrid(
+    judgeNumberToJudge,
+    groupNumberToGroup,
+    judgeSchedules,
+    allSessionBlocks,
+    sessionSettings
+  );
+  const assignedById = new Map(assignments.map(block => [block.id, block]));
+  const blocks = allSessionBlocks.map(block => {
+    const assigned = assignedById.get(block.id);
+    if (assigned) return assigned;
+    if (!block.isScheduled) return { ...block };
+    return {
+      ...block,
+      isScheduled: false,
+      startRowIndex: undefined,
+      endRowIndex: undefined,
+      judgeId: undefined,
+    };
+  });
 
-  assignments.forEach(block => onSessionBlockUpdate(block));
-  console.log(`✓ Assigned ${assignments.length} session blocks to grid`);
-
-  return reorderJudgesByPods(judgeNumberToJudge, judges.length);
+  return {
+    blocks,
+    judges: reorderJudgesByPods(judgeNumberToJudge, judges.length),
+  };
 };
 
 const assignSessionBlocksToGrid = (

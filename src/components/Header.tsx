@@ -48,8 +48,8 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
               className="flex items-center space-x-2 min-w-0 focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
               title="Home"
             >
-              <RiLayoutMasonryFill className="text-2xl text-[var(--primary-color)] shrink-0" />
-              <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-color)] truncate">Feedback Schedule</h1>
+              <RiLayoutMasonryFill className="text-2xl text-[var(--primary-color)] dark:text-white shrink-0" />
+              <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-color)] dark:text-white truncate">Feedback Schedule</h1>
             </Link>
           </div>
           
@@ -59,13 +59,13 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
               onClick={onOpenEntrantsModal}
               className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
             >
-              Manage Entrants
+              Entrants
             </button>
             <button
               onClick={onOpenJudgesModal}
               className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
             >
-              Manage Judges
+              Judges
             </button>
             <button
               onClick={onOpenImportExportModal}
@@ -129,7 +129,7 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
                 }}
                 className="w-full text-left px-4 py-3 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
               >
-                Manage Entrants
+                Entrants
               </button>
               <button
                 onClick={() => {
@@ -138,7 +138,7 @@ export default function Header({ onOpenJudgesModal, onOpenEntrantsModal, onOpenS
                 }}
                 className="w-full text-left px-4 py-3 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors"
               >
-                Manage Judges
+                Judges
               </button>
               <button
                 onClick={() => {

@@ -221,12 +221,12 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
           {lastPublishedCode && (
             <div className="flex flex-wrap items-center gap-2 text-sm">
               <span className="text-gray-600 dark:text-gray-300">Code:</span>
-              <code className="font-mono tracking-wider text-gray-900 dark:text-gray-100">
+              <code className="font-mono tracking-wider dark:text-gray-100 text-[var(--primary-color)]">
               <Link
                 to={`/${lastPublishedCode}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-[var(--primary-color)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
+                className="hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
               >
                 {formatCode(lastPublishedCode)}
               </Link>
