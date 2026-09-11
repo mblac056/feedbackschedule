@@ -3,6 +3,7 @@ import type { DragEvent as ReactDragEvent } from 'react';
 import type { SessionSettings } from '../../../config/timeConfig';
 import type { DraggedSessionData, SessionBlock } from '../../../types';
 import { hasTimeConflict } from '../../../utils/scheduleHelpers';
+import { applyBlockUpdates } from '../../../utils/sessionBlockUpdates';
 import type { DragPreview } from '../types';
 
 interface UseSessionCellDropParams {
@@ -21,7 +22,7 @@ interface UseSessionCellDropParams {
     targetTimeSlot: number,
     draggedSession: DraggedSessionData
   ) => boolean;
-  onSessionBlockUpdate: (sessionBlock: SessionBlock) => void;
+  onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
   onSessionAssigned?: (sessionData: DraggedSessionData) => void;
   onSwapCancel: () => void;
 }
@@ -34,7 +35,7 @@ export function useSessionCellDrop({
   isGroupDragActive,
   getGroupDragPreview,
   applyGroupDrop,
-  onSessionBlockUpdate,
+  onSessionBlocksReplace,
   onSessionAssigned,
   onSwapCancel,
 }: UseSessionCellDropParams) {
@@ -107,12 +108,12 @@ export function useSessionCellDrop({
       );
 
       if (sessionBlock) {
-        onSessionBlockUpdate({
+        onSessionBlocksReplace(applyBlockUpdates(allSessionBlocks, [{
           ...sessionBlock,
           isScheduled: true,
           startRowIndex: timeSlot,
           judgeId,
-        });
+        }]));
       }
 
       if (onSessionAssigned && draggedSession.isRemoving !== true) {

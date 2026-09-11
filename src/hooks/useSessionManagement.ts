@@ -3,6 +3,14 @@ import type { Judge, Entrant, EntrantJudgeAssignments, SessionBlock } from '../t
 import { getJudges, getEntrants, getSettings } from '../utils/localStorage';
 import { SessionService, type SessionConflict } from '../services/SessionService';
 import { useEntrant } from '../contexts/useEntrant';
+import {
+  clearGridHistory,
+  createGridHistory,
+  pushGridHistory,
+  redoGridHistory,
+  undoGridHistory,
+  type SessionBlocksReplaceOptions,
+} from '../utils/gridHistory';
 
 interface UseSessionManagementReturn {
   judges: Judge[];
@@ -13,9 +21,11 @@ interface UseSessionManagementReturn {
   setJudges: (judges: Judge[]) => void;
   generateAllSessionBlocks: (entrants: Entrant[]) => void;
   handleSessionBlockUpdate: (updatedSessionBlock: SessionBlock) => void;
-  handleSessionBlocksReplace: (blocks: SessionBlock[]) => void;
+  handleSessionBlocksReplace: (blocks: SessionBlock[], options?: SessionBlocksReplaceOptions) => void;
   handleScheduledSessionsChange: (sessions: SessionBlock[]) => void;
   handleClearGrid: () => void;
+  handleUndoGridChange: () => void;
+  handleRedoGridChange: () => void;
   initializeEntrantJudgeAssignments: (entrants: Entrant[]) => void;
 }
 
@@ -27,6 +37,9 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
   const [scheduleConflicts, setScheduleConflicts] = useState<SessionConflict[]>([]);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latestBlocksRef = useRef<SessionBlock[] | null>(null);
+  const historyRef = useRef(createGridHistory());
+  const blocksRef = useRef<SessionBlock[]>([]);
+  blocksRef.current = allSessionBlocks;
 
   const scheduledSessions: SessionBlock[] = useMemo(() => {
     return SessionService.getScheduledSessions(allSessionBlocks);
@@ -69,6 +82,7 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
 
   const generateAllSessionBlocks = useCallback((entrants: Entrant[]) => {
     const sessionBlocks = SessionService.generateSessionBlocks(entrants);
+    historyRef.current = clearGridHistory();
     setAllSessionBlocks(sessionBlocks);
     SessionService.saveSessionBlocks(sessionBlocks);
   }, []);
@@ -90,7 +104,14 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     checkScheduleConflicts(sessions, entrants);
   }, [checkScheduleConflicts, entrants]);
 
+  const applyBlocks = useCallback((blocks: SessionBlock[]) => {
+    flushPersist();
+    setAllSessionBlocks(blocks);
+    SessionService.saveSessionBlocks(blocks);
+  }, [flushPersist]);
+
   const handleSessionBlockUpdate = useCallback((updatedSessionBlock: SessionBlock) => {
+    historyRef.current = pushGridHistory(historyRef.current, blocksRef.current);
     setAllSessionBlocks(prev => {
       const updated = SessionService.updateSessionBlock(prev, updatedSessionBlock);
       schedulePersist(updated);
@@ -98,18 +119,33 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     });
   }, [schedulePersist]);
 
-  const handleSessionBlocksReplace = useCallback((blocks: SessionBlock[]) => {
-    flushPersist();
-    setAllSessionBlocks(blocks);
-    SessionService.saveSessionBlocks(blocks);
-  }, [flushPersist]);
+  const handleSessionBlocksReplace = useCallback((blocks: SessionBlock[], options?: SessionBlocksReplaceOptions) => {
+    if (options?.resetHistory) {
+      historyRef.current = clearGridHistory();
+    } else {
+      historyRef.current = pushGridHistory(historyRef.current, blocksRef.current);
+    }
+    applyBlocks(blocks);
+  }, [applyBlocks]);
 
   const handleClearGrid = useCallback(() => {
-    flushPersist();
-    const clearedSessionBlocks = SessionService.clearGrid(allSessionBlocks);
-    setAllSessionBlocks(clearedSessionBlocks);
-    SessionService.saveSessionBlocks(clearedSessionBlocks);
-  }, [allSessionBlocks, flushPersist]);
+    historyRef.current = clearGridHistory();
+    applyBlocks(SessionService.clearGrid(blocksRef.current));
+  }, [applyBlocks]);
+
+  const handleUndoGridChange = useCallback(() => {
+    const result = undoGridHistory(historyRef.current, blocksRef.current);
+    if (!result) return;
+    historyRef.current = result.history;
+    applyBlocks(result.present);
+  }, [applyBlocks]);
+
+  const handleRedoGridChange = useCallback(() => {
+    const result = redoGridHistory(historyRef.current, blocksRef.current);
+    if (!result) return;
+    historyRef.current = result.history;
+    applyBlocks(result.present);
+  }, [applyBlocks]);
 
   useEffect(() => {
     const storedJudges = getJudges();
@@ -163,6 +199,8 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
+    handleUndoGridChange,
+    handleRedoGridChange,
     initializeEntrantJudgeAssignments,
   };
 };

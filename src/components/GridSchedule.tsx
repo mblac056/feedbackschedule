@@ -24,7 +24,6 @@ interface GridScheduleProps {
   draggedSessionData?: DraggedSessionData | null;
   scheduledSessions: SessionBlock[];
   allSessionBlocks: SessionBlock[];
-  onSessionBlockUpdate: (sessionBlock: SessionBlock) => void;
   onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
   onSessionDragStart?: (sessionData: DraggedSessionData) => void;
 }
@@ -36,7 +35,6 @@ export default function GridSchedule({
   draggedSessionData,
   scheduledSessions,
   allSessionBlocks,
-  onSessionBlockUpdate,
   onSessionBlocksReplace,
   onSessionDragStart,
 }: GridScheduleProps) {
@@ -54,9 +52,10 @@ export default function GridSchedule({
   const { isGroupDragActive, getGroupDragPreview, applyGroupDrop } = useGroupSessionDrag({
     judges,
     scheduledSessions,
+    allSessionBlocks,
     settings,
     gridBodyRef,
-    onSessionBlockUpdate,
+    onSessionBlocksReplace,
   });
 
   const {
@@ -109,7 +108,7 @@ export default function GridSchedule({
     isGroupDragActive,
     getGroupDragPreview,
     applyGroupDrop,
-    onSessionBlockUpdate,
+    onSessionBlocksReplace,
     onSessionAssigned,
     onSwapCancel: cancelSwapHover,
   });

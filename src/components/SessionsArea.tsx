@@ -22,8 +22,7 @@ type SessionsAreaProps = {
     onScheduledSessionsChange?: (sessions: SessionBlock[]) => void;
     allSessionBlocks: SessionBlock[];
     scheduledSessions: SessionBlock[];
-    onSessionBlockUpdate: (sessionBlock: SessionBlock) => void;
-    onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
+    onSessionBlocksReplace: (blocks: SessionBlock[], options?: { resetHistory?: boolean }) => void;
     entrantJudgeAssignments?: { [entrantId: string]: string[] };
     scheduleConflicts?: Array<{
         entrantId: string;
@@ -35,7 +34,7 @@ type SessionsAreaProps = {
     }>;
 }
 
-export default function SessionsArea({judges, setJudges, onScheduledSessionsChange, scheduledSessions, allSessionBlocks, onSessionBlockUpdate, onSessionBlocksReplace, entrantJudgeAssignments, scheduleConflicts }: SessionsAreaProps) {
+export default function SessionsArea({judges, setJudges, onScheduledSessionsChange, scheduledSessions, allSessionBlocks, onSessionBlocksReplace, entrantJudgeAssignments, scheduleConflicts }: SessionsAreaProps) {
     //const { settings, setSettings } = useSettings();
     const { settings } = useSettings();
     const { entrants } = useEntrant();
@@ -209,18 +208,14 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
                   // Confirm with user before clearing the grid
                   const confirm = window.confirm('Are you sure you want to clear the grid? This action cannot be undone.');
                   if (!confirm) return;
-                  // Clear the grid using the utility function
-                    const clearedSessionBlocks = clearGrid(allSessionBlocks);
-                    clearedSessionBlocks.forEach(block => {
-                      onSessionBlockUpdate(block);
-                    });
+                    onSessionBlocksReplace(clearGrid(allSessionBlocks), { resetHistory: true });
                   }}>
                     Clear Grid
                   </button>) : (
                   <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
                     window.dispatchEvent(new Event('evalmatrix:flush-persist'));
                     const result = populateGrid(allSessionBlocks, activeJudges, entrants, settings);
-                    onSessionBlocksReplace(result.blocks);
+                    onSessionBlocksReplace(result.blocks, { resetHistory: true });
                     if (result.judges.length > 0) {
                       handleJudgesReorder(result.judges);
                     }
@@ -303,7 +298,6 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
             draggedSessionData={draggedSessionData}
             scheduledSessions={scheduledSessions}
             allSessionBlocks={allSessionBlocks}
-            onSessionBlockUpdate={onSessionBlockUpdate}
             onSessionBlocksReplace={onSessionBlocksReplace}
             onSessionDragStart={(sessionData) => {
               setDraggedSessionData(sessionData);
@@ -323,13 +317,16 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
             );
             
             if (sessionBlock) {
-              const updatedBlock = {
-                ...sessionBlock,
-                isScheduled: false,
-                startRowIndex: undefined,
-                judgeId: undefined
-              };
-              onSessionBlockUpdate(updatedBlock);
+              onSessionBlocksReplace(allSessionBlocks.map((block) => (
+                block.id === sessionBlock.id
+                  ? {
+                      ...block,
+                      isScheduled: false,
+                      startRowIndex: undefined,
+                      judgeId: undefined
+                    }
+                  : block
+              )));
             }
           }}
           onSessionBlocksReplace={onSessionBlocksReplace}

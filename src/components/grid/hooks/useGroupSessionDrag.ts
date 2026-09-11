@@ -4,6 +4,7 @@ import type { SessionSettings } from '../../../config/timeConfig';
 import { TIME_CONFIG } from '../../../config/timeConfig';
 import type { DraggedSessionData, Judge, SessionBlock } from '../../../types';
 import { getSessionDurationInSlots, hasTimeConflict } from '../../../utils/scheduleHelpers';
+import { applyBlockUpdates } from '../../../utils/sessionBlockUpdates';
 import type { DragPreview } from '../types';
 
 interface GroupMoveProposal {
@@ -16,9 +17,10 @@ interface GroupMoveProposal {
 interface UseGroupSessionDragParams {
   judges: Judge[];
   scheduledSessions: SessionBlock[];
+  allSessionBlocks: SessionBlock[];
   settings: SessionSettings;
   gridBodyRef: RefObject<HTMLDivElement | null>;
-  onSessionBlockUpdate: (sessionBlock: SessionBlock) => void;
+  onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
 }
 
 interface UseGroupSessionDragReturn {
@@ -43,9 +45,10 @@ interface UseGroupSessionDragReturn {
 export const useGroupSessionDrag = ({
   judges,
   scheduledSessions,
+  allSessionBlocks,
   settings,
   gridBodyRef,
-  onSessionBlockUpdate
+  onSessionBlocksReplace
 }: UseGroupSessionDragParams): UseGroupSessionDragReturn => {
   const judgeIndexById = useMemo(() => {
     const indexMap = new Map<string, number>();
@@ -242,15 +245,16 @@ export const useGroupSessionDrag = ({
       return false;
     }
 
-    proposals.forEach(proposal => {
-      onSessionBlockUpdate({
+    onSessionBlocksReplace(applyBlockUpdates(
+      allSessionBlocks,
+      proposals.map((proposal) => ({
         ...proposal.session,
         isScheduled: true,
         judgeId: proposal.judgeId,
         startRowIndex: proposal.startRowIndex,
         endRowIndex: proposal.endRowIndex
-      });
-    });
+      }))
+    ));
 
     return true;
   };

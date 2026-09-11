@@ -11,6 +11,7 @@ import PreferencesPanel from '../components/PreferencesPanel'
 import SessionsArea from '../components/SessionsArea'
 import EmptyState from '../components/EmptyState';
 import Footer from '../components/Footer';
+import { isTextEditingTarget, matchUndoRedoShortcut } from '../utils/undoShortcuts';
 
 function CreatePage() {
   const {
@@ -20,10 +21,11 @@ function CreatePage() {
     entrantJudgeAssignments,
     scheduleConflicts,
     setJudges,
-    handleSessionBlockUpdate,
     handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
+    handleUndoGridChange,
+    handleRedoGridChange,
   } = useSessionManagement();
 
   const [isJudgesModalOpen, setIsJudgesModalOpen] = useState(false);
@@ -35,9 +37,20 @@ function CreatePage() {
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Check if we're in an input field or textarea
       const target = event.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      if (isTextEditingTarget(target)) {
+        return;
+      }
+
+      const undoRedo = matchUndoRedoShortcut(event);
+      if (undoRedo === 'undo') {
+        event.preventDefault();
+        handleUndoGridChange();
+        return;
+      }
+      if (undoRedo === 'redo') {
+        event.preventDefault();
+        handleRedoGridChange();
         return;
       }
 
@@ -50,23 +63,25 @@ function CreatePage() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [handleRedoGridChange, handleUndoGridChange]);
 
   const handleJudgesModalClose = () => {
     const updatedJudges = getJudges();
     const inactiveJudgeIds = new Set(updatedJudges.filter(j => j.active === false).map(j => j.id));
-    // Unschedule any sessions assigned to judges that are now inactive
-    allSessionBlocks.forEach(block => {
-      if (block.judgeId && inactiveJudgeIds.has(block.judgeId)) {
-        handleSessionBlockUpdate({
-          ...block,
-          isScheduled: false,
-          startRowIndex: undefined,
-          endRowIndex: undefined,
-          judgeId: undefined,
-        });
-      }
-    });
+    const nextBlocks = allSessionBlocks.map((block) => (
+      block.judgeId && inactiveJudgeIds.has(block.judgeId)
+        ? {
+            ...block,
+            isScheduled: false,
+            startRowIndex: undefined,
+            endRowIndex: undefined,
+            judgeId: undefined,
+          }
+        : block
+    ));
+    if (nextBlocks.some((block, index) => block !== allSessionBlocks[index])) {
+      handleSessionBlocksReplace(nextBlocks);
+    }
     setJudges(updatedJudges);
   };
 
@@ -107,7 +122,6 @@ function CreatePage() {
                   onScheduledSessionsChange={handleScheduledSessionsChange}
                   scheduledSessions={scheduledSessions}
                   allSessionBlocks={allSessionBlocks}
-                  onSessionBlockUpdate={handleSessionBlockUpdate}
                   onSessionBlocksReplace={handleSessionBlocksReplace}
                   entrantJudgeAssignments={entrantJudgeAssignments}
                   scheduleConflicts={scheduleConflicts}

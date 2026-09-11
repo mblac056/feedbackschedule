@@ -15,7 +15,7 @@ interface EntrantsModalProps {
   onModalClose?: () => void;
   judges: Judge[];
   sessionBlocks: SessionBlock[];
-  onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
+  onSessionBlocksReplace: (blocks: SessionBlock[], options?: { resetHistory?: boolean }) => void;
 }
 
 type SortColumn = 'score' | 'name' | 'include' | 'overallSF' | 'overallF' | 'evalOnly';
@@ -80,7 +80,7 @@ export default function EntrantsModal({
   const performSaveAndClose = () => {
     if (!saveEntrants(entrants)) return;
 
-    onSessionBlocksReplace(buildBlocksAfterEntrantEdits(sessionBlocks, entrants));
+    onSessionBlocksReplace(buildBlocksAfterEntrantEdits(sessionBlocks, entrants), { resetHistory: true });
 
     setOriginalEntrants(JSON.parse(JSON.stringify(entrants)));
     onClose();

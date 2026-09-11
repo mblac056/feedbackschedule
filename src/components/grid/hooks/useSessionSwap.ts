@@ -3,6 +3,7 @@ import type { DragEvent as ReactDragEvent } from 'react';
 import type { SessionSettings } from '../../../config/timeConfig';
 import type { DraggedSessionData, SessionBlock } from '../../../types';
 import { buildEntrantSwapUpdates, buildSessionSwapUpdates } from '../../../utils/scheduleHelpers';
+import { applyBlockUpdates } from '../../../utils/sessionBlockUpdates';
 
 const SWAP_HOVER_TIMEOUT = 1000;
 
@@ -13,11 +14,6 @@ interface UseSessionSwapParams {
   settings: SessionSettings;
   isGroupDragActive: (draggedSessionData?: DraggedSessionData | null) => boolean;
   onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
-}
-
-function applyBlockUpdates(allBlocks: SessionBlock[], updates: SessionBlock[]): SessionBlock[] {
-  const byId = new Map(updates.map((block) => [block.id, block]));
-  return allBlocks.map((block) => byId.get(block.id) ?? block);
 }
 
 export function useSessionSwap({
