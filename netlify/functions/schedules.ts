@@ -181,14 +181,15 @@ export default async (req: Request, _context: Context) => {
       return json(req, 400, { error: message });
     }
 
-    const existing = (await store.get(code, { type: 'json' })) as BlobRecord | null;
+    const existing = (await store.get(code, { type: 'json', consistency: 'strong' })) as BlobRecord | null;
     const incomingHash = hashToken(body.editToken);
+    const replacingExpired = Boolean(existing && isExpired(existing));
 
     if (existing && !isExpired(existing)) {
       if (!tokensEqual(existing.editTokenHash, incomingHash)) {
         return json(req, 403, { error: 'Forbidden' });
       }
-    } else if (existing && isExpired(existing)) {
+    } else if (replacingExpired) {
       await store.delete(code);
     }
 
@@ -200,22 +201,21 @@ export default async (req: Request, _context: Context) => {
       expiresAt: new Date(now.getTime() + TTL_MS).toISOString(),
     };
 
-    const creating = !existing || isExpired(existing);
+    const creating = !existing;
     try {
       if (creating) {
-        await store.setJSON(code, record, { onlyIfNew: true } as { onlyIfNew: boolean });
+        // setJSON() in @netlify/blobs 10.7.x spreads conditions instead of passing
+        // them as `conditions`, so onlyIfNew is ignored there. Use set().
+        const { modified } = await store.set(code, JSON.stringify(record), { onlyIfNew: true });
+        if (!modified) {
+          return json(req, 409, { error: 'Code already taken' });
+        }
       } else {
         await store.setJSON(code, record);
       }
-    } catch {
-      return json(req, 409, { error: 'Code already taken' });
-    }
-
-    if (creating) {
-      const written = (await store.get(code, { type: 'json' })) as BlobRecord | null;
-      if (!written || !tokensEqual(written.editTokenHash, incomingHash)) {
-        return json(req, 409, { error: 'Code already taken' });
-      }
+    } catch (error) {
+      console.error('Publish write failed', error);
+      return json(req, 500, { error: 'Publish failed' });
     }
 
     return json(req, 200, { ok: true, updatedAt: record.updatedAt });
