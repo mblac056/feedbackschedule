@@ -2,6 +2,7 @@ import type { Context } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { parsePublishedSchedulePayload, PayloadValidationError } from '../../src/utils/publishedScheduleSchema';
+import { deleteStaleRateLimitBlobs } from '../../src/utils/rateLimitBlobs';
 
 const TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const CODE_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -115,7 +116,7 @@ function isExpired(record: BlobRecord): boolean {
   return Date.now() - updatedAt > TTL_MS;
 }
 
-export default async (req: Request, _context: Context) => {
+export default async (req: Request, context: Context) => {
   if (req.method === 'OPTIONS') {
     return new Response('', { status: 204, headers: { ...noCacheHeaders(), ...corsHeaders(req) } });
   }
@@ -128,6 +129,12 @@ export default async (req: Request, _context: Context) => {
   }
 
   const store = getStore('published-schedules');
+  const rateLimitBucket = Math.floor(Date.now() / RATE_WINDOW_MS);
+  context.waitUntil(
+    deleteStaleRateLimitBlobs(store, rateLimitBucket).catch((error) => {
+      console.error('Rate limit blob cleanup failed', error);
+    })
+  );
 
   try {
     const limited = await enforceRateLimit(req, store, req.method === 'PUT' ? 'PUT' : 'GET');
