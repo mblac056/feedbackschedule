@@ -1,5 +1,7 @@
 import type { Judge, Entrant, SessionBlock } from '../types';
+import type { SessionSettings } from '../config/timeConfig';
 import { getJudges, getEntrants, getSessionBlocks, saveJudges, saveEntrants, saveSessionBlocks, getSettings, saveSettings, getPreferenceNotes, savePreferenceNotes } from './localStorage';
+import { getSessionDurationInSlots } from './scheduleHelpers';
 import {
   clearPublishCredentials,
   getPublishCredentials,
@@ -61,6 +63,21 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function backfillMissingEndRowIndex(block: SessionBlock, settings: SessionSettings): SessionBlock {
+  if (
+    block.endRowIndex !== undefined ||
+    !block.isScheduled ||
+    block.startRowIndex === undefined
+  ) {
+    return block;
+  }
+  const durationSlots = getSessionDurationInSlots(block.type, settings);
+  return {
+    ...block,
+    endRowIndex: block.startRowIndex + durationSlots - 1,
+  };
+}
+
 function applyPublishCredentialsFromImport(publish: unknown): void {
   if (
     publish &&
@@ -111,10 +128,7 @@ export const importData = (jsonString: string): ImportResult => {
       .filter(judge => judge && judge.id && judge.name)
       .map(judge => ({ ...judge, active: judge.active !== false }));
     const cleanEntrants = parsedData.entrants.filter(entrant => entrant && entrant.id && entrant.name);
-    const cleanSessionBlocks = (parsedData.sessionBlocks || []).filter(block => 
-      block && block.id && block.entrantId && block.entrantName && block.type
-    );
-    
+
     // Clean settings with defaults
     const cleanSettings = {
       startTime: parsedData.settings?.startTime || '09:00',
@@ -125,6 +139,12 @@ export const importData = (jsonString: string): ImportResult => {
       exportName: parsedData.settings?.exportName ?? '',
       codePrefix: parsedData.settings?.codePrefix ?? '',
     };
+
+    const cleanSessionBlocks = (parsedData.sessionBlocks || [])
+      .filter(block =>
+        block && block.id && block.entrantId && block.entrantName && block.type
+      )
+      .map(block => backfillMissingEndRowIndex(block, cleanSettings));
 
     const saved =
       saveSettings(cleanSettings) &&
