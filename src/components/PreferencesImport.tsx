@@ -18,6 +18,7 @@ export default function PreferencesImport({
 }: PreferencesImportProps) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [preferFinalsWhenDifferent, setPreferFinalsWhenDifferent] = useState(false);
   const [importResults, setImportResults] = useState<ImportResult<EvalPreferencesImportData> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -31,7 +32,9 @@ export default function PreferencesImport({
     
     try {
       const text = await file.text();
-      const result = importEvalPreferencesCSV(text, entrants, judges);
+      const result = importEvalPreferencesCSV(text, entrants, judges, [], {
+        preferFinalsWhenDifferent,
+      });
       
       if (result.success) {
         // Refresh the entrants state with updated data
@@ -100,6 +103,22 @@ export default function PreferencesImport({
           </svg>
         </button>
       </div>
+
+      <label
+        className="mb-4 flex items-start gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+        title="When a group has both a semifinals and a finals eval type, and they differ, use the finals value"
+      >
+        <input
+          type="checkbox"
+          checked={preferFinalsWhenDifferent}
+          onChange={(e) => setPreferFinalsWhenDifferent(e.target.checked)}
+          disabled={isLoading}
+          className="mt-0.5 rounded border-gray-300 dark:border-gray-600 dark:bg-gray-950 text-purple-600 focus:ring-purple-500"
+        />
+        <span>
+          Use finals preferences
+        </span>
+      </label>
       
       <div 
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-200 ${

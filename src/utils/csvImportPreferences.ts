@@ -22,13 +22,15 @@ import { createNameToIdMapper } from './nameToIdMapper';
  * @param existingEntrants Current entrants to update
  * @param existingJudges Current judges for validation
  * @param importedEntrants Optional array of entrants being imported in the same batch (for cross-references)
+ * @param options.preferFinalsWhenDifferent When a group has both a semifinals and a finals eval type, and they differ, use the finals value. Otherwise the semifinals value is used.
  * @returns ImportResult with update statistics
  */
 export const importEvalPreferencesCSV = (
   csvText: string,
   existingEntrants: Entrant[],
   existingJudges: Judge[],
-  importedEntrants: Entrant[] = []
+  importedEntrants: Entrant[] = [],
+  options: { preferFinalsWhenDifferent?: boolean } = {}
 ): ImportResult<EvalPreferencesImportData> => {
   try {
     console.log('=== PREFERENCES IMPORT: Starting ===');
@@ -129,9 +131,9 @@ export const importEvalPreferencesCSV = (
         }
       }
 
-      // Process preference (first non-blank Eval Type column)
-      // Since there can be multiple columns with the same name, we need to check all columns
-      // and find the first one that contains "eval type" and has a non-blank value
+      // Process preference from Eval Type columns.
+      // Semifinals wins when both semifinals and finals are present, unless
+      // preferFinalsWhenDifferent is set and the two values differ.
       console.log(`  All available columns:`, Object.keys(row));
       
       // Collect all eval type preferences to check for mismatches
@@ -146,12 +148,18 @@ export const importEvalPreferencesCSV = (
       // Check for mismatches between semifinals and finals
       const semifinalsPref = evalTypePreferences['Eval Type Semifinals'];
       const finalsPref = evalTypePreferences['Eval Type Finals'];
+      const useFinalsForMismatch = Boolean(
+        options.preferFinalsWhenDifferent &&
+        semifinalsPref &&
+        finalsPref &&
+        semifinalsPref !== finalsPref
+      );
       
       if (semifinalsPref && finalsPref && semifinalsPref !== finalsPref) {
-        warnings.push(`Row ${index + 2}: Group "${groupName}" has mismatched preferences - Semifinals: "${semifinalsPref}", Finals: "${finalsPref}"`);
+        const chosen = useFinalsForMismatch ? 'finals' : 'semifinals';
+        warnings.push(`Row ${index + 2}: Group "${groupName}" has mismatched preferences - Semifinals: "${semifinalsPref}", Finals: "${finalsPref}" (using ${chosen})`);
       }
       
-      // Prioritize Semifinals column, then fall back to Finals or other eval type columns
       const applyPreference = (prefValue: string): boolean => {
         const normalized = prefValue.replace(/\s+/g, '').toLowerCase();
 
@@ -181,16 +189,17 @@ export const importEvalPreferencesCSV = (
       };
 
       let preferenceSet = false;
-      // First: use Semifinals if it has a value
       const semifinalsValue = row['Eval Type Semifinals']?.trim();
-      if (semifinalsValue) {
-        console.log(`  Using preference from Eval Type Semifinals: "${semifinalsValue}"`);
-        preferenceSet = applyPreference(semifinalsValue);
+      const primaryColumn = useFinalsForMismatch ? 'Eval Type Finals' : 'Eval Type Semifinals';
+      const primaryValue = useFinalsForMismatch ? finalsPref : semifinalsValue;
+      if (primaryValue) {
+        console.log(`  Using preference from ${primaryColumn}: "${primaryValue}"`);
+        preferenceSet = applyPreference(primaryValue);
       }
-      // Fallback: first non-blank value from other eval type columns (Finals, etc.)
+      // Fallback: first non-blank value from other eval type columns
       if (!preferenceSet) {
         for (const [columnName, value] of Object.entries(row)) {
-          if (columnName === 'Eval Type Semifinals') continue; // already checked
+          if (columnName === primaryColumn) continue; // already checked
           const isEvalTypeColumn = columnName.toLowerCase().includes('eval type');
           if (isEvalTypeColumn) {
             const prefValue = value?.trim();

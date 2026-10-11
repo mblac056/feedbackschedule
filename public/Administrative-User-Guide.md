@@ -191,6 +191,7 @@ Shown on the empty create page as **Import Judges from CSV**.
 
 - Disabled until at least one judge exists (**No judges in the system yet**)  
 - Expects the preferences submission CSV (group name, groups to avoid, eval type, 1st/2nd/3rd choice, etc.)  
+- If a group has both **Eval Type Semifinals** and **Eval Type Finals**, and the two values differ, the import uses the semifinals preference. Check **Use finals preferences** to use the finals value instead. A group that only has one of those columns is unchanged either way. Mismatched rows are still listed as warnings, including which value was applied.  
 - Results dialog summarizes **Entrants Updated**, **Not Found**, **Rows Skipped**, warnings, and what changed  
 
 **Tip:** Import judges first, then entrants (both quartets and choruses), then preferences, so judge-name matching works.
@@ -553,7 +554,7 @@ Published schedules expire **7 days** after last update. Viewers of an expired c
 ### Preview vs published
 
 | | Preview | Published |
-|--|---------|-----------|
+|---|---|---|
 | Data | This browser’s localStorage | Server snapshot for the code |
 | URL | `/preview`, `/preview/{person}` | `/{code}`, `/{code}/{person}` |
 | For the venue? | No — admin dry run | Yes — share code, link, or QR |
