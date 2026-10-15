@@ -76,13 +76,14 @@ const getSessionEndTime = (session: SessionBlock, settings: SessionSettings): st
   return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
 };
 
-export const isSessionEndingAfter1AM = (
+export const isSessionEndingAfterMidnight = (
   session: SessionBlock,
   settings: SessionSettings
 ): boolean => {
   const endTime = getSessionEndTime(session, settings);
   const [endHour, endMinute] = endTime.split(':').map(Number);
-  return endHour > 25 || (endHour === 25 && endMinute > 0);
+  // Extended hours: 24:00 is midnight. Ending exactly at midnight is fine.
+  return endHour > 24 || (endHour === 24 && endMinute > 0);
 };
 
 export const getSessionConflictSeverity = (
@@ -242,7 +243,7 @@ export const getConflictDetails = (
   const conflictList: ConflictDetail[] = [];
 
   const lateSessions = scheduledSessions.filter(session =>
-    isSessionEndingAfter1AM(session, settings)
+    isSessionEndingAfterMidnight(session, settings)
   );
 
   if (lateSessions.length > 0) {

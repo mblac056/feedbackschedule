@@ -71,7 +71,7 @@ export default function ConflictBanners({ redConflicts, yellowConflicts }: Confl
                     if (conflict.type === 'late') {
                       return (
                         <li key={`yellow-late-${index}`}>
-                          Sessions ending after 1am for: <strong>{conflict.entrantName}</strong>
+                          Sessions ending after midnight for: <strong>{conflict.entrantName}</strong>
                         </li>
                       );
                     }
