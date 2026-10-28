@@ -59,8 +59,7 @@ export default function JudgeColumnHeader({
             {preference.number}
           </div>
         ) : null}
-
-        <div className="font-semibold">{judge.name} {judge.category && `(${judge.category})`}</div>
+        <div className="font-semibold">{judge.name} {judge.category && <><br /> ({judge.category})</>}</div>
         {showRoom && (
           <div className="text-xs opacity-90 mt-1 font-semibold">
             {judge.roomNumber}

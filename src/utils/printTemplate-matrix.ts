@@ -62,13 +62,14 @@ export async function generateMatrixPage(
     <style>
       body { margin: 0; padding: 20px; font-family: Arial, sans-serif; color: #000; }
       h1 { font-size: 20px; font-weight: bold; margin-bottom: 10px; color: #000; }
-      table { width: 100%; border-collapse: collapse; font-size: 16px; table-layout: fixed; }
+      table { width: 100%; border-collapse: collapse; font-size: 16px; table-layout: fixed; line-height: 1.15; }
       th { background-color: #d3d3d3; color: #000; padding: 8px; text-align: center; font-weight: bold; border: 1px solid #666; }
       tbody tr { height: ${SLOT_ROW_PX}px; }
       td { height: ${SLOT_ROW_PX}px; min-height: ${SLOT_ROW_PX}px; padding: 4px 6px; box-sizing: border-box; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
-      .time-col { line-height: 1.1; padding: 4px; background-color: #d3d3d3; width: 50px; font-size: 12px;}
-      .session-cell { background-color:#ffffff; vertical-align: middle; }
-      .session-entrant-name { font-size: 14px; line-height: 1.2; }
+      .time-col { line-height: 1.1; padding-bottom: ${SLOT_ROW_PX/2}px; background-color: #d3d3d3; width: 20px; font-size: 12px;}
+      .session-cell { background-color:#ffffff; padding: 0; position: relative; vertical-align: top; }
+      .session-cell-inner { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 0 4px; line-height: 1.15; text-align: center; }
+      .session-entrant-name { font-size: 14px; line-height: 1.15; }
       .session-duration { font-size: 11px; line-height: 1.15; color: #333; }
       @media print {
         @page { size: legal landscape; margin: 0.4in; }
@@ -81,7 +82,7 @@ export async function generateMatrixPage(
           <th>Time</th>
           ${judges.map(j => {
             const roomText = settings.moving === 'groups' && j.roomNumber ? `<br>${j.roomNumber}` : '';
-            return `<th>${j.category ? `${j.name} (${j.category})` : j.name}${roomText}</th>`;
+            return `<th>${j.category ? `${j.name}<br />(${j.category})` : j.name}${roomText}</th>`;
           }).join('')}
         </tr>
       </thead>
@@ -132,12 +133,8 @@ export async function generateMatrixPage(
         }
 
         const sessionCellHeightPx = rowSpan * SLOT_ROW_PX;
-        const durationParts: string[] = [];
-        if (roomNumber) durationParts.push(roomNumber);
-        if (session.type !== '3x10') durationParts.push(session.type);
-        const durationContent = durationParts.join('<br>');
-        const durationBlock = durationContent ? `<br><span class="session-duration">${durationContent}</span>` : '';
-        html += `<td class="session-cell" rowspan="${rowSpan}" style="height:${sessionCellHeightPx}px;min-height:${sessionCellHeightPx}px"><span class="session-entrant-name">${entrantName}</span>${durationBlock}</td>`;
+        const roomBlock = roomNumber ? `<span class="session-duration">${escapeHtml(roomNumber)}</span>` : '';
+        html += `<td class="session-cell" rowspan="${rowSpan}" style="height:${sessionCellHeightPx}px;min-height:${sessionCellHeightPx}px"><div class="session-cell-inner"><span class="session-entrant-name">${escapeHtml(entrantName)}</span>${roomBlock}</div></td>`;
         
         // Mark cells as occupied
         for (let r = 0; r < rowSpan; r++) {

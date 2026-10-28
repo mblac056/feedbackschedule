@@ -81,7 +81,7 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
         doc.addPage();
         yPos = 20;
       }
-      doc.text(`  • ${entrant.name} (Room ${entrant.room})`, 30, yPos);
+      doc.text(`  • ${entrant.name} (${entrant.room})`, 30, yPos);
       yPos += 7;
     });
     
