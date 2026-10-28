@@ -488,7 +488,7 @@ Available when sessions exist and **no red conflicts**. The main **Print** butto
 | **Judge Schedules** | One page per judge. Time, entrant (`*` = first preference), session type, room/O/A as applicable, **BYE** rows |
 | **Entrant Schedules** | One page per entrant. Time, judge (with category), type, room when relevant, **BYE** rows |
 | **Entrant Sched. Labels** | Avery-style labels (~10 per page): name, room, timed judge lines |
-| **Flow Document** | Minute-by-minute operational flow: starts, moves, finishes, byes, five-minute notices, **(ROOM MISSING)** flags when needed |
+| **Flow Document** | Minute-by-minute operational flow: starts, moves, finishes, byes, five-minute notices (two-minute for 3x10), **(ROOM MISSING)** flags when needed |
 | **Feedback Announcements** | Groups clustered by first start — bullet list with room (or TBD) for reading aloud / posting |
 | **Preference Check** | Snapshot of the Preferences panel (summary pills, table, byes, **Notes and Reminders**). Expect this in contest reporting packages |
 | **Shared Room Guide** | **Judges moving to Groups only.** Minimum rooms needed, each scheduled group’s **Performers** count, and which other groups can share a room (no hard session overlap and no overlapping overall windows that would force mid-schedule swaps). Soft 3x10 overlaps are allowed for sharing; transition-gap warnings stay on the grid |

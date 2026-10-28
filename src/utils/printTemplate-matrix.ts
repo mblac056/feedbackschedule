@@ -1,7 +1,8 @@
 import type { Judge, SessionBlock, Entrant } from '../types';
 import { getSettings } from './localStorage';
 import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '../config/timeConfig';
-import html2pdf from 'html2pdf.js';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 export async function generateMatrixPage(
   scheduledSessions: SessionBlock[],
@@ -66,13 +67,13 @@ export async function generateMatrixPage(
       th { background-color: #d3d3d3; color: #000; padding: 8px; text-align: center; font-weight: bold; border: 1px solid #666; }
       tbody tr { height: ${SLOT_ROW_PX}px; }
       td { height: ${SLOT_ROW_PX}px; min-height: ${SLOT_ROW_PX}px; padding: 4px 6px; box-sizing: border-box; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
-      .time-col { line-height: 1.1; padding-bottom: ${SLOT_ROW_PX/2}px; background-color: #d3d3d3; width: 20px; font-size: 12px;}
+      .time-col { line-height: 0.5; padding: 0 0 16px 0; background-color: #d3d3d3; width: 20px; font-size: 12px; vertical-align: top; }
       .session-cell { background-color:#ffffff; padding: 0; position: relative; vertical-align: top; }
-      .session-cell-inner { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 0 4px; line-height: 1.15; text-align: center; }
+      .session-cell-inner { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 0 4px 12px 4px; line-height: 1; text-align: center; }
       .session-entrant-name { font-size: 14px; line-height: 1.15; }
       .session-duration { font-size: 11px; line-height: 1.15; color: #333; }
       @media print {
-        @page { size: legal landscape; margin: 0.4in; }
+        @page { size: letter landscape; margin: 0.4in; }
       }
     </style>
     <h1>${title}</h1>
@@ -158,22 +159,32 @@ export async function generateMatrixPage(
     </div>
   `;
 
-  // Convert HTML to PDF
+  // Lay the table out at the printable width, then scale the snapshot so the
+  // whole matrix — however many rows or judge columns — fits on one page.
+  const marginIn = 0.5;
+  const pdf = new jsPDF({ unit: 'in', format: 'letter', orientation: 'landscape' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const maxWidth = pageWidth - marginIn * 2;
+  const maxHeight = pageHeight - marginIn * 2;
+
   const element = document.createElement('div');
   element.innerHTML = html;
+  element.style.width = `${maxWidth}in`;
+  element.style.backgroundColor = '#ffffff';
   document.body.appendChild(element);
 
-  const opt = {
-    margin: [0.5, 0.5, 0.5, 0.5] as [number, number, number, number], // Increased bottom margin to 1 inch
-    filename: 'schedule-matrix.pdf',
-    image: { type: 'jpeg' as const, quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: 'in' as const, format: 'legal' as const, orientation: 'landscape' as const }
-  };
+  try {
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+    const heightAtFullWidth = maxWidth * (canvas.height / canvas.width);
+    const fit = heightAtFullWidth > maxHeight ? maxHeight / heightAtFullWidth : 1;
+    const drawWidth = maxWidth * fit;
+    const drawHeight = heightAtFullWidth * fit;
+    const x = marginIn + (maxWidth - drawWidth) / 2;
 
-  const blob = await html2pdf().set(opt).from(element).outputPdf('blob');
-  
-  document.body.removeChild(element);
-  
-  return blob;
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.98), 'JPEG', x, marginIn, drawWidth, drawHeight);
+    return pdf.output('blob');
+  } finally {
+    document.body.removeChild(element);
+  }
 }

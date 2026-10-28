@@ -451,14 +451,15 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
   });
 
 
-  // Add 5-minute warnings before session ends
+  // Warn before session ends: 2 minutes for 3x10, 5 minutes otherwise
   scheduledSessions.forEach(session => {
     const entrant = entrants.find(e => e.id === session.entrantId);
     const judge = judges.find(j => j.id === session.judgeId);
     const duration = getSessionDuration(session.type);
     const startTime = rowIndexToTime(session.startRowIndex!);
     const endTime = addMinutesToTime(startTime, duration);
-    const warningTime = addMinutesToTime(endTime, -5); // 5 minutes before end
+    const warningLeadMinutes = session.type === '3x10' ? 2 : 5;
+    const warningTime = addMinutesToTime(endTime, -warningLeadMinutes);
     
     if (entrant && judge) {
       if (!timeGroups.has(warningTime)) {
@@ -466,7 +467,8 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
       }
       const room = settings.moving === 'judges' ? entrant.roomNumber : judge.roomNumber;
       const roomText = room ? ` (${room})` : ' (ROOM MISSING)';
-      timeGroups.get(warningTime)!.push(`Five-minute notice to ${judge.name} with ${entrant.name}${roomText}`);
+      const noticeLabel = warningLeadMinutes === 2 ? 'Two-minute' : 'Five-minute';
+      timeGroups.get(warningTime)!.push(`${noticeLabel} notice to ${judge.name} with ${entrant.name}${roomText}`);
     }
   });
 
