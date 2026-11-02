@@ -7,6 +7,7 @@ import { saveJudges, clearGrid } from "../utils/localStorage";
 import type { DraggedSessionData } from "../types";
 import { generatePDF } from "../utils/printFiles";
 import { FaChevronDown } from "react-icons/fa";
+import { LuRedo2, LuUndo2 } from "react-icons/lu";
 import { useSettings } from "../contexts/useSettings";
 import { useEntrant } from "../contexts/useEntrant";
 import { getSessionDurationMinutes } from "../config/timeConfig";
@@ -32,9 +33,13 @@ type SessionsAreaProps = {
         conflictingEntrantName: string;
         timeSlot: string;
     }>;
+    onUndo?: () => void;
+    onRedo?: () => void;
+    canUndo?: boolean;
+    canRedo?: boolean;
 }
 
-export default function SessionsArea({judges, setJudges, onScheduledSessionsChange, scheduledSessions, allSessionBlocks, onSessionBlocksReplace, entrantJudgeAssignments, scheduleConflicts }: SessionsAreaProps) {
+export default function SessionsArea({judges, setJudges, onScheduledSessionsChange, scheduledSessions, allSessionBlocks, onSessionBlocksReplace, entrantJudgeAssignments, scheduleConflicts, onUndo, onRedo, canUndo = false, canRedo = false }: SessionsAreaProps) {
     //const { settings, setSettings } = useSettings();
     const { settings } = useSettings();
     const { entrants } = useEntrant();
@@ -204,14 +209,44 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
             {/* Button row */}
             <div className="flex flex-row flex-wrap items-center gap-4">
               {scheduledSessions.length > 0 ? (
-                <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
+                <>
+                  <button
+                    type="button"
+                    className={`px-3 py-2 rounded-md transition-colors ${
+                      canUndo
+                        ? 'bg-gray-600 hover:bg-gray-800 text-white'
+                        : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70'
+                    }`}
+                    onClick={() => onUndo?.()}
+                    disabled={!canUndo}
+                    title="Undo (Ctrl+Z)"
+                    aria-label="Undo (Ctrl+Z)"
+                  >
+                    <LuUndo2 className="w-4 h-4" strokeWidth={1.75} />
+                  </button>
+                  <button
+                    type="button"
+                    className={`px-3 py-2 rounded-md transition-colors ${
+                      canRedo
+                        ? 'bg-gray-600 hover:bg-gray-800 text-white'
+                        : 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70'
+                    }`}
+                    onClick={() => onRedo?.()}
+                    disabled={!canRedo}
+                    title="Redo (Ctrl+Y)"
+                    aria-label="Redo (Ctrl+Y)"
+                  >
+                    <LuRedo2 className="w-4 h-4" strokeWidth={1.75} />
+                  </button>
+                  <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
                   // Confirm with user before clearing the grid
                   const confirm = window.confirm('Are you sure you want to clear the grid? This action cannot be undone.');
                   if (!confirm) return;
                     onSessionBlocksReplace(clearGrid(allSessionBlocks), { resetHistory: true });
                   }}>
                     Clear Grid
-                  </button>) : (
+                  </button>
+                </>) : (
                   <button className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-md hover:bg-[var(--primary-color-dark)] focus:ring-2 focus:ring-[var(--primary-color)] focus:ring-offset-2 transition-colors" onClick={() => {
                     window.dispatchEvent(new Event('evalmatrix:flush-persist'));
                     const result = populateGrid(allSessionBlocks, activeJudges, entrants, settings);

@@ -29,6 +29,8 @@ interface UseSessionManagementReturn {
   handleRefreshScheduledEnds: (settings: SessionSettings) => void;
   handleUndoGridChange: () => void;
   handleRedoGridChange: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
   initializeEntrantJudgeAssignments: (entrants: Entrant[]) => void;
 }
 
@@ -43,6 +45,13 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
   const historyRef = useRef(createGridHistory());
   const blocksRef = useRef<SessionBlock[]>([]);
   blocksRef.current = allSessionBlocks;
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const syncHistoryFlags = useCallback(() => {
+    setCanUndo(historyRef.current.past.length > 0);
+    setCanRedo(historyRef.current.future.length > 0);
+  }, []);
 
   const scheduledSessions: SessionBlock[] = useMemo(() => {
     return SessionService.getScheduledSessions(allSessionBlocks);
@@ -86,9 +95,10 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
   const generateAllSessionBlocks = useCallback((entrants: Entrant[]) => {
     const sessionBlocks = SessionService.generateSessionBlocks(entrants);
     historyRef.current = clearGridHistory();
+    syncHistoryFlags();
     setAllSessionBlocks(sessionBlocks);
     SessionService.saveSessionBlocks(sessionBlocks);
-  }, []);
+  }, [syncHistoryFlags]);
 
   const initializeEntrantJudgeAssignments = useCallback((entrants: Entrant[]) => {
     const initialAssignments = SessionService.initializeEntrantJudgeAssignments(entrants);
@@ -115,12 +125,13 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
 
   const handleSessionBlockUpdate = useCallback((updatedSessionBlock: SessionBlock) => {
     historyRef.current = pushGridHistory(historyRef.current, blocksRef.current);
+    syncHistoryFlags();
     setAllSessionBlocks(prev => {
       const updated = SessionService.updateSessionBlock(prev, updatedSessionBlock);
       schedulePersist(updated);
       return updated;
     });
-  }, [schedulePersist]);
+  }, [schedulePersist, syncHistoryFlags]);
 
   const handleSessionBlocksReplace = useCallback((blocks: SessionBlock[], options?: SessionBlocksReplaceOptions) => {
     if (options?.resetHistory) {
@@ -128,32 +139,37 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     } else {
       historyRef.current = pushGridHistory(historyRef.current, blocksRef.current);
     }
+    syncHistoryFlags();
     applyBlocks(blocks);
-  }, [applyBlocks]);
+  }, [applyBlocks, syncHistoryFlags]);
 
   const handleClearGrid = useCallback(() => {
     historyRef.current = clearGridHistory();
+    syncHistoryFlags();
     applyBlocks(SessionService.clearGrid(blocksRef.current));
-  }, [applyBlocks]);
+  }, [applyBlocks, syncHistoryFlags]);
 
   const handleRefreshScheduledEnds = useCallback((settings: SessionSettings) => {
     historyRef.current = pushGridHistory(historyRef.current, blocksRef.current);
+    syncHistoryFlags();
     applyBlocks(refreshScheduledEndRowIndexes(blocksRef.current, settings));
-  }, [applyBlocks]);
+  }, [applyBlocks, syncHistoryFlags]);
 
   const handleUndoGridChange = useCallback(() => {
     const result = undoGridHistory(historyRef.current, blocksRef.current);
     if (!result) return;
     historyRef.current = result.history;
+    syncHistoryFlags();
     applyBlocks(result.present);
-  }, [applyBlocks]);
+  }, [applyBlocks, syncHistoryFlags]);
 
   const handleRedoGridChange = useCallback(() => {
     const result = redoGridHistory(historyRef.current, blocksRef.current);
     if (!result) return;
     historyRef.current = result.history;
+    syncHistoryFlags();
     applyBlocks(result.present);
-  }, [applyBlocks]);
+  }, [applyBlocks, syncHistoryFlags]);
 
   useEffect(() => {
     const storedJudges = getJudges();
@@ -210,6 +226,8 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     handleRefreshScheduledEnds,
     handleUndoGridChange,
     handleRedoGridChange,
+    canUndo,
+    canRedo,
     initializeEntrantJudgeAssignments,
   };
 };

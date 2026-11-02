@@ -74,7 +74,7 @@ export default function JudgeColumnHeader({
             handleToggleJudgeSelection();
           }}
           onMouseDown={(e) => e.stopPropagation()}
-          className="absolute bottom-1 left-1 w-3 h-3 rounded-full text-xs flex items-center justify-center bg-gray-500 dark:bg-gray-600 text-white"
+          className="absolute bottom-1 left-1 w-3 h-3 rounded-full text-xs flex items-center justify-center text-white"
         >
           •
         </button>

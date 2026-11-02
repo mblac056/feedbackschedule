@@ -27,6 +27,8 @@ function CreatePage() {
     handleRefreshScheduledEnds,
     handleUndoGridChange,
     handleRedoGridChange,
+    canUndo,
+    canRedo,
   } = useSessionManagement();
 
   const [isJudgesModalOpen, setIsJudgesModalOpen] = useState(false);
@@ -126,6 +128,10 @@ function CreatePage() {
                   onSessionBlocksReplace={handleSessionBlocksReplace}
                   entrantJudgeAssignments={entrantJudgeAssignments}
                   scheduleConflicts={scheduleConflicts}
+                  onUndo={handleUndoGridChange}
+                  onRedo={handleRedoGridChange}
+                  canUndo={canUndo}
+                  canRedo={canRedo}
                 />
               </div>
               
