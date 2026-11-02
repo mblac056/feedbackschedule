@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/useSettings';
 import type { SessionSettings } from '../config/timeConfig';
 import { LocalStorageService } from '../utils/localStorage';
 import { filterCodePrefix } from '../utils/publishCodes';
+import { anySessionLengthIncreased } from '../utils/sessionLengthSettings';
 
 interface Settings extends SessionSettings {
   feedbackStart: string;
@@ -17,6 +18,7 @@ interface SettingsModalProps {
   scheduledSessions: SessionBlock[];
   onCompleteReset?: () => void;
   onClearGrid?: () => void;
+  onRefreshScheduledEnds?: (settings: SessionSettings) => void;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -31,7 +33,7 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 
-export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset, onClearGrid }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset, onClearGrid, onRefreshScheduledEnds }: SettingsModalProps) {
   const { setSettings: setContextSettings } = useSettings();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [originalSettings, setOriginalSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -74,18 +76,17 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
            settings.threeX10Length !== originalSettings.threeX10Length;
   };
 
+  const hasAnyLengthIncreased = (): boolean => {
+    return anySessionLengthIncreased(settings, originalSettings);
+  };
+
   const handleSave = () => {
     // Check if session lengths are valid (multiples of 5)
     if (!validateSessionLengths(settings)) {
       setShowValidationError(true);
       return;
     }
-    
-    // Check if session lengths have changed and clear grid if needed
-    if (hasSessionLengthsChanged() && onClearGrid) {
-      onClearGrid();
-    }
-    
+
     const sessionSettings: SessionSettings = {
       oneXLongLength: settings.oneXLongLength,
       threeX20Length: settings.threeX20Length,
@@ -95,7 +96,17 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       exportName: settings.exportName ?? '',
       codePrefix: settings.codePrefix ?? '',
     };
+
+    // Persist settings before grid updates so conflict checks see new durations
     setContextSettings(sessionSettings);
+
+    if (hasSessionLengthsChanged()) {
+      if (hasAnyLengthIncreased()) {
+        onClearGrid?.();
+      } else {
+        onRefreshScheduledEnds?.(sessionSettings);
+      }
+    }
     
     setShowResetWarning(false);
     setShowValidationError(false);
@@ -104,8 +115,11 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
 
   const handleReset = () => {
     setSettings(DEFAULT_SETTINGS);
-    setShowResetWarning(false);
-    setShowValidationError(false);
+    setShowResetWarning(
+      scheduledSessions.length > 0 &&
+        anySessionLengthIncreased(DEFAULT_SETTINGS, originalSettings)
+    );
+    setShowValidationError(!validateSessionLengths(DEFAULT_SETTINGS));
   };
 
   const handleCompleteReset = () => {
@@ -147,16 +161,14 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
         [field]: value
       };
       
-      // Check if this is a session length change and there are existing scheduled sessions
+      // Warn only when any length increases and scheduled sessions exist
       const isSessionLengthField = field === 'oneXLongLength' || field === 'threeX20Length' || field === 'threeX10Length';
       const hasExistingSessions = scheduledSessions.length > 0;
       
-      if (isSessionLengthField && hasExistingSessions) {
-        setShowResetWarning(true);
-      }
-      
-      // Validate session lengths and update validation error state
       if (isSessionLengthField) {
+        setShowResetWarning(
+          hasExistingSessions && anySessionLengthIncreased(newSettings, originalSettings)
+        );
         setShowValidationError(!validateSessionLengths(newSettings));
       }
       

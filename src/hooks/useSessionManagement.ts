@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Judge, Entrant, EntrantJudgeAssignments, SessionBlock } from '../types';
 import { getJudges, getEntrants, getSettings } from '../utils/localStorage';
+import type { SessionSettings } from '../config/timeConfig';
 import { SessionService, type SessionConflict } from '../services/SessionService';
 import { useEntrant } from '../contexts/useEntrant';
 import {
@@ -11,6 +12,7 @@ import {
   undoGridHistory,
   type SessionBlocksReplaceOptions,
 } from '../utils/gridHistory';
+import { refreshScheduledEndRowIndexes } from '../utils/sessionLengthSettings';
 
 interface UseSessionManagementReturn {
   judges: Judge[];
@@ -24,6 +26,7 @@ interface UseSessionManagementReturn {
   handleSessionBlocksReplace: (blocks: SessionBlock[], options?: SessionBlocksReplaceOptions) => void;
   handleScheduledSessionsChange: (sessions: SessionBlock[]) => void;
   handleClearGrid: () => void;
+  handleRefreshScheduledEnds: (settings: SessionSettings) => void;
   handleUndoGridChange: () => void;
   handleRedoGridChange: () => void;
   initializeEntrantJudgeAssignments: (entrants: Entrant[]) => void;
@@ -133,6 +136,11 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     applyBlocks(SessionService.clearGrid(blocksRef.current));
   }, [applyBlocks]);
 
+  const handleRefreshScheduledEnds = useCallback((settings: SessionSettings) => {
+    historyRef.current = pushGridHistory(historyRef.current, blocksRef.current);
+    applyBlocks(refreshScheduledEndRowIndexes(blocksRef.current, settings));
+  }, [applyBlocks]);
+
   const handleUndoGridChange = useCallback(() => {
     const result = undoGridHistory(historyRef.current, blocksRef.current);
     if (!result) return;
@@ -199,6 +207,7 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
+    handleRefreshScheduledEnds,
     handleUndoGridChange,
     handleRedoGridChange,
     initializeEntrantJudgeAssignments,

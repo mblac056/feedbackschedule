@@ -24,6 +24,7 @@ function CreatePage() {
     handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
+    handleRefreshScheduledEnds,
     handleUndoGridChange,
     handleRedoGridChange,
   } = useSessionManagement();
@@ -162,6 +163,7 @@ function CreatePage() {
           scheduledSessions={scheduledSessions}
           onCompleteReset={handleCompleteReset}
           onClearGrid={handleClearGrid}
+          onRefreshScheduledEnds={handleRefreshScheduledEnds}
         />
 
         <ImportExportModal
