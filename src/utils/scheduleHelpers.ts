@@ -23,6 +23,13 @@ export const doTimeRangesOverlap = (
   return !(start1 > end2 || end1 < start2);
 };
 
+export const normalizeRoomKey = (room: string): string => room.toLowerCase();
+
+export const roomsMatch = (a?: string, b?: string): boolean => {
+  if (!a || !b) return false;
+  return normalizeRoomKey(a) === normalizeRoomKey(b);
+};
+
 export const hasTimeConflict = (
   scheduledSessions: SessionBlock[],
   judgeId: string,
@@ -138,7 +145,7 @@ export const getSessionConflictSeverity = (
         if (otherSession.id === session.id) continue;
 
         const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
-        if (otherEntrant?.roomNumber !== currentEntrantRoom) continue;
+        if (!roomsMatch(otherEntrant?.roomNumber, currentEntrantRoom)) continue;
 
         const otherStartRow = otherSession.startRowIndex ?? 0;
         const otherDuration = getSessionDurationInSlots(otherSession.type, settings);
@@ -328,7 +335,7 @@ export const getConflictDetails = (
         if (otherSession.id === session.id) continue;
 
         const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
-        if (otherEntrant?.roomNumber !== currentEntrantRoom) continue;
+        if (!roomsMatch(otherEntrant?.roomNumber, currentEntrantRoom)) continue;
 
         const otherStartRow = otherSession.startRowIndex ?? 0;
         const otherDuration = getSessionDurationInSlots(otherSession.type, settings);
@@ -351,7 +358,7 @@ export const getConflictDetails = (
       }
 
       if (hasRoomOverlap) {
-        const conflictKey = `room-${currentEntrantRoom}`;
+        const conflictKey = `room-${normalizeRoomKey(currentEntrantRoom)}`;
         if (!conflicts.has(conflictKey)) {
           conflicts.add(conflictKey);
           conflictList.push({
@@ -367,7 +374,7 @@ export const getConflictDetails = (
           if (otherSession.id === session.id) return false;
 
           const otherEntrant = entrants.find(e => e.id === otherSession.entrantId);
-          if (otherEntrant?.roomNumber !== currentEntrantRoom) return false;
+          if (!roomsMatch(otherEntrant?.roomNumber, currentEntrantRoom)) return false;
 
           const otherStartRow = otherSession.startRowIndex ?? 0;
           const otherDuration = getSessionDurationInSlots(otherSession.type, settings);
@@ -383,7 +390,7 @@ export const getConflictDetails = (
         });
 
         if (hasUnpaddedChorusChange) {
-          const conflictKey = `unpaddedChorusChange-${currentEntrantRoom}`;
+          const conflictKey = `unpaddedChorusChange-${normalizeRoomKey(currentEntrantRoom)}`;
           if (!conflicts.has(conflictKey)) {
             conflicts.add(conflictKey);
             conflictList.push({
