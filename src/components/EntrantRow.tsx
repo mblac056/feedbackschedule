@@ -103,7 +103,14 @@ export default function EntrantRow({
         dragOverEntrantId === entrant.id ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
       }`}
       draggable
-      onDragStart={(e) => onDragStart(e, entrant.id)}
+      onDragStart={(e) => {
+        const target = e.target as HTMLElement;
+        if (!target.closest('[data-drag-handle]')) {
+          e.preventDefault();
+          return;
+        }
+        onDragStart(e, entrant.id);
+      }}
       onDragOver={(e) => onDragOver(e, entrant.id)}
       onDragLeave={onDragLeave}
       onDrop={(e) => onDrop(e, entrant.id)}
@@ -112,7 +119,11 @@ export default function EntrantRow({
       {/* Include Checkbox */}
       <td className="px-2 py-1 w-24 border-b dark:border-gray-700 sticky left-0 bg-white dark:bg-gray-900 group-hover:bg-gray-50 dark:group-hover:bg-gray-800 z-10">
         <div className="flex items-center gap-2">
-          <div className="cursor-move text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+          <div
+            data-drag-handle
+            className="cursor-move text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+            title="Drag to reorder"
+          >
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
             </svg>
