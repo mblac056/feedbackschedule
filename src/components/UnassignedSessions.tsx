@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { RiPushpinFill, RiPushpinLine } from 'react-icons/ri';
 import type { SessionBlock } from '../types';
@@ -6,6 +6,11 @@ import { reorderSessionBlocksByEntrants } from '../utils/localStorage';
 import { buildBlocksAfterSessionTypeChange } from '../utils/sessionTypeChange';
 import { parseUnscheduleDropPayload } from '../utils/unscheduleDrop';
 import { useEntrant } from '../contexts/useEntrant';
+import { useJudge } from '../contexts/useJudge';
+import {
+  getEntrantIdsAssignedToJudge,
+  getReversePreferenceIndicator,
+} from '../utils/judgePreferenceIndicator';
 import SessionBlockComponent from './SessionBlock';
 
 const PIN_STORAGE_KEY = 'evalmatrix_unassigned_pinned';
@@ -40,8 +45,13 @@ export default function UnassignedSessions({
   onSessionBlocksReplace,
 }: UnassignedSessionsProps) {
   const { entrants } = useEntrant();
+  const { selectedJudge } = useJudge();
   const [isDragOver, setIsDragOver] = useState(false);
   const [isPinned, setIsPinned] = useState(readPinned);
+  const entrantsAssignedToSelectedJudge = useMemo(
+    () => getEntrantIdsAssignedToJudge(allSessionBlocks, selectedJudge),
+    [allSessionBlocks, selectedJudge]
+  );
 
   const togglePinned = () => {
     setIsPinned((pinned) => {
@@ -130,6 +140,13 @@ export default function UnassignedSessions({
           includeInSchedule: true,
         };
 
+        const preferenceIndicator = getReversePreferenceIndicator({
+          entrant: entrantData,
+          selectedJudge,
+          blockJudgeId: undefined,
+          entrantAssignedToSelectedJudge: entrantsAssignedToSelectedJudge.has(sessionBlock.entrantId),
+        });
+
         return (
           <SessionBlockComponent
             key={sessionBlock.id}
@@ -139,6 +156,7 @@ export default function UnassignedSessions({
             sessionId={sessionBlock.id}
             useAbsolutePositioning={false}
             onSessionTypeChange={handleSessionTypeChange}
+            preferenceIndicator={preferenceIndicator}
           />
         );
       })}

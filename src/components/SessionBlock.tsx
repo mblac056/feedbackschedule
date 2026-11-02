@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import type { Entrant } from '../types';
 import { getSessionHeightCSS } from '../config/timeConfig';
 import { useEntrant } from '../contexts/useEntrant.ts';
+import { useJudge } from '../contexts/useJudge';
 import { useSettings } from '../contexts/useSettings';
+import type { JudgePreferenceIndicator } from '../utils/judgePreferenceIndicator';
 
 interface SessionBlockProps {
   entrant: Entrant;
@@ -23,6 +25,7 @@ interface SessionBlockProps {
   conflictSeverity?: 'red' | 'yellow';
   isMultiSelected?: boolean;
   suppressEntrantSelectionOnDrag?: boolean;
+  preferenceIndicator?: JudgePreferenceIndicator | null;
 }
 
 type SessionBlockAppearance = {
@@ -100,13 +103,14 @@ export default function SessionBlock({
   conflictSeverity,
   isMultiSelected = false,
   suppressEntrantSelectionOnDrag = false,
-
+  preferenceIndicator = null,
 }: SessionBlockProps) {
   const [isDragged, setIsDragged] = useState(false);
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const { selectedEntrant, setSelectedEntrant, selectedGroupsToAvoid } = useEntrant();
+  const { setSelectedJudge } = useJudge();
   const { settings } = useSettings();
   const [isHiddenDuringDrag, setIsHiddenDuringDrag] = useState(false);
   const resolvedConflictSeverity = conflictSeverity ?? (hasConflict ? 'red' : null);
@@ -122,6 +126,7 @@ export default function SessionBlock({
       setSelectedEntrant(null);
     } else {
       setSelectedEntrant(entrant.id);
+      setSelectedJudge(null);
     }
   };
 
@@ -129,6 +134,7 @@ export default function SessionBlock({
     setIsDragged(true);
     if (!suppressEntrantSelectionOnDrag) {
       setSelectedEntrant(entrant.id);
+      setSelectedJudge(null);
     }
     // Set drag data for the session block
     const sessionData = {
@@ -238,6 +244,14 @@ export default function SessionBlock({
           >
             •
           </button>
+        {preferenceIndicator ? (
+          <div
+            className="absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md"
+            style={{ backgroundColor: preferenceIndicator.color }}
+          >
+            {preferenceIndicator.number}
+          </div>
+        ) : null}
         {/* Removed the X button - sessions will now be removed by dragging back to UnassignedSessions */}
         <div className="font-semibold text-sm truncate">
           {entrant.name} {type === '3x10' && settings.moving === "judges" && entrant.roomNumber && `(${entrant.roomNumber})`}

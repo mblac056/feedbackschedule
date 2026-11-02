@@ -4,12 +4,15 @@ import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
 import { EntrantProvider } from './contexts/EntrantContext.tsx'
+import { JudgeProvider } from './contexts/JudgeContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <EntrantProvider>
-        <App />
+        <JudgeProvider>
+          <App />
+        </JudgeProvider>
       </EntrantProvider>
     </BrowserRouter>
   </StrictMode>,

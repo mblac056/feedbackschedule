@@ -1,6 +1,8 @@
 import type { DragEvent as ReactDragEvent } from 'react';
 import type { Entrant, Judge } from '../../../types';
 import { getCategoryHeaderClass } from '../../../config/categoryConfig';
+import { useEntrant } from '../../../contexts/useEntrant';
+import { useJudge } from '../../../contexts/useJudge';
 import { formatAssignedTimeLabel } from '../../../utils/assignedTimeLabel';
 import { getJudgePreferenceIndicator } from '../../../utils/judgePreferenceIndicator';
 
@@ -33,7 +35,19 @@ export default function JudgeColumnHeader({
   onDrop,
   onDragEnd,
 }: JudgeColumnHeaderProps) {
+  const { setSelectedEntrant } = useEntrant();
+  const { selectedJudge, setSelectedJudge } = useJudge();
   const preference = getJudgePreferenceIndicator(judge.id, selectedEntrant, entrants);
+  const isSelected = selectedJudge === judge.id;
+
+  const handleToggleJudgeSelection = () => {
+    if (judge.id === selectedJudge) {
+      setSelectedJudge(null);
+    } else {
+      setSelectedJudge(judge.id);
+      setSelectedEntrant(null);
+    }
+  };
 
   return (
     <div className="flex-1 text-center">
@@ -42,6 +56,8 @@ export default function JudgeColumnHeader({
           isDragging ? 'opacity-50 scale-95' : ''
         } ${
           isDragOver ? 'ring-2 ring-blue-500 ring-opacity-50' : ''
+        } ${
+          isSelected ? 'ring-4 ring-sky-300 dark:ring-sky-500 ring-opacity-90' : ''
         }`}
         style={{ minHeight: '80px' }}
         draggable
@@ -51,6 +67,17 @@ export default function JudgeColumnHeader({
         onDrop={(e) => onDrop(e, judge.id)}
         onDragEnd={onDragEnd}
       >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleToggleJudgeSelection();
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="absolute bottom-1 left-1 w-3 h-3 rounded-full text-xs flex items-center justify-center bg-gray-500 dark:bg-gray-600 text-white"
+        >
+          •
+        </button>
         {preference ? (
           <div
             className="absolute top-[-10px] left-1 w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md"

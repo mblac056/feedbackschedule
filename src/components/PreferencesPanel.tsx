@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import type { Judge, EntrantJudgeAssignments, SessionBlock } from '../types';
 import { useEntrant } from '../contexts/useEntrant.ts';
+import { useJudge } from '../contexts/useJudge';
 import { useSettings } from '../contexts/useSettings.ts';
 import { getCategoryColor } from '../config/categoryConfig';
 import { calculateTotalByeLength } from '../utils/printFiles';
@@ -88,6 +89,7 @@ export default function PreferencesPanel({
   onToggle,
 }: PreferencesPanelProps) {
   const { entrants, selectedEntrant, setSelectedEntrant } = useEntrant();
+  const { setSelectedJudge } = useJudge();
   const { settings } = useSettings();
   const { preferenceNotes, handleNotesChange } = usePreferenceNotes();
   const { panelWidth, isDesktopView, isResizing, handleResizePointerDown } = usePanelResize();
@@ -218,7 +220,10 @@ export default function PreferencesPanel({
                   } ${selectedEntrant === entrant.id ? 'bg-[var(--primary-color)] text-white' : 'text-gray-600 dark:text-gray-300'
                   }`}
                 draggable
-                onClick={() => setSelectedEntrant(entrant.id)}
+                onClick={() => {
+                  setSelectedEntrant(entrant.id);
+                  setSelectedJudge(null);
+                }}
                 onDragStart={(e) => handleDragStart(e, entrant.id)}
                 onDragOver={(e) => handleDragOver(e, entrant.id)}
                 onDragLeave={handleDragLeave}

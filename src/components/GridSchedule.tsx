@@ -1,9 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { Judge, SessionBlock, DraggedSessionData } from '../types';
 import SessionBlockComponent from './SessionBlock';
 import { TIME_CONFIG, getSessionHeight } from '../config/timeConfig';
 import { useSettings } from '../contexts/useSettings';
 import { useEntrant } from '../contexts/useEntrant';
+import { useJudge } from '../contexts/useJudge';
+import {
+  getEntrantIdsAssignedToJudge,
+  getReversePreferenceIndicator,
+} from '../utils/judgePreferenceIndicator';
 import { getConflictDetails, getJudgeAssignedTime, getSessionConflictSeverity } from '../utils/scheduleHelpers';
 import ConflictBanners from './grid/components/ConflictBanners';
 import DragPreviewOverlay from './grid/components/DragPreviewOverlay';
@@ -40,7 +45,12 @@ export default function GridSchedule({
 }: GridScheduleProps) {
   const { settings, setSettings } = useSettings();
   const { selectedEntrant, setSelectedEntrant, entrants } = useEntrant();
+  const { selectedJudge } = useJudge();
   const gridBodyRef = useRef<HTMLDivElement>(null);
+  const entrantsAssignedToSelectedJudge = useMemo(
+    () => getEntrantIdsAssignedToJudge(scheduledSessions, selectedJudge),
+    [scheduledSessions, selectedJudge]
+  );
 
   const {
     selectedSessionIds,
@@ -251,6 +261,15 @@ export default function GridSchedule({
                           settings
                         );
 
+                        const preferenceIndicator = getReversePreferenceIndicator({
+                          entrant: entrantData,
+                          selectedJudge,
+                          blockJudgeId: session.judgeId,
+                          entrantAssignedToSelectedJudge: entrantsAssignedToSelectedJudge.has(
+                            session.entrantId
+                          ),
+                        });
+
                         return (
                           <SessionBlockComponent
                             key={`${session.id}`}
@@ -274,6 +293,7 @@ export default function GridSchedule({
                             suppressEntrantSelectionOnDrag={
                               selectedSessionIds.length > 1 && selectedSessionIds.includes(session.id)
                             }
+                            preferenceIndicator={preferenceIndicator}
                             onDragStart={(e) => {
                               const shouldGroupDrag =
                                 selectedSessionIds.length > 1 && selectedSessionIds.includes(session.id);
