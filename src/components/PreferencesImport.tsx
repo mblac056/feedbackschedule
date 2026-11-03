@@ -145,7 +145,7 @@ export default function PreferencesImport({
           )}
         </div>
         
-        <h4 className="text-base font-medium text-gray-900 mb-1">
+        <h4 className="text-base font-medium text-gray-900 mb-1 dark:text-gray-100">
           {isLoading ? 'Processing file...' : 'Import Preferences from CSV'}
         </h4>
         
