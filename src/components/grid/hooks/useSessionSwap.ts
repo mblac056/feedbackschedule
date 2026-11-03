@@ -105,11 +105,15 @@ export function useSessionSwap({
   };
 
   const handleScheduledBlockDragOver = (e: ReactDragEvent, targetSession: SessionBlock) => {
+    // Always keep the occupied cell eligible as a drop target so the browser
+    // does not snap-back when the pointer is over the absolute-positioned block.
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
     if (isGroupDragActive(draggedSessionData)) return;
     if (!draggedSessionData || draggedSessionData.isRemoving !== true || !draggedSessionData.sessionId) return;
     if (draggedSessionData.sessionId === targetSession.id) return;
     if (draggedSessionData.type !== targetSession.type) return;
-    e.preventDefault();
     startSwapHoverTimer(targetSession.id);
   };
 

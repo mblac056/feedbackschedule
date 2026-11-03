@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { RiPushpinFill, RiPushpinLine } from 'react-icons/ri';
-import type { SessionBlock } from '../types';
+import type { DraggedSessionData, SessionBlock } from '../types';
 import { reorderSessionBlocksByEntrants } from '../utils/localStorage';
 import { buildBlocksAfterSessionTypeChange } from '../utils/sessionTypeChange';
 import { parseUnscheduleDropPayload } from '../utils/unscheduleDrop';
@@ -21,6 +21,7 @@ interface UnassignedSessionsProps {
   allSessionBlocks: SessionBlock[];
   onSessionUnscheduled?: (sessionData: { entrantId: string; type: string; sessionIndex?: number }) => void;
   onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
+  onSessionDragStart?: (sessionData: DraggedSessionData) => void;
 }
 
 function readPinned(): boolean {
@@ -43,6 +44,7 @@ export default function UnassignedSessions({
   allSessionBlocks,
   onSessionUnscheduled,
   onSessionBlocksReplace,
+  onSessionDragStart,
 }: UnassignedSessionsProps) {
   const { entrants } = useEntrant();
   const { selectedJudge } = useJudge();
@@ -157,6 +159,16 @@ export default function UnassignedSessions({
             useAbsolutePositioning={false}
             onSessionTypeChange={handleSessionTypeChange}
             preferenceIndicator={preferenceIndicator}
+            onDragStart={() => {
+              onSessionDragStart?.({
+                entrantId: sessionBlock.entrantId,
+                entrantName: sessionBlock.entrantName,
+                type: sessionBlock.type,
+                sessionIndex: sessionBlock.sessionIndex,
+                sessionId: sessionBlock.id,
+                isRemoving: false,
+              });
+            }}
           />
         );
       })}

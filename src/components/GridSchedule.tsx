@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import type { RefObject } from 'react';
 import type { Judge, SessionBlock, DraggedSessionData } from '../types';
 import SessionBlockComponent from './SessionBlock';
 import { TIME_CONFIG, getSessionHeight } from '../config/timeConfig';
@@ -27,6 +28,7 @@ interface GridScheduleProps {
   onJudgesReorder?: (reorderedJudges: Judge[]) => void;
   onSessionAssigned?: (sessionData: DraggedSessionData) => void;
   draggedSessionData?: DraggedSessionData | null;
+  draggedSessionDataRef?: RefObject<DraggedSessionData | null>;
   scheduledSessions: SessionBlock[];
   allSessionBlocks: SessionBlock[];
   onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
@@ -38,6 +40,7 @@ export default function GridSchedule({
   onJudgesReorder,
   onSessionAssigned,
   draggedSessionData,
+  draggedSessionDataRef,
   scheduledSessions,
   allSessionBlocks,
   onSessionBlocksReplace,
@@ -105,7 +108,7 @@ export default function GridSchedule({
 
   const {
     dragPreview,
-    setDragPreview,
+    clearDragPreview,
     handleSessionDrop,
     handleSessionDragEnter,
     handleSessionDragOverWithPreview,
@@ -115,6 +118,7 @@ export default function GridSchedule({
     allSessionBlocks,
     settings,
     draggedSessionData,
+    draggedSessionDataRef,
     isGroupDragActive,
     getGroupDragPreview,
     applyGroupDrop,
@@ -140,10 +144,29 @@ export default function GridSchedule({
     }
   }, [selectedEntrant, draggedSessionData, scheduledSessions, setSelectedEntrant]);
 
-  const conflictDetails = getConflictDetails(scheduledSessions, judges, entrants, settings);
-  const redConflicts = conflictDetails.filter((conflict) => conflict.severity === 'red');
-  const yellowConflicts = conflictDetails.filter((conflict) => conflict.severity === 'yellow');
-  const timeSlots = generateTimeSlots(settings.startTime);
+  const conflictDetails = useMemo(
+    () => getConflictDetails(scheduledSessions, judges, entrants, settings),
+    [scheduledSessions, judges, entrants, settings]
+  );
+  const redConflicts = useMemo(
+    () => conflictDetails.filter((conflict) => conflict.severity === 'red'),
+    [conflictDetails]
+  );
+  const yellowConflicts = useMemo(
+    () => conflictDetails.filter((conflict) => conflict.severity === 'yellow'),
+    [conflictDetails]
+  );
+  const conflictSeverityBySessionId = useMemo(() => {
+    const map = new Map<string, 'red' | 'yellow' | null>();
+    for (const session of scheduledSessions) {
+      map.set(
+        session.id,
+        getSessionConflictSeverity(session, scheduledSessions, judges, entrants, settings)
+      );
+    }
+    return map;
+  }, [scheduledSessions, judges, entrants, settings]);
+  const timeSlots = useMemo(() => generateTimeSlots(settings.startTime), [settings.startTime]);
 
   return (
     <div>
@@ -253,13 +276,7 @@ export default function GridSchedule({
                         const entrantData = entrants.find((item) => item.id === session.entrantId);
                         if (!entrantData) return null;
 
-                        const conflictSeverity = getSessionConflictSeverity(
-                          session,
-                          scheduledSessions,
-                          judges,
-                          entrants,
-                          settings
-                        );
+                        const conflictSeverity = conflictSeverityBySessionId.get(session.id) ?? null;
 
                         const preferenceIndicator = getReversePreferenceIndicator({
                           entrant: entrantData,
@@ -287,7 +304,7 @@ export default function GridSchedule({
                             onDragEnd={handleScheduledBlockDragEnd}
                             onDrop={(e) => {
                               handleSessionBlockSwapDrop(e, session);
-                              setDragPreview(null);
+                              clearDragPreview();
                             }}
                             isMultiSelected={selectedSessionIds.includes(session.id)}
                             suppressEntrantSelectionOnDrag={

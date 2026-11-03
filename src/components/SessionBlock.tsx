@@ -131,12 +131,9 @@ export default function SessionBlock({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    setIsDragged(true);
-    if (!suppressEntrantSelectionOnDrag) {
-      setSelectedEntrant(entrant.id);
-      setSelectedJudge(null);
-    }
-    // Set drag data for the session block
+    // Capture a single-block drag image BEFORE any React state updates. Parent
+    // setState during dragstart can make Chrome snapshot a large grid layer.
+    e.dataTransfer.effectAllowed = 'move';
     const sessionData = {
       entrantId: entrant.id,
       entrantName: entrant.name,
@@ -146,11 +143,30 @@ export default function SessionBlock({
       isRemoving: useAbsolutePositioning // If useAbsolutePositioning is true, this session is in the grid and can be removed
     };
     e.dataTransfer.setData('application/json', JSON.stringify(sessionData));
-    if (useAbsolutePositioning) {
-      // Defer hiding until after drag image is created
-      requestAnimationFrame(() => setIsHiddenDuringDrag(true));
+    try {
+      const target = e.currentTarget as HTMLElement;
+      e.dataTransfer.setDragImage(
+        target,
+        Math.min(Math.max(e.nativeEvent.offsetX, 8), Math.max(target.offsetWidth - 8, 8)),
+        Math.min(Math.max(e.nativeEvent.offsetY, 8), Math.max(target.offsetHeight - 8, 8))
+      );
+    } catch {
+      // setDragImage can throw in older engines; native default image is fine.
     }
+
     if (onDragStart) onDragStart(e);
+
+    // Defer visual state so it cannot affect the drag-image snapshot.
+    queueMicrotask(() => {
+      setIsDragged(true);
+      if (!suppressEntrantSelectionOnDrag) {
+        setSelectedEntrant(entrant.id);
+        setSelectedJudge(null);
+      }
+      if (useAbsolutePositioning) {
+        setIsHiddenDuringDrag(true);
+      }
+    });
   };
 
   const handleDragEnd = (e: React.DragEvent) => {
@@ -198,8 +214,8 @@ export default function SessionBlock({
 
   const className = `
     ${appearance.background} ${appearance.text} p-1 rounded-lg shadow-md
-    cursor-move transition-all duration-200 hover:shadow-lg
-    ${isDragging || isDragged ? 'opacity-50 scale-95' : ''}
+    cursor-move transition-shadow duration-200 hover:shadow-lg
+    ${isDragging || isDragged ? 'opacity-50' : ''}
     ${isDragOverProp ? 'ring-4 ring-amber-300 dark:ring-amber-500 ring-opacity-80 animate-pulse shadow-xl' : ''}
     ${isMultiSelected ? 'ring-4 ring-sky-300 dark:ring-sky-500 ring-opacity-90' : ''}
     ${useAbsolutePositioning ? 'border border-white dark:border-gray-400' : ''}

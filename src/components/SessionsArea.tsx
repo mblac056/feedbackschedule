@@ -1,6 +1,6 @@
 import UnassignedSessions from "./UnassignedSessions";
 import GridSchedule from "./GridSchedule";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import type { Judge, SessionBlock } from "../types";
 //import { saveJudges, clearGrid, saveSettings } from "../utils/localStorage";
 import { saveJudges, clearGrid } from "../utils/localStorage";
@@ -44,8 +44,23 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
     const { settings } = useSettings();
     const { entrants } = useEntrant();
     const [draggedSessionData, setDraggedSessionData] = useState<DraggedSessionData | null>(null);
+    const draggedSessionDataRef = useRef<DraggedSessionData | null>(null);
     const [totalDuration, setTotalDuration] = useState<number>(0);
     const [showPrintDropdown, setShowPrintDropdown] = useState<boolean>(false);
+
+    const beginSessionDrag = useCallback((sessionData: DraggedSessionData) => {
+      // Keep ref sync for drop-target logic; defer React state so dragstart
+      // re-renders do not enlarge Chrome's drag image to the whole grid.
+      draggedSessionDataRef.current = sessionData;
+      queueMicrotask(() => {
+        setDraggedSessionData(sessionData);
+      });
+    }, []);
+
+    const endSessionDrag = useCallback(() => {
+      draggedSessionDataRef.current = null;
+      setDraggedSessionData(null);
+    }, []);
   const activeJudges = useMemo(() => judges.filter(j => j.active !== false), [judges]);
   const conflictDetails = useMemo(
     () => getConflictDetails(scheduledSessions, activeJudges, entrants, settings),
@@ -108,17 +123,13 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
         saveJudges(merged);
       };
     
-        // Global variable to store drag data
-        let globalDragData: DraggedSessionData | null = null;
-        
         const handleGlobalDragStart = (e: React.DragEvent) => {
-            // Try to read drag data from the event
+            // Prefer data already set synchronously via beginSessionDrag; fall back to DataTransfer.
+            if (draggedSessionDataRef.current) return;
             try {
               const sessionData = e.dataTransfer.getData('application/json');
               if (sessionData) {
-                const parsedData: DraggedSessionData = JSON.parse(sessionData);
-                globalDragData = parsedData;
-                setDraggedSessionData(parsedData);
+                beginSessionDrag(JSON.parse(sessionData) as DraggedSessionData);
               }
             } catch {
               // Not a session drag, ignore
@@ -126,15 +137,13 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
           };
         
           const handleGlobalDragOver = () => {
-            // Use the global drag data if available
-            if (globalDragData && !draggedSessionData) {
-              setDraggedSessionData(globalDragData);
+            if (draggedSessionDataRef.current && !draggedSessionData) {
+              setDraggedSessionData(draggedSessionDataRef.current);
             }
           };
         
           const handleGlobalDragEnd = () => {
-            setDraggedSessionData(null);
-            globalDragData = null;
+            endSessionDrag();
           };
 
     const reportOptions = [
@@ -331,18 +340,18 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
             judges={activeJudges} 
             onJudgesReorder={handleJudgesReorder}
             draggedSessionData={draggedSessionData}
+            draggedSessionDataRef={draggedSessionDataRef}
             scheduledSessions={scheduledSessions}
             allSessionBlocks={allSessionBlocks}
             onSessionBlocksReplace={onSessionBlocksReplace}
-            onSessionDragStart={(sessionData) => {
-              setDraggedSessionData(sessionData);
-            }}
+            onSessionDragStart={beginSessionDrag}
           />
         </div>
       
       <div className="mobile-scroll-container">
         <UnassignedSessions 
           allSessionBlocks={allSessionBlocks}
+          onSessionDragStart={beginSessionDrag}
           onSessionUnscheduled={(sessionData) => {
             // Find the session block and unschedule it instead of removing it
             const sessionBlock = allSessionBlocks.find(block => 
