@@ -1,5 +1,6 @@
 import type { Judge, Entrant, SessionBlock } from '../types';
 import type { SessionSettings } from '../config/timeConfig';
+import { stripLegacyEndRowIndex } from './scheduleHelpers';
 
 // Storage keys - centralized in one place
 const STORAGE_KEYS = {
@@ -163,7 +164,8 @@ export class LocalStorageService {
   static getSessionBlocks(): SessionBlock[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.SESSION_BLOCKS);
-      const sessionBlocks = stored ? JSON.parse(stored) : [];
+      const parsed: SessionBlock[] = stored ? JSON.parse(stored) : [];
+      const sessionBlocks = parsed.map(stripLegacyEndRowIndex);
       //this.logSuccess('getSessionBlocks', sessionBlocks);
       return sessionBlocks;
     } catch (error) {

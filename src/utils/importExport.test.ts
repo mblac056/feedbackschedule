@@ -32,8 +32,8 @@ function exportJson(sessionBlocks: unknown[]) {
   });
 }
 
-describe('importExport.importData endRowIndex backfill', () => {
-  it('fills missing endRowIndex for scheduled sessions from imported durations', () => {
+describe('importExport.importData legacy endRowIndex', () => {
+  it('strips endRowIndex from older exports and keeps start positions', () => {
     const result = importData(exportJson([
       {
         id: 'e1-3x20-0',
@@ -43,6 +43,7 @@ describe('importExport.importData endRowIndex backfill', () => {
         sessionIndex: 0,
         isScheduled: true,
         startRowIndex: 8,
+        endRowIndex: 3,
         judgeId: 'j1',
       },
       {
@@ -57,25 +58,10 @@ describe('importExport.importData endRowIndex backfill', () => {
     ]));
 
     expect(result.success).toBe(true);
-    expect(result.data?.sessionBlocks.map((block) => block.endRowIndex)).toEqual([11, 7]);
-  });
-
-  it('leaves an existing endRowIndex unchanged', () => {
-    const result = importData(exportJson([
-      {
-        id: 'e1-3x20-0',
-        entrantId: 'e1',
-        entrantName: 'Group One',
-        type: '3x20',
-        sessionIndex: 0,
-        isScheduled: true,
-        startRowIndex: 8,
-        endRowIndex: 3,
-        judgeId: 'j1',
-      },
-    ]));
-
-    expect(result.success).toBe(true);
-    expect(result.data?.sessionBlocks[0].endRowIndex).toBe(3);
+    const blocks = result.data?.sessionBlocks ?? [];
+    expect(blocks.map((block) => block.startRowIndex)).toEqual([8, 0]);
+    for (const block of blocks) {
+      expect(block).not.toHaveProperty('endRowIndex');
+    }
   });
 });

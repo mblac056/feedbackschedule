@@ -10,6 +10,17 @@ export const getSessionDurationInSlots = (
   return Math.ceil(durationMinutes / TIME_CONFIG.MINUTES_PER_SLOT);
 };
 
+/**
+ * Older saves and exports stored endRowIndex on each block. It is now derived
+ * from settings, so drop it on load to keep a single source of truth.
+ */
+export const stripLegacyEndRowIndex = <T extends object>(block: T): T => {
+  if (!('endRowIndex' in block)) return block;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { endRowIndex, ...rest } = block as T & { endRowIndex?: unknown };
+  return rest as T;
+};
+
 export const doTimeRangesOverlap = (
   start1: number,
   end1: number,
@@ -427,18 +438,11 @@ export const getConflictDetails = (
 
 export const buildSessionSwapUpdates = (
   sourceSession: SessionBlock,
-  targetSession: SessionBlock,
-  settings: SessionSettings
+  targetSession: SessionBlock
 ): [SessionBlock, SessionBlock] => {
-  const sessionDurationSlots = getSessionDurationInSlots(sourceSession.type, settings);
-
   const updatedSource: SessionBlock = {
     ...sourceSession,
     startRowIndex: targetSession.startRowIndex,
-    endRowIndex:
-      targetSession.startRowIndex !== undefined
-        ? targetSession.startRowIndex + sessionDurationSlots - 1
-        : undefined,
     judgeId: targetSession.judgeId,
     isScheduled: true
   };
@@ -446,10 +450,6 @@ export const buildSessionSwapUpdates = (
   const updatedTarget: SessionBlock = {
     ...targetSession,
     startRowIndex: sourceSession.startRowIndex,
-    endRowIndex:
-      sourceSession.startRowIndex !== undefined
-        ? sourceSession.startRowIndex + sessionDurationSlots - 1
-        : undefined,
     judgeId: sourceSession.judgeId,
     isScheduled: true
   };
@@ -471,18 +471,14 @@ const captureSchedulingState = (session: SessionBlock): SessionSchedulingState =
 
 const applySchedulingState = (
   session: SessionBlock,
-  state: SessionSchedulingState,
-  settings: SessionSettings
+  state: SessionSchedulingState
 ): SessionBlock => {
   if (state.isScheduled && state.startRowIndex !== undefined && state.judgeId) {
-    const durationSlots = getSessionDurationInSlots(session.type, settings);
-    const startRow = state.startRowIndex;
     return {
       ...session,
       isScheduled: true,
       judgeId: state.judgeId,
-      startRowIndex: startRow,
-      endRowIndex: startRow + durationSlots - 1
+      startRowIndex: state.startRowIndex
     };
   }
 
@@ -490,15 +486,13 @@ const applySchedulingState = (
     ...session,
     isScheduled: false,
     judgeId: undefined,
-    startRowIndex: undefined,
-    endRowIndex: undefined
+    startRowIndex: undefined
   };
 };
 
 export const buildEntrantSwapUpdates = (
   sourceSessions: SessionBlock[],
-  targetSessions: SessionBlock[],
-  settings: SessionSettings
+  targetSessions: SessionBlock[]
 ): SessionBlock[] => {
   if (sourceSessions.length === 0 || targetSessions.length === 0) {
     return [];
@@ -522,8 +516,8 @@ export const buildEntrantSwapUpdates = (
     const sourceState = captureSchedulingState(sourceSession);
     const targetState = captureSchedulingState(matchingTarget);
 
-    const updatedSource = applySchedulingState(sourceSession, targetState, settings);
-    const updatedTarget = applySchedulingState(matchingTarget, sourceState, settings);
+    const updatedSource = applySchedulingState(sourceSession, targetState);
+    const updatedTarget = applySchedulingState(matchingTarget, sourceState);
 
     updates.push(updatedSource, updatedTarget);
     processed.add(key);

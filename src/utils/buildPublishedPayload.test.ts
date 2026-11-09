@@ -18,27 +18,27 @@ const entrants = [
 ] as Entrant[];
 
 describe('buildPublishedPayload', () => {
-  it('includes scheduled sessions that have no stored endRowIndex', () => {
-    // Single-session grid drops used to save startRowIndex without endRowIndex.
+  it('includes every scheduled session', () => {
     const blocks = [
-      { id: 's1', entrantId: 'e1', entrantName: 'Group A', type: '1xLong', isScheduled: true, judgeId: 'j1', startRowIndex: 0, endRowIndex: 7 },
+      { id: 's1', entrantId: 'e1', entrantName: 'Group A', type: '1xLong', isScheduled: true, judgeId: 'j1', startRowIndex: 0 },
       { id: 's2', entrantId: 'e2', entrantName: 'Group B', type: '1xLong', isScheduled: true, judgeId: 'j1', startRowIndex: 8 },
     ] as SessionBlock[];
 
     const payload = buildPublishedPayload({ judges, entrants, sessionBlocks: blocks, settings });
 
     expect(payload.entrants.map((e) => e.id)).toEqual(['e1', 'e2']);
-    expect(payload.sessions.find((s) => s.id === 's2')?.endRowIndex).toBe(15);
+    expect(payload.sessions.find((s) => s.id === 's2')?.startRowIndex).toBe(8);
   });
 
-  it('recomputes a stale endRowIndex from the current session length', () => {
+  it('does not publish endRowIndex (derived from settings by readers)', () => {
     const blocks = [
       { id: 's1', entrantId: 'e1', entrantName: 'Group A', type: '3x20', isScheduled: true, judgeId: 'j1', startRowIndex: 10, endRowIndex: 3 },
-    ] as SessionBlock[];
+    ] as unknown as SessionBlock[]; // legacy block still carrying endRowIndex
 
     const payload = buildPublishedPayload({ judges, entrants, sessionBlocks: blocks, settings });
 
-    expect(payload.sessions[0].endRowIndex).toBe(13);
+    expect(payload.sessions[0]).not.toHaveProperty('endRowIndex');
+    expect(payload.sessions[0].startRowIndex).toBe(10);
   });
 
   it('skips unscheduled sessions', () => {

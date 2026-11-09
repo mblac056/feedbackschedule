@@ -11,7 +11,6 @@ function toSessionBlocks(payload: PublishedSchedulePayload): SessionBlock[] {
     type: s.type,
     sessionIndex: s.sessionIndex,
     startRowIndex: s.startRowIndex,
-    endRowIndex: s.endRowIndex,
     judgeId: s.judgeId,
     isScheduled: true,
   }));
@@ -55,11 +54,12 @@ function toSettings(payload: PublishedSchedulePayload): SessionSettings {
 
 /** Download the full schedule matrix PDF from a published (or preview) payload. */
 export async function downloadPublishedMatrixPdf(payload: PublishedSchedulePayload): Promise<void> {
+  const settings = toSettings(payload);
   const blob = await generateMatrixPage(
     toSessionBlocks(payload),
     toJudges(payload),
     toEntrants(payload),
-    toSettings(payload)
+    settings
   );
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

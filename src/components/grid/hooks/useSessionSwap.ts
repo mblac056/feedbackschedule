@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DragEvent as ReactDragEvent } from 'react';
-import type { SessionSettings } from '../../../config/timeConfig';
 import type { DraggedSessionData, SessionBlock } from '../../../types';
 import { buildEntrantSwapUpdates, buildSessionSwapUpdates } from '../../../utils/scheduleHelpers';
 import { applyBlockUpdates } from '../../../utils/sessionBlockUpdates';
@@ -11,7 +10,6 @@ interface UseSessionSwapParams {
   draggedSessionData?: DraggedSessionData | null;
   scheduledSessions: SessionBlock[];
   allSessionBlocks: SessionBlock[];
-  settings: SessionSettings;
   isGroupDragActive: (draggedSessionData?: DraggedSessionData | null) => boolean;
   onSessionBlocksReplace: (blocks: SessionBlock[]) => void;
 }
@@ -20,7 +18,6 @@ export function useSessionSwap({
   draggedSessionData,
   scheduledSessions,
   allSessionBlocks,
-  settings,
   isGroupDragActive,
   onSessionBlocksReplace,
 }: UseSessionSwapParams) {
@@ -142,9 +139,9 @@ export function useSessionSwap({
       (session) => session.entrantId === fullTargetSession.entrantId && session.type === fullTargetSession.type
     );
 
-    let updatedBlocks = buildEntrantSwapUpdates(sourceEntrantSessions, targetEntrantSessions, settings);
+    let updatedBlocks = buildEntrantSwapUpdates(sourceEntrantSessions, targetEntrantSessions);
     if (updatedBlocks.length === 0) {
-      updatedBlocks = buildSessionSwapUpdates(sourceSession, fullTargetSession, settings);
+      updatedBlocks = buildSessionSwapUpdates(sourceSession, fullTargetSession);
     }
 
     onSessionBlocksReplace(applyBlockUpdates(allSessionBlocks, updatedBlocks));

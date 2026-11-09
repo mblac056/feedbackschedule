@@ -37,7 +37,6 @@ const sessionBlocks: SessionBlock[] = [
     type: '3x20',
     isScheduled: true,
     startRowIndex: 0,
-    endRowIndex: 3,
     judgeId: 'j1',
   },
 ];
@@ -47,6 +46,17 @@ describe('publishedScheduleSchema', () => {
     const payload = buildPublishedPayload({ judges, entrants, sessionBlocks, settings });
     expect(parsePublishedSchedulePayload(payload).version).toBe(1);
     expect(parsePublishedSchedulePayload(payload).sessions).toHaveLength(1);
+  });
+
+  it('accepts older blobs that still carry endRowIndex and drops it', () => {
+    const payload = buildPublishedPayload({ judges, entrants, sessionBlocks, settings });
+    const legacy = {
+      ...payload,
+      sessions: payload.sessions.map((s) => ({ ...s, endRowIndex: s.startRowIndex + 3 })),
+    };
+    const parsed = parsePublishedSchedulePayload(legacy);
+    expect(parsed.sessions).toHaveLength(1);
+    expect(parsed.sessions[0]).not.toHaveProperty('endRowIndex');
   });
 
   it('rejects an unknown major version', () => {

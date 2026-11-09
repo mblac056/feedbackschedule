@@ -5,7 +5,8 @@ import {
   getConflictDetails,
   getSessionConflictSeverity,
   normalizeRoomKey,
-  roomsMatch
+  roomsMatch,
+  stripLegacyEndRowIndex
 } from './scheduleHelpers';
 
 const settings: SessionSettings = {
@@ -108,5 +109,17 @@ describe('room conflict casing', () => {
     expect(
       getSessionConflictSeverity(scheduled[0], scheduled, judges, entrants, settings)
     ).toBeNull();
+  });
+});
+
+describe('stripLegacyEndRowIndex', () => {
+  it('removes endRowIndex and keeps other fields', () => {
+    const legacy = { id: 's1', startRowIndex: 4, endRowIndex: 7, judgeId: 'j1' };
+    expect(stripLegacyEndRowIndex(legacy)).toEqual({ id: 's1', startRowIndex: 4, judgeId: 'j1' });
+  });
+
+  it('returns the same object when there is nothing to strip', () => {
+    const block = { id: 's1', startRowIndex: 4 };
+    expect(stripLegacyEndRowIndex(block)).toBe(block);
   });
 });
