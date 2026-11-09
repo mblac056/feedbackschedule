@@ -49,6 +49,17 @@ describe('publishedScheduleSchema', () => {
     expect(parsePublishedSchedulePayload(payload).sessions).toHaveLength(1);
   });
 
+  it('accepts older blobs that still carry endRowIndex and drops it', () => {
+    const payload = buildPublishedPayload({ judges, entrants, sessionBlocks, settings });
+    const legacy = {
+      ...payload,
+      sessions: payload.sessions.map((s) => ({ ...s, endRowIndex: s.startRowIndex + 3 })),
+    };
+    const parsed = parsePublishedSchedulePayload(legacy);
+    expect(parsed.sessions).toHaveLength(1);
+    expect(parsed.sessions[0]).not.toHaveProperty('endRowIndex');
+  });
+
   it('rejects an unknown major version', () => {
     const payload = { ...buildPublishedPayload({ judges, entrants, sessionBlocks, settings }), version: 2 };
     expect(() => parsePublishedSchedulePayload(payload)).toThrow(/Unsupported schedule version/);

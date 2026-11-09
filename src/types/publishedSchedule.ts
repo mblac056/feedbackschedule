@@ -24,8 +24,8 @@ export interface PublishedSession {
   entrantName: string;
   type: '1xLong' | '3x20' | '3x10';
   sessionIndex?: number;
+  /** End row is derived: startRowIndex + session length (from settings) - 1. */
   startRowIndex: number;
-  endRowIndex: number;
   judgeId: string;
 }
 

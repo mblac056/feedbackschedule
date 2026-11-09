@@ -119,6 +119,7 @@ export function parsePublishedSchedulePayload(input: unknown): PublishedSchedule
     if (typeof type !== 'string' || !SESSION_TYPES.has(type)) {
       throw new PayloadValidationError(`sessions[${index}].type is invalid`);
     }
+    // Older blobs also carry endRowIndex; it is ignored and derived from settings instead.
     return {
       id: requireString(session.id, `sessions[${index}].id`),
       entrantId: requireString(session.entrantId, `sessions[${index}].entrantId`),
@@ -126,7 +127,6 @@ export function parsePublishedSchedulePayload(input: unknown): PublishedSchedule
       type: type as '1xLong' | '3x20' | '3x10',
       sessionIndex: optionalNumber(session.sessionIndex, `sessions[${index}].sessionIndex`),
       startRowIndex: requireNumber(session.startRowIndex, `sessions[${index}].startRowIndex`),
-      endRowIndex: requireNumber(session.endRowIndex, `sessions[${index}].endRowIndex`),
       judgeId: requireString(session.judgeId, `sessions[${index}].judgeId`),
     };
   });
