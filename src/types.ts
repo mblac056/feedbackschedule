@@ -35,8 +35,8 @@ export interface SessionBlock {
   type: '1xLong' | '3x20' | '3x10';
   sessionIndex?: number;
   // Scheduling information (only present for scheduled sessions)
+  // End row is not stored: it is startRowIndex + session length (from settings) - 1.
   startRowIndex?: number; // Row index where the session starts (0-based)
-  endRowIndex?: number; // Row index where the session ends (0-based)
   judgeId?: string;
   isScheduled?: boolean;
 }

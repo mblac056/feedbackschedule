@@ -155,8 +155,7 @@ export const useGroupSessionDrag = ({
         ...proposal.session,
         isScheduled: true,
         judgeId: proposal.judgeId,
-        startRowIndex: proposal.startRowIndex,
-        endRowIndex: proposal.endRowIndex
+        startRowIndex: proposal.startRowIndex
       });
     }
 
@@ -251,8 +250,7 @@ export const useGroupSessionDrag = ({
         ...proposal.session,
         isScheduled: true,
         judgeId: proposal.judgeId,
-        startRowIndex: proposal.startRowIndex,
-        endRowIndex: proposal.endRowIndex
+        startRowIndex: proposal.startRowIndex
       }))
     ));
 

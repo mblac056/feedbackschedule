@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { Judge, Entrant, EntrantJudgeAssignments, SessionBlock } from '../types';
 import { getJudges, getEntrants, getSettings } from '../utils/localStorage';
-import type { SessionSettings } from '../config/timeConfig';
 import { SessionService, type SessionConflict } from '../services/SessionService';
 import { useEntrant } from '../contexts/useEntrant';
 import {
@@ -12,7 +11,6 @@ import {
   undoGridHistory,
   type SessionBlocksReplaceOptions,
 } from '../utils/gridHistory';
-import { refreshScheduledEndRowIndexes } from '../utils/sessionLengthSettings';
 
 interface UseSessionManagementReturn {
   judges: Judge[];
@@ -26,7 +24,7 @@ interface UseSessionManagementReturn {
   handleSessionBlocksReplace: (blocks: SessionBlock[], options?: SessionBlocksReplaceOptions) => void;
   handleScheduledSessionsChange: (sessions: SessionBlock[]) => void;
   handleClearGrid: () => void;
-  handleRefreshScheduledEnds: (settings: SessionSettings) => void;
+  recheckScheduleConflicts: () => void;
   handleUndoGridChange: () => void;
   handleRedoGridChange: () => void;
   canUndo: boolean;
@@ -149,11 +147,11 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     applyBlocks(SessionService.clearGrid(blocksRef.current));
   }, [applyBlocks, syncHistoryFlags]);
 
-  const handleRefreshScheduledEnds = useCallback((settings: SessionSettings) => {
-    historyRef.current = pushGridHistory(historyRef.current, blocksRef.current);
-    syncHistoryFlags();
-    applyBlocks(refreshScheduledEndRowIndexes(blocksRef.current, settings));
-  }, [applyBlocks, syncHistoryFlags]);
+  // Session lengths live in settings and end rows are derived, so a shorter
+  // length needs no block rewrite; conflicts just need recomputing.
+  const recheckScheduleConflicts = useCallback(() => {
+    checkScheduleConflicts(scheduledSessions, entrants);
+  }, [checkScheduleConflicts, scheduledSessions, entrants]);
 
   const handleUndoGridChange = useCallback(() => {
     const result = undoGridHistory(historyRef.current, blocksRef.current);
@@ -223,7 +221,7 @@ export const useSessionManagement = (): UseSessionManagementReturn => {
     handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
-    handleRefreshScheduledEnds,
+    recheckScheduleConflicts,
     handleUndoGridChange,
     handleRedoGridChange,
     canUndo,

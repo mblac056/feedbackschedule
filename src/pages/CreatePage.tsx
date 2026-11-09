@@ -24,7 +24,7 @@ function CreatePage() {
     handleSessionBlocksReplace,
     handleScheduledSessionsChange,
     handleClearGrid,
-    handleRefreshScheduledEnds,
+    recheckScheduleConflicts,
     handleUndoGridChange,
     handleRedoGridChange,
     canUndo,
@@ -77,7 +77,6 @@ function CreatePage() {
             ...block,
             isScheduled: false,
             startRowIndex: undefined,
-            endRowIndex: undefined,
             judgeId: undefined,
           }
         : block
@@ -169,7 +168,7 @@ function CreatePage() {
           scheduledSessions={scheduledSessions}
           onCompleteReset={handleCompleteReset}
           onClearGrid={handleClearGrid}
-          onRefreshScheduledEnds={handleRefreshScheduledEnds}
+          onSessionLengthsShortened={recheckScheduleConflicts}
         />
 
         <ImportExportModal

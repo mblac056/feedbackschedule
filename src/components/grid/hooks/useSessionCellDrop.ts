@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DragEvent as ReactDragEvent, RefObject } from 'react';
 import type { SessionSettings } from '../../../config/timeConfig';
 import type { DraggedSessionData, SessionBlock } from '../../../types';
-import { getSessionDurationInSlots, hasTimeConflict } from '../../../utils/scheduleHelpers';
+import { hasTimeConflict } from '../../../utils/scheduleHelpers';
 import { applyBlockUpdates } from '../../../utils/sessionBlockUpdates';
 import type { DragPreview } from '../types';
 
@@ -164,7 +164,6 @@ export function useSessionCellDrop({
           ...sessionBlock,
           isScheduled: true,
           startRowIndex: timeSlot,
-          endRowIndex: timeSlot + getSessionDurationInSlots(sessionBlock.type, settings) - 1,
           judgeId,
         }]));
       }

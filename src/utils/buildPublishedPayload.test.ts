@@ -18,10 +18,9 @@ const entrants = [
 ] as Entrant[];
 
 describe('buildPublishedPayload', () => {
-  it('includes scheduled sessions that have no stored endRowIndex', () => {
-    // Single-session grid drops used to save startRowIndex without endRowIndex.
+  it('includes every scheduled session', () => {
     const blocks = [
-      { id: 's1', entrantId: 'e1', entrantName: 'Group A', type: '1xLong', isScheduled: true, judgeId: 'j1', startRowIndex: 0, endRowIndex: 7 },
+      { id: 's1', entrantId: 'e1', entrantName: 'Group A', type: '1xLong', isScheduled: true, judgeId: 'j1', startRowIndex: 0 },
       { id: 's2', entrantId: 'e2', entrantName: 'Group B', type: '1xLong', isScheduled: true, judgeId: 'j1', startRowIndex: 8 },
     ] as SessionBlock[];
 
@@ -34,7 +33,7 @@ describe('buildPublishedPayload', () => {
   it('does not publish endRowIndex (derived from settings by readers)', () => {
     const blocks = [
       { id: 's1', entrantId: 'e1', entrantName: 'Group A', type: '3x20', isScheduled: true, judgeId: 'j1', startRowIndex: 10, endRowIndex: 3 },
-    ] as SessionBlock[];
+    ] as unknown as SessionBlock[]; // legacy block still carrying endRowIndex
 
     const payload = buildPublishedPayload({ judges, entrants, sessionBlocks: blocks, settings });
 

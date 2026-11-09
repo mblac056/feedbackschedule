@@ -101,7 +101,6 @@ export default function GridSchedule({
     draggedSessionData,
     scheduledSessions,
     allSessionBlocks,
-    settings,
     isGroupDragActive,
     onSessionBlocksReplace,
   });

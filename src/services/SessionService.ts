@@ -88,7 +88,6 @@ export class SessionService {
           ...block,
           isScheduled: existingScheduled.isScheduled,
           startRowIndex: existingScheduled.startRowIndex,
-          endRowIndex: existingScheduled.endRowIndex,
           judgeId: existingScheduled.judgeId
         };
       }

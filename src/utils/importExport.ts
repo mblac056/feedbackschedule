@@ -1,7 +1,6 @@
 import type { Judge, Entrant, SessionBlock } from '../types';
-import type { SessionSettings } from '../config/timeConfig';
 import { getJudges, getEntrants, getSessionBlocks, saveJudges, saveEntrants, saveSessionBlocks, getSettings, saveSettings, getPreferenceNotes, savePreferenceNotes } from './localStorage';
-import { getSessionDurationInSlots } from './scheduleHelpers';
+import { stripLegacyEndRowIndex } from './scheduleHelpers';
 import {
   clearPublishCredentials,
   getPublishCredentials,
@@ -61,21 +60,6 @@ export const parseJSON = (jsonString: string): ExportData | null => {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function backfillMissingEndRowIndex(block: SessionBlock, settings: SessionSettings): SessionBlock {
-  if (
-    block.endRowIndex !== undefined ||
-    !block.isScheduled ||
-    block.startRowIndex === undefined
-  ) {
-    return block;
-  }
-  const durationSlots = getSessionDurationInSlots(block.type, settings);
-  return {
-    ...block,
-    endRowIndex: block.startRowIndex + durationSlots - 1,
-  };
 }
 
 function applyPublishCredentialsFromImport(publish: unknown): void {
@@ -144,7 +128,7 @@ export const importData = (jsonString: string): ImportResult => {
       .filter(block =>
         block && block.id && block.entrantId && block.entrantName && block.type
       )
-      .map(block => backfillMissingEndRowIndex(block, cleanSettings));
+      .map(stripLegacyEndRowIndex);
 
     const saved =
       saveSettings(cleanSettings) &&

@@ -37,7 +37,6 @@ const sessionBlocks: SessionBlock[] = [
     type: '3x20',
     isScheduled: true,
     startRowIndex: 0,
-    endRowIndex: 3,
     judgeId: 'j1',
   },
 ];

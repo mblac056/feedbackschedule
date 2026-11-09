@@ -2,9 +2,8 @@ import type { Judge, Entrant, SessionBlock } from '../types';
 import type { PublishedSchedulePayload } from '../types/publishedSchedule';
 import type { SessionSettings } from '../config/timeConfig';
 import { generateMatrixPage } from './printTemplate-matrix';
-import { getSessionDurationInSlots } from './scheduleHelpers';
 
-function toSessionBlocks(payload: PublishedSchedulePayload, settings: SessionSettings): SessionBlock[] {
+function toSessionBlocks(payload: PublishedSchedulePayload): SessionBlock[] {
   return payload.sessions.map((s) => ({
     id: s.id,
     entrantId: s.entrantId,
@@ -12,7 +11,6 @@ function toSessionBlocks(payload: PublishedSchedulePayload, settings: SessionSet
     type: s.type,
     sessionIndex: s.sessionIndex,
     startRowIndex: s.startRowIndex,
-    endRowIndex: s.startRowIndex + getSessionDurationInSlots(s.type, settings) - 1,
     judgeId: s.judgeId,
     isScheduled: true,
   }));
@@ -58,7 +56,7 @@ function toSettings(payload: PublishedSchedulePayload): SessionSettings {
 export async function downloadPublishedMatrixPdf(payload: PublishedSchedulePayload): Promise<void> {
   const settings = toSettings(payload);
   const blob = await generateMatrixPage(
-    toSessionBlocks(payload, settings),
+    toSessionBlocks(payload),
     toJudges(payload),
     toEntrants(payload),
     settings

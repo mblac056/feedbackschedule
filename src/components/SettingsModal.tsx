@@ -18,7 +18,7 @@ interface SettingsModalProps {
   scheduledSessions: SessionBlock[];
   onCompleteReset?: () => void;
   onClearGrid?: () => void;
-  onRefreshScheduledEnds?: (settings: SessionSettings) => void;
+  onSessionLengthsShortened?: () => void;
 }
 
 const DEFAULT_SETTINGS: Settings = {
@@ -33,7 +33,7 @@ const DEFAULT_SETTINGS: Settings = {
 };
 
 
-export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset, onClearGrid, onRefreshScheduledEnds }: SettingsModalProps) {
+export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCompleteReset, onClearGrid, onSessionLengthsShortened }: SettingsModalProps) {
   const { setSettings: setContextSettings } = useSettings();
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [originalSettings, setOriginalSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -104,7 +104,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       if (hasAnyLengthIncreased()) {
         onClearGrid?.();
       } else {
-        onRefreshScheduledEnds?.(sessionSettings);
+        onSessionLengthsShortened?.();
       }
     }
     

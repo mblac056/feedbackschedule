@@ -32,8 +32,7 @@ export const populateGrid = (
     judgeNumberToJudge,
     groupNumberToGroup,
     judgeSchedules,
-    allSessionBlocks,
-    sessionSettings
+    allSessionBlocks
   );
   const assignedById = new Map(assignments.map(block => [block.id, block]));
   const blocks = allSessionBlocks.map(block => {
@@ -44,7 +43,6 @@ export const populateGrid = (
       ...block,
       isScheduled: false,
       startRowIndex: undefined,
-      endRowIndex: undefined,
       judgeId: undefined,
     };
   });
@@ -59,8 +57,7 @@ const assignSessionBlocksToGrid = (
   judgeNumberToJudge: Map<number, Judge>,
   groupNumberToGroup: Map<number, Entrant>,
   judgeSchedules: number[][],
-  allSessionBlocks: SessionBlock[],
-  sessionSettings?: SessionSettings
+  allSessionBlocks: SessionBlock[]
 ): SessionBlock[] => {
   const sessionBlocksByEntrant = new Map<string, SessionBlock[]>();
   allSessionBlocks.forEach(block => {
@@ -96,14 +93,10 @@ const assignSessionBlocksToGrid = (
       const unassignedBlock = groupBlocks.find(block => !assignedBlocks.has(block));
       if (!unassignedBlock) continue;
 
-      const durationSlots = getSessionDurationSlots(unassignedBlock.type, sessionSettings);
-      const endRowIndex = startRowIndex + durationSlots - 1;
-
       const updatedBlock: SessionBlock = {
         ...unassignedBlock,
         isScheduled: true,
         startRowIndex,
-        endRowIndex,
         judgeId: judge.id,
       };
       result.push(updatedBlock);
