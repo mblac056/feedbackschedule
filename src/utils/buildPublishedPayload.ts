@@ -2,6 +2,7 @@ import type { Judge, Entrant, SessionBlock } from '../types';
 import type { SessionSettings } from '../config/timeConfig';
 import type { PublishedSchedulePayload } from '../types/publishedSchedule';
 import { buildSlugMap } from './personSlugs';
+import { getSessionDurationInSlots } from './scheduleHelpers';
 
 export function buildPublishedPayload(args: {
   judges: Judge[];
@@ -10,13 +11,15 @@ export function buildPublishedPayload(args: {
   settings: SessionSettings;
 }): PublishedSchedulePayload {
   const activeJudges = args.judges.filter((j) => j.active !== false);
-  const scheduled = args.sessionBlocks.filter(
-    (s) =>
-      s.isScheduled &&
-      s.judgeId &&
-      s.startRowIndex !== undefined &&
-      s.endRowIndex !== undefined
-  );
+  // endRowIndex is derived from startRowIndex + current session length rather than
+  // trusted from storage: older single-session drops never stored it (so those
+  // groups were silently dropped from the published schedule), and it can be stale.
+  const scheduled = args.sessionBlocks
+    .filter((s) => s.isScheduled && s.judgeId && s.startRowIndex !== undefined)
+    .map((s) => ({
+      ...s,
+      endRowIndex: s.startRowIndex! + getSessionDurationInSlots(s.type, args.settings) - 1,
+    }));
 
   const judgeIds = new Set(scheduled.map((s) => s.judgeId!));
   const entrantIds = new Set(scheduled.map((s) => s.entrantId));
@@ -74,7 +77,7 @@ export function buildPublishedPayload(args: {
       type: s.type,
       sessionIndex: s.sessionIndex,
       startRowIndex: s.startRowIndex!,
-      endRowIndex: s.endRowIndex!,
+      endRowIndex: s.endRowIndex,
       judgeId: s.judgeId!,
     })),
     slugs,
