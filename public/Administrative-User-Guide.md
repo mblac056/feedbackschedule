@@ -549,7 +549,9 @@ Publish credentials (`code` + edit token) are stored in this browser so **Publis
 
 ### Lifetime
 
-Published schedules expire **7 days** after last update. Viewers of an expired code see **Schedule not found or expired.** Re-publish (or Publish as new) if the event window is longer.
+Published schedules expire **90 days** after the last publish. Viewing a schedule does not extend it; publishing again resets the 90 days. Viewers of an expired code see **Schedule not found or expired.**
+
+After a code expires, it stays reserved for its owner for **one more year**: only the original edit token (this browser, or an export that carries it) can publish to it again. After that year the code is released.
 
 ### Preview vs published
 
