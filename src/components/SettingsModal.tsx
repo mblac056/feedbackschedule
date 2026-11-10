@@ -4,7 +4,8 @@ import type { SessionBlock } from '../types';
 import { useSettings } from '../contexts/useSettings';
 import type { SessionSettings } from '../config/timeConfig';
 import { LocalStorageService } from '../utils/localStorage';
-import { filterCodePrefix } from '../utils/publishCodes';
+import { filterCodePrefix, formatCode } from '../utils/publishCodes';
+import { getPublishCredentials } from '../utils/publishStorage';
 import ReserveCodePanel from './ReserveCodePanel';
 import { anySessionLengthIncreased } from '../utils/sessionLengthSettings';
 
@@ -41,6 +42,8 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
   const [showResetWarning, setShowResetWarning] = useState(false);
   const [showValidationError, setShowValidationError] = useState(false);
   const [showCompleteResetWarning, setShowCompleteResetWarning] = useState(false);
+  // Read when the warning renders so it reflects a code reserved in this session.
+  const resetPublishCode = showCompleteResetWarning ? getPublishCredentials()?.code ?? null : null;
 
   useEffect(() => {
     if (isOpen) {
@@ -382,6 +385,12 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
                       This will permanently delete ALL data including judges, entrants, session blocks, settings, preference notes, and local publish credentials.
                       This action cannot be undone. Make sure to export your data first if you want to keep it.
                     </p>
+                    {resetPublishCode && (
+                      <p className="mt-2 font-medium">
+                        This browser will also lose its claim on {formatCode(resetPublishCode)}. Attendees keep seeing the
+                        last published version, but you can’t update it again without an export that carries its edit token.
+                      </p>
+                    )}
                   </div>
                   <div className="mt-4 flex space-x-3">
                     <button

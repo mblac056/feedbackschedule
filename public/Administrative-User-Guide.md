@@ -545,7 +545,7 @@ Shown once judges exist. Publishing with no scheduled sessions posts the **Comin
 | Action | Behavior |
 |--------|----------|
 | **Publish** / **Publishing…** | If this browser already published a code, **updates** that code (same edit token). Otherwise mints a new six-character code |
-| **Publish as new** | Always creates a **new** code and token (old code remains until it expires) |
+| **Publish as new** | Always creates a **new** code and token (old code remains until it expires). Asks first if this browser already has a code |
 | **Preview** | Opens `/preview` using **local** data only — dry run of the public UI without uploading |
 
 After a successful publish you see a status line with the code (link opens in a new tab), a **copy** control, and the expiry date. The date turns amber within 14 days of expiry.
@@ -572,6 +572,16 @@ Only what attendees see counts as a change. Preference notes and unscheduled ses
 - **Publish failed** / not found — network or server issue  
 
 Publish credentials (`code` + edit token) are stored in this browser so **Publish** can update the same code later. They are also written into the JSON export so another device can take over the same published listing after import.
+
+When you import a file and this browser already has a code:
+
+| File contains | You're asked |
+|---------------|--------------|
+| The same code | Nothing. Import proceeds |
+| A different code | **Use** the file's code or **Keep** this browser's |
+| No code | **Keep** this browser's code (default) or **Clear it** |
+
+**Complete Reset** names the code this browser will lose. Export first if you still need to update it.
 
 ### Lifetime
 

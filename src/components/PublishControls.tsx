@@ -200,6 +200,17 @@ export default function PublishControls({
   const handlePublishAsNew = async () => {
     if (disabled || busy) return;
     setShowDropdown(false);
+    const existing = getPublishCredentials();
+    if (existing) {
+      const old = formatCode(existing.code);
+      if (
+        !window.confirm(
+          `Attendees may already have ${old}. Publishing as new moves this browser to a new code. ${old} stays at its last version until it expires, and this browser can no longer update it unless you have an export with its edit token.`
+        )
+      ) {
+        return;
+      }
+    }
     setBusy(true);
     setError('');
     try {
