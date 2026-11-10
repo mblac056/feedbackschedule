@@ -117,7 +117,7 @@ The create page is the admin workspace. Until at least one judge exists, you see
 | **Manage Entrants** | Roster, preferences, Include checkboxes |
 | **Manage Judges** | Categories, rooms, active/inactive |
 | **Import/Export** | Full JSON backup and restore (shortcut **E**) |
-| **Settings** | Round name, movement, times, lengths, publish prefix |
+| **Settings** | Round name, movement, times, lengths, publish prefix, publishing (reserve a code, edit token, use an existing code) |
 | Theme toggle | Light / dark mode (create page; preference is remembered) |
 | **Refresh** | Reloads the page |
 
@@ -131,7 +131,7 @@ On narrow screens the same actions live in the hamburger menu.
 | **Clear Grid** | Unschedules everything after confirm; session *blocks* remain in Unassigned |
 | **Print** | Prints the Feedback Matrix; disabled if any **red** conflict exists |
 | Print dropdown | Other reports (see [Printable reports](#15-printable-reports)) |
-| **Publish** | Shareable code / preview (see [Preview and publish](#17-preview-and-publish)); disabled on red conflicts |
+| **Publish** | Shareable code / preview (see [Preview and publish](#17-preview-and-publish)); disabled on red conflicts. Below it, a status line shows the code, whether it's up to date, and when it expires |
 | **Session Format** | Shows current movement mode (color-coded) — **Groups moving to Judges** or **Judges moving to Groups** |
 | **Total Length** | Span from earliest to latest session; turns **red if over 120 minutes** |
 
@@ -158,7 +158,7 @@ Open **Settings** from the header.
 - Lengths must be **multiples of 5**, and **3X10 &lt; 3X20 &lt; 1XLong**  
 - Changing lengths shows **Warning: Scheduling Grid Reset** — the grid will be cleared (export first if you care about placements)  
 - **Reset to Defaults** — settings only  
-- **Complete Reset** — deletes judges, entrants, session blocks, settings, preference notes, and local publish credentials in this browser, then reloads. It does **not** clear your theme preference. Export first if you want to restore the same publish code later.  
+- **Complete Reset** — deletes judges, entrants, session blocks, settings, preference notes, and local publish credentials in this browser, then reloads. It does **not** clear your theme preference. Export first if you want to restore the same publish code later. The warning names the code this browser will lose.  
 
 When you save entrants after a roster that is mostly choruses or mostly quartets, you may also be prompted to **Switch Movement** (or keep the current mode). That prompt is advisory convenience, not a hard rule.
 
@@ -465,7 +465,7 @@ Preference-panel reds (avoid conflicts, mismatched types) are a separate, always
 - **Choose File to Import** — `.json` only  
 - **Replaces all current data**, then reloads after a short success message  
 - If the file includes publish credentials, they are restored so **Publish** can update the same code  
-- If the file has no publish block (older exports and unpublished schedules), any leftover publish credentials on this device are cleared  
+- If this browser already has a different code, or the file has none, you're asked whether to keep this browser's code (see [Preview and publish](#17-preview-and-publish))  
 - Bad files: **Failed to read file…** / structure errors  
 
 ### Best practice
@@ -474,7 +474,7 @@ Preference-panel reds (avoid conflicts, mismatched types) are a separate, always
 2. Duplicate / re-import and carve each feedback round (quartet semis, quartet finals, chorus, etc.) from that base  
 3. Export again after major edits **before** Complete Reset or length changes  
 
-Email the JSON to a colleague for review or co-editing. They import on their machine (full replace, including publish identity when present).
+Email the JSON to a colleague for review or co-editing. They import on their machine (full replace, including publish identity when present). To hand over only the code, share it with its edit token and use **Use an existing code** instead.
 
 ---
 
@@ -527,17 +527,55 @@ Publishing uploads the **current** scheduled grid so others can open it with a s
 2. Set **Feedback Round** (hub title)  
 3. Optionally set **Publish code prefix** (e.g. district code or similar)  
 
+### Reserve a code ahead of time
+
+Use this when attendees need the code before the schedule exists (printed programs, emails).
+
+1. **Settings → Publishing → Reserve a code**, or the **Reserve a code** section on the start screen before any judges are imported
+2. A **Feedback Round** name is required. It's the title attendees see
+3. Attendees who open the code see the round name and **Coming soon**
+4. Build the schedule as usual, then **Publish**. It goes to the same code
+
+Settings → Publishing also shows this browser's code, its expiry, and **Show edit token** if you need to hand ownership to someone. Anyone with the code and token can change the published schedule.
+
+### Use an existing code
+
+To take over a code on another device without an export file: **Settings → Publishing → Use an existing code** (or **Switch to a different code**). Enter the code and paste its edit token from **Show edit token** on the original device. The server checks they match before anything is saved; nothing is published until you click **Publish**.
+
+| Message | Meaning |
+|---------|---------|
+| That edit token doesn't match this code | Wrong token, or the code belongs to someone else |
+| No live schedule at that code | The code was never published, or expired more than a year ago |
+| …has expired. It's saved here; Publish to restore it | The token still owns the expired code. **Publish** brings it back |
+
+The edit token only lets you publish to the code. To keep editing the schedule itself, import the export file.
+
 ### Publish menu
 
-Shown when there is at least one scheduled session.
+Shown once judges exist. Publishing with no scheduled sessions posts the **Coming soon** page.
 
 | Action | Behavior |
 |--------|----------|
 | **Publish** / **Publishing…** | If this browser already published a code, **updates** that code (same edit token). Otherwise mints a new six-character code |
-| **Publish as new** | Always creates a **new** code and token (old code remains until it expires) |
+| **Publish as new** | Always creates a **new** code and token (old code remains until it expires). Asks first if this browser already has a code |
 | **Preview** | Opens `/preview` using **local** data only — dry run of the public UI without uploading |
 
-After a successful publish you see **Code: ABC-DEF** (link opens in a new tab) plus a **copy** control.
+After a successful publish you see a status line with the code (link opens in a new tab), a **copy** control, and the expiry date. The date turns amber within 14 days of expiry.
+
+| Status | Meaning |
+|--------|---------|
+| **Live** · up to date | The published schedule matches what's on screen |
+| **Reserved** · nothing published yet | The code shows **Coming soon** and you have nothing scheduled yet |
+| **Reserved** · schedule not published yet | The code shows **Coming soon** and you now have sessions to publish. **Publish** is highlighted |
+| **Live, out of date** · unpublished changes | You've changed something attendees can see since the last publish. **Publish** is highlighted |
+| **Live** · updated from another device | Someone published this code from another browser or an imported export after your last publish here |
+| **Expired** · Publish to restore | The code has expired. **Publish** brings it back with the same code |
+| **Edit token rejected** | This browser's token doesn't own the code. Use **Publish as new** |
+| **Live** (no detail) | Published before status tracking existed, or the server couldn't be reached. Publish once to start tracking |
+
+If you publish with no scheduled sessions over a code that currently shows a schedule, you're asked to confirm first.
+
+Only what attendees see counts as a change. Preference notes and unscheduled sessions don't mark a publish as out of date.
 
 ### Common errors
 
@@ -547,9 +585,21 @@ After a successful publish you see **Code: ABC-DEF** (link opens in a new tab) p
 
 Publish credentials (`code` + edit token) are stored in this browser so **Publish** can update the same code later. They are also written into the JSON export so another device can take over the same published listing after import.
 
+When you import a file and this browser already has a code:
+
+| File contains | You're asked |
+|---------------|--------------|
+| The same code | Nothing. Import proceeds |
+| A different code | **Use** the file's code or **Keep** this browser's |
+| No code | **Keep** this browser's code (default) or **Clear it** |
+
+**Complete Reset** names the code this browser will lose. Export first if you still need to update it.
+
 ### Lifetime
 
-Published schedules expire **7 days** after last update. Viewers of an expired code see **Schedule not found or expired.** Re-publish (or Publish as new) if the event window is longer.
+Published schedules expire **90 days** after the last publish. Viewing a schedule does not extend it; publishing again resets the 90 days. Viewers of an expired code see **Schedule not found or expired.**
+
+After a code expires, it stays reserved for its owner for **one more year**: only the original edit token (this browser, or an export that carries it) can publish to it again. After that year the code is released.
 
 ### Preview vs published
 
@@ -571,7 +621,8 @@ Published schedules expire **7 days** after last update. Viewers of an expired c
 - **Refresh** reloads the page  
 - **Download full grid PDF** (matrix-style packet; **Preparing PDF…** while working)  
 - Tabs: **Entrant Schedules** / **Judge Schedules** (judges listed as `Name (CAT)`)  
-- Empty: **No scheduled people yet.**  
+- Reserved code with nothing scheduled: round name plus **Coming soon** (no tabs or PDF)  
+- Updates can take up to a minute to appear on a phone that already had the page open
 
 ### Person page
 
@@ -637,7 +688,8 @@ Entrant person pages show the countdown and wake lock but **not** the sound butt
 
 - Export JSON before **Complete Reset**, length changes, or major Clear + Populate experiments  
 - Use **Preview** before the first Publish of the weekend  
-- If **Publish** can’t update, use **Publish as new** and retire the old code  
+- If **Publish** can’t update, check **Settings → Publishing** (or import an export that carries the code) before using **Publish as new**: a new code means re-sharing it  
+- Reserve the code early if it goes in a program or email; attendees see **Coming soon** until you publish  
 - Preference **Notes** are the place for protocol that isn’t in the CSV or is session-specific in the CSV  
 
 ---
@@ -652,7 +704,7 @@ Entrant person pages show the countdown and wake lock but **not** the sound butt
 | Session blocks | Types and placements |
 | Preference notes | Notes and Reminders text |
 | Theme | Light / dark |
-| Publish credentials | Last code + edit token for updates |
+| Publish credentials | Code + edit token for updates, plus last publish time, expiry, and a fingerprint used for the status line |
 
 **Not** persisted: sound on/off, multi-select state, preferences panel open/width, PWA “Later” dismissals.
 
@@ -666,7 +718,7 @@ Clearing site data in the browser wipes the unpublished schedule. Export first.
 2. **Create a schedule**  
 3. Import **Assignments Report** (judges)  
 4. **Manage Entrants** → import **DRCJ**, then **Eval Preferences**  
-5. **Settings:** Feedback Round, movement, start time, lengths, optional publish prefix  
+5. **Settings:** Feedback Round, movement, start time, lengths, optional publish prefix. **Reserve a code** now if attendees need it before the schedule is ready  
 6. Set priority (drag or sort by score); **Include** this round’s groups  
 7. **Populate Grid**  
 8. Open Preferences (**P**) — review Good / Conflicts / Unassigned; add Notes  
@@ -677,7 +729,7 @@ Clearing site data in the browser wipes the unpublished schedule. Export first.
 13. Print Matrix, Judge/Entrant schedules, Labels, Announcements, Flow, Preference Check, Shared Room Guide as needed  
 14. **Preview**, then **Publish**; copy code; generate QR from the hub  
 15. Brief judges: open their person link, leave the page up during sessions, optionally enable timer sounds  
-16. Re-**Publish** after late changes so phones see the update (within the ~7-day window)  
+16. Re-**Publish** whenever the status line says **out of date** so phones see the update (codes stay live 90 days after the last publish)  
 
 ---
 

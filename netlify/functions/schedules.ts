@@ -4,7 +4,11 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { parsePublishedSchedulePayload, PayloadValidationError } from '../../src/utils/publishedScheduleSchema';
 import { deleteStaleRateLimitBlobs } from '../../src/utils/rateLimitBlobs';
 
-const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** Published schedules live this long after their last publish. */
+const TTL_MS = 90 * DAY_MS;
+/** After expiry, only the original edit token can reclaim the code for this long. */
+const TOMBSTONE_MS = 365 * DAY_MS;
 const CODE_CHARSET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 const MAX_BODY_CHARS = 512_000;
 const GET_RATE_LIMIT = 60;
@@ -16,6 +20,7 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 type BlobRecord = {
+  /** null once expired: the record is kept as a tombstone that holds the token hash. */
   payload: unknown;
   editTokenHash: string;
   updatedAt: string;
@@ -58,7 +63,7 @@ function corsHeaders(req: Request): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET,PUT,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,PUT,POST,OPTIONS',
     Vary: 'Origin',
   };
 }
@@ -95,6 +100,7 @@ async function enforceRateLimit(
   store: ReturnType<typeof getStore>,
   kind: 'GET' | 'PUT'
 ): Promise<Response | null> {
+  // POST (status check) shares the PUT budget.
   const limit = kind === 'GET' ? GET_RATE_LIMIT : PUT_RATE_LIMIT;
   const bucket = Math.floor(Date.now() / RATE_WINDOW_MS);
   const ipHash = hashToken(clientIp(req)).slice(0, 16);
@@ -108,12 +114,55 @@ async function enforceRateLimit(
   return null;
 }
 
-function isExpired(record: BlobRecord): boolean {
+/** Expiry time in ms, or NaN when the record has no usable timestamps. */
+function expiresAtMs(record: BlobRecord): number {
   const expiresAt = Date.parse(record.expiresAt);
-  if (Number.isFinite(expiresAt)) return Date.now() > expiresAt;
+  if (Number.isFinite(expiresAt)) return expiresAt;
   const updatedAt = Date.parse(record.updatedAt);
-  if (!Number.isFinite(updatedAt)) return true;
-  return Date.now() - updatedAt > TTL_MS;
+  if (Number.isFinite(updatedAt)) return updatedAt + TTL_MS;
+  return Number.NaN;
+}
+
+function isExpired(record: BlobRecord): boolean {
+  if (record.payload === null) return true;
+  const expiresAt = expiresAtMs(record);
+  if (!Number.isFinite(expiresAt)) return true;
+  return Date.now() > expiresAt;
+}
+
+/** Expired, but still inside the window where only the original token may reclaim the code. */
+function isTombstoneActive(record: BlobRecord): boolean {
+  if (!isExpired(record)) return false;
+  const expiresAt = expiresAtMs(record);
+  if (!Number.isFinite(expiresAt)) return false;
+  return Date.now() <= expiresAt + TOMBSTONE_MS;
+}
+
+async function readJsonBody(req: Request): Promise<Record<string, unknown> | Response> {
+  let rawBody: string;
+  try {
+    rawBody = await req.text();
+  } catch {
+    return json(req, 400, { error: 'Invalid body' });
+  }
+  if (rawBody.length > MAX_BODY_CHARS) {
+    return json(req, 400, { error: 'Request body too large' });
+  }
+  try {
+    const parsed: unknown = JSON.parse(rawBody);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return json(req, 400, { error: 'Invalid JSON' });
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return json(req, 400, { error: 'Invalid JSON' });
+  }
+}
+
+function sessionCountOf(payload: unknown): number {
+  if (typeof payload !== 'object' || payload === null) return 0;
+  const sessions = (payload as { sessions?: unknown }).sessions;
+  return Array.isArray(sessions) ? sessions.length : 0;
 }
 
 export default async (req: Request, context: Context) => {
@@ -137,7 +186,7 @@ export default async (req: Request, context: Context) => {
   );
 
   try {
-    const limited = await enforceRateLimit(req, store, req.method === 'PUT' ? 'PUT' : 'GET');
+    const limited = await enforceRateLimit(req, store, req.method === 'GET' ? 'GET' : 'PUT');
     if (limited) return limited;
   } catch (error) {
     console.error('Rate limit check failed', error);
@@ -148,7 +197,15 @@ export default async (req: Request, context: Context) => {
     if (!raw) return json(req, 404, { error: 'Not found' });
     const record = raw as BlobRecord;
     if (isExpired(record)) {
-      await store.delete(code);
+      if (isTombstoneActive(record)) {
+        if (record.payload !== null) {
+          // Drop the schedule but keep the token hash so the code can't be taken over.
+          const tombstone: BlobRecord = { ...record, payload: null, expiresAt: new Date(expiresAtMs(record)).toISOString() };
+          await store.setJSON(code, tombstone);
+        }
+      } else {
+        await store.delete(code);
+      }
       return json(req, 404, { error: 'Expired' });
     }
     try {
@@ -159,23 +216,33 @@ export default async (req: Request, context: Context) => {
     return json(req, 200, { payload: record.payload, updatedAt: record.updatedAt });
   }
 
-  if (req.method === 'PUT') {
-    let rawBody: string;
-    try {
-      rawBody = await req.text();
-    } catch {
-      return json(req, 400, { error: 'Invalid body' });
+  if (req.method === 'POST') {
+    // Status check: confirms the token owns the code without changing anything.
+    const body = await readJsonBody(req);
+    if (body instanceof Response) return body;
+    if (typeof body.editToken !== 'string' || body.editToken === '') {
+      return json(req, 400, { error: 'editToken required' });
     }
-    if (rawBody.length > MAX_BODY_CHARS) {
-      return json(req, 400, { error: 'Request body too large' });
+    const existing = (await store.get(code, { type: 'json', consistency: 'strong' })) as BlobRecord | null;
+    if (!existing) return json(req, 404, { error: 'Not found' });
+    const tokenMatches = tokensEqual(existing.editTokenHash, hashToken(body.editToken));
+    if (isExpired(existing)) {
+      if (tokenMatches && isTombstoneActive(existing)) {
+        return json(req, 404, { error: 'Expired', expired: true });
+      }
+      return json(req, 404, { error: 'Not found' });
     }
+    if (!tokenMatches) return json(req, 403, { error: 'Forbidden' });
+    return json(req, 200, {
+      updatedAt: existing.updatedAt,
+      expiresAt: new Date(expiresAtMs(existing)).toISOString(),
+      sessionCount: sessionCountOf(existing.payload),
+    });
+  }
 
-    let body: { editToken?: string; payload?: unknown };
-    try {
-      body = JSON.parse(rawBody) as { editToken?: string; payload?: unknown };
-    } catch {
-      return json(req, 400, { error: 'Invalid JSON' });
-    }
+  if (req.method === 'PUT') {
+    const body = await readJsonBody(req);
+    if (body instanceof Response) return body;
     if (!body.editToken || typeof body.editToken !== 'string' || body.payload === undefined) {
       return json(req, 400, { error: 'editToken and payload required' });
     }
@@ -190,25 +257,27 @@ export default async (req: Request, context: Context) => {
 
     const existing = (await store.get(code, { type: 'json', consistency: 'strong' })) as BlobRecord | null;
     const incomingHash = hashToken(body.editToken);
-    const replacingExpired = Boolean(existing && isExpired(existing));
+    // Live records and active tombstones both belong to the original token.
+    const owned = Boolean(existing && (!isExpired(existing) || isTombstoneActive(existing)));
 
-    if (existing && !isExpired(existing)) {
+    if (existing && owned) {
       if (!tokensEqual(existing.editTokenHash, incomingHash)) {
         return json(req, 403, { error: 'Forbidden' });
       }
-    } else if (replacingExpired) {
+    } else if (existing) {
+      // Past the reclaim window: the code is free for a new owner.
       await store.delete(code);
     }
 
     const now = new Date();
     const record: BlobRecord = {
       payload,
-      editTokenHash: existing && !isExpired(existing) ? existing.editTokenHash : incomingHash,
+      editTokenHash: existing && owned ? existing.editTokenHash : incomingHash,
       updatedAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + TTL_MS).toISOString(),
     };
 
-    const creating = !existing;
+    const creating = !existing || !owned;
     try {
       if (creating) {
         // setJSON() in @netlify/blobs 10.7.x spreads conditions instead of passing
@@ -225,7 +294,7 @@ export default async (req: Request, context: Context) => {
       return json(req, 500, { error: 'Publish failed' });
     }
 
-    return json(req, 200, { ok: true, updatedAt: record.updatedAt });
+    return json(req, 200, { ok: true, updatedAt: record.updatedAt, expiresAt: record.expiresAt });
   }
 
   return json(req, 405, { error: 'Method not allowed' });

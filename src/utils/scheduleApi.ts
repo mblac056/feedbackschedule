@@ -105,12 +105,18 @@ export async function fetchPublishedSchedule(
   }
 }
 
+export type PublishResult = {
+  updatedAt?: string;
+  /** Older servers don't return this. */
+  expiresAt?: string;
+};
+
 export async function putPublishedSchedule(
   code: string,
   editToken: string,
   payload: PublishedSchedulePayload,
   signal?: AbortSignal
-): Promise<void> {
+): Promise<PublishResult> {
   const normalized = normalizeCode(code);
   let res: Response;
   try {
@@ -129,6 +135,59 @@ export async function putPublishedSchedule(
   if (!res.ok) {
     throw new ScheduleApiError(res.status, messageForStatus(res.status, 'Publish failed'));
   }
+  const data: unknown = await res.json().catch(() => null);
+  return {
+    updatedAt: isRecord(data) && typeof data.updatedAt === 'string' ? data.updatedAt : undefined,
+    expiresAt: isRecord(data) && typeof data.expiresAt === 'string' ? data.expiresAt : undefined,
+  };
+}
+
+export type PublishStatus =
+  | { state: 'live'; updatedAt: string; expiresAt: string; sessionCount: number }
+  /** Expired, but this token can still restore the code by publishing. */
+  | { state: 'expired' }
+  /** No live schedule at this code for this token. */
+  | { state: 'not-found' }
+  | { state: 'forbidden' };
+
+/** Checks whether `editToken` owns `code` without changing anything on the server. */
+export async function checkPublishStatus(
+  code: string,
+  editToken: string,
+  signal?: AbortSignal
+): Promise<PublishStatus> {
+  const normalized = normalizeCode(code);
+  if (!isValidNormalizedCode(normalized)) {
+    throw new ScheduleApiError(400, 'Invalid code');
+  }
+  let res: Response;
+  try {
+    res = await fetch(`/api/schedules/${normalized}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ editToken }),
+      signal: mergeSignals(signal),
+    });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw err;
+    }
+    throw new ScheduleApiError(0, 'Status check failed');
+  }
+  const data: unknown = await res.json().catch(() => null);
+  if (res.status === 403) return { state: 'forbidden' };
+  if (res.status === 404) {
+    return isRecord(data) && data.expired === true ? { state: 'expired' } : { state: 'not-found' };
+  }
+  if (!res.ok || !isRecord(data)) {
+    throw new ScheduleApiError(res.status, messageForStatus(res.status, 'Status check failed'));
+  }
+  return {
+    state: 'live',
+    updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : '',
+    expiresAt: typeof data.expiresAt === 'string' ? data.expiresAt : '',
+    sessionCount: typeof data.sessionCount === 'number' ? data.sessionCount : 0,
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

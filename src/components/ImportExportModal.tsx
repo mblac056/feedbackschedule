@@ -1,5 +1,14 @@
 import { useState, useRef } from 'react';
-import { generateExportData, convertToJSON, importData, getExportFileName } from '../utils/importExport';
+import {
+  generateExportData,
+  convertToJSON,
+  importData,
+  getExportFileName,
+  getPublishImportConflict,
+  type ImportPublishChoice,
+  type PublishImportConflict,
+} from '../utils/importExport';
+import { formatCode } from '../utils/publishCodes';
 
 interface ImportExportModalProps {
   isOpen: boolean;
@@ -10,6 +19,7 @@ export default function ImportExportModal({ isOpen, onClose }: ImportExportModal
   const [importError, setImportError] = useState<string>('');
   const [importSuccess, setImportSuccess] = useState<string>('');
   const [exportSuccess, setExportSuccess] = useState<string>('');
+  const [pendingImport, setPendingImport] = useState<{ json: string; conflict: PublishImportConflict } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = () => {
@@ -45,7 +55,30 @@ export default function ImportExportModal({ isOpen, onClose }: ImportExportModal
     reader.onload = (e) => {
       try {
         const jsonString = e.target?.result as string;
-        const result = importData(jsonString);
+        const conflict = getPublishImportConflict(jsonString);
+        if (conflict) {
+          // Ask before dropping or replacing a code attendees may already have.
+          setPendingImport({ json: jsonString, conflict });
+          return;
+        }
+        runImport(jsonString, 'file');
+      } catch {
+        setImportError('Failed to read file. Please ensure it is a valid JSON file.');
+      }
+    };
+    
+    reader.readAsText(file);
+  };
+
+  const cancelPendingImport = () => {
+    setPendingImport(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const runImport = (jsonString: string, publishChoice: ImportPublishChoice) => {
+    setPendingImport(null);
+    try {
+        const result = importData(jsonString, publishChoice);
         
         if (result.success) {
           setImportSuccess(result.message);
@@ -62,12 +95,9 @@ export default function ImportExportModal({ isOpen, onClose }: ImportExportModal
         } else {
           setImportError(result.message);
         }
-      } catch {
-        setImportError('Failed to read file. Please ensure it is a valid JSON file.');
-      }
-    };
-    
-    reader.readAsText(file);
+    } catch {
+      setImportError('Failed to read file. Please ensure it is a valid JSON file.');
+    }
   };
 
   if (!isOpen) return null;
@@ -116,7 +146,7 @@ export default function ImportExportModal({ isOpen, onClose }: ImportExportModal
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Import Data</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Upload a JSON file to restore your data. This will replace all current data.
-              If the file has no publish credentials, this browser’s publish identity will be cleared.
+              If this browser already publishes to a code and the file doesn’t carry the same one, you’ll be asked which to keep.
             </p>
             <div className="relative">
               <input
@@ -134,6 +164,65 @@ export default function ImportExportModal({ isOpen, onClose }: ImportExportModal
               </button>
             </div>
             
+            {pendingImport && (
+              <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg space-y-3" role="alertdialog" aria-label="Choose publish code">
+                <p className="text-amber-900 dark:text-amber-100 text-sm">
+                  This browser publishes to <strong className="font-mono">{formatCode(pendingImport.conflict.currentCode)}</strong>.{' '}
+                  {pendingImport.conflict.incomingCode ? (
+                    <>
+                      The file publishes to <strong className="font-mono">{formatCode(pendingImport.conflict.incomingCode)}</strong>. Which code should this browser use?
+                    </>
+                  ) : (
+                    <>The file has no publish code. Keep {formatCode(pendingImport.conflict.currentCode)} so you can still update it?</>
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {pendingImport.conflict.incomingCode ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => runImport(pendingImport.json, 'file')}
+                        className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Use {formatCode(pendingImport.conflict.incomingCode)} (from file)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => runImport(pendingImport.json, 'keep')}
+                        className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                      >
+                        Keep {formatCode(pendingImport.conflict.currentCode)}
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => runImport(pendingImport.json, 'keep')}
+                        className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Keep {formatCode(pendingImport.conflict.currentCode)}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => runImport(pendingImport.json, 'file')}
+                        className="px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                      >
+                        Clear it
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={cancelPendingImport}
+                    className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 underline hover:no-underline"
+                  >
+                    Cancel import
+                  </button>
+                </div>
+              </div>
+            )}
+
             {importError && (
               <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg">
                 <p className="text-red-800 dark:text-red-200 text-sm">{importError}</p>

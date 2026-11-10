@@ -4,13 +4,13 @@ import { stripLegacyEndRowIndex } from './scheduleHelpers';
 import {
   clearPublishCredentials,
   getPublishCredentials,
+  parsePublishCredentials,
   setPublishCredentials,
+  type PublishCredentials,
 } from './publishStorage';
 
-export interface ExportPublishCredentials {
-  code: string;
-  editToken: string;
-}
+/** Code + token, plus optional publish status fields (updatedAt, expiresAt, fingerprint…). */
+export type ExportPublishCredentials = PublishCredentials;
 
 export interface ExportData {
   judges: Judge[];
@@ -63,16 +63,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function applyPublishCredentialsFromImport(publish: unknown): void {
-  if (
-    publish &&
-    typeof publish === 'object' &&
-    typeof (publish as ExportPublishCredentials).code === 'string' &&
-    typeof (publish as ExportPublishCredentials).editToken === 'string' &&
-    (publish as ExportPublishCredentials).code.trim() !== '' &&
-    (publish as ExportPublishCredentials).editToken.trim() !== ''
-  ) {
-    const { code, editToken } = publish as ExportPublishCredentials;
-    setPublishCredentials(code, editToken);
+  const credentials = parsePublishCredentials(publish);
+  if (credentials) {
+    const { code, editToken, ...meta } = credentials;
+    setPublishCredentials(code, editToken, meta);
     return;
   }
   clearPublishCredentials();
@@ -93,7 +87,36 @@ export const generateExportData = (): ExportData => {
 };
 
 // Import data from JSON string
-export const importData = (jsonString: string): ImportResult => {
+/**
+ * How to treat publish credentials on import.
+ * - 'file': take the file's code (or clear this browser's if the file has none).
+ * - 'keep': leave this browser's current code alone.
+ */
+export type ImportPublishChoice = 'file' | 'keep';
+
+export type PublishImportConflict = {
+  /** Code this browser publishes to now. */
+  currentCode: string;
+  /** Code in the file, or null when the file carries none. */
+  incomingCode: string | null;
+};
+
+/**
+ * Returns a conflict when importing would drop or replace this browser's code,
+ * so the UI can ask first. Null when there's nothing to ask (or the file is unreadable;
+ * importData reports that).
+ */
+export function getPublishImportConflict(jsonString: string): PublishImportConflict | null {
+  const current = getPublishCredentials();
+  if (!current) return null;
+  const parsed = parseJSON(jsonString);
+  if (!parsed) return null;
+  const incoming = parsePublishCredentials(parsed.publish);
+  if (incoming && incoming.code === current.code) return null;
+  return { currentCode: current.code, incomingCode: incoming?.code ?? null };
+}
+
+export const importData = (jsonString: string, publishChoice: ImportPublishChoice = 'file'): ImportResult => {
   try {
     if (!jsonString.trim()) {
       return { success: false, message: 'Please paste JSON data to import' };
@@ -147,8 +170,11 @@ export const importData = (jsonString: string): ImportResult => {
       savePreferenceNotes(parsedData.preferenceNotes || '');
     }
 
-    // Restore publish identity from file, or clear leftover device credentials
-    applyPublishCredentialsFromImport(parsedData.publish);
+    // Restore publish identity from file (or clear leftover device credentials),
+    // unless the admin chose to keep this browser's code.
+    if (publishChoice === 'file') {
+      applyPublishCredentialsFromImport(parsedData.publish);
+    }
 
     return { 
       success: true, 

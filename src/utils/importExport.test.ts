@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest';
-import { importData, parseJSON } from './importExport';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { getPublishImportConflict, importData, parseJSON } from './importExport';
+import { clearPublishCredentials, getPublishCredentials, setPublishCredentials } from './publishStorage';
 
 describe('importExport.parseJSON', () => {
   it('returns null for invalid JSON', () => {
@@ -63,5 +64,46 @@ describe('importExport.importData legacy endRowIndex', () => {
     for (const block of blocks) {
       expect(block).not.toHaveProperty('endRowIndex');
     }
+  });
+});
+
+describe('importExport publish code on import', () => {
+  const withPublish = (publish?: unknown) =>
+    JSON.stringify({ ...JSON.parse(exportJson([])), ...(publish ? { publish } : {}) });
+
+  beforeEach(() => {
+    clearPublishCredentials();
+    setPublishCredentials('ABC234', 'mine', { publishedSessionCount: 3 });
+  });
+
+  it('asks when the file has no code and this browser has one', () => {
+    expect(getPublishImportConflict(withPublish())).toEqual({ currentCode: 'ABC234', incomingCode: null });
+  });
+
+  it('asks when the file carries a different code', () => {
+    expect(getPublishImportConflict(withPublish({ code: 'XYZ789', editToken: 'theirs' }))).toEqual({
+      currentCode: 'ABC234',
+      incomingCode: 'XYZ789',
+    });
+  });
+
+  it('does not ask when the codes match or this browser has none', () => {
+    expect(getPublishImportConflict(withPublish({ code: 'ABC234', editToken: 'mine' }))).toBeNull();
+    clearPublishCredentials();
+    expect(getPublishImportConflict(withPublish({ code: 'XYZ789', editToken: 'theirs' }))).toBeNull();
+  });
+
+  it('keeps this browser’s code when asked to', () => {
+    expect(importData(withPublish({ code: 'XYZ789', editToken: 'theirs' }), 'keep').success).toBe(true);
+    expect(getPublishCredentials()).toMatchObject({ code: 'ABC234', editToken: 'mine' });
+    expect(importData(withPublish(), 'keep').success).toBe(true);
+    expect(getPublishCredentials()?.code).toBe('ABC234');
+  });
+
+  it('takes the file’s code, or clears, by default', () => {
+    importData(withPublish({ code: 'XYZ789', editToken: 'theirs', expiresAt: '2027-01-01T00:00:00.000Z' }));
+    expect(getPublishCredentials()).toEqual({ code: 'XYZ789', editToken: 'theirs', expiresAt: '2027-01-01T00:00:00.000Z' });
+    importData(withPublish());
+    expect(getPublishCredentials()).toBeNull();
   });
 });

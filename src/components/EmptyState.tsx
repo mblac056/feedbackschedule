@@ -2,6 +2,8 @@ import { useState, useRef, useCallback } from 'react';
 import { importAssignmentsCSV, type ImportResult } from '../utils/csvImport';
 import type { Judge } from '../types';
 import { saveJudges } from '../utils/localStorage';
+import { useSettings } from '../contexts/useSettings';
+import ReserveCodePanel from './ReserveCodePanel';
 
 interface EmptyStateProps {
   onJudgesImported?: (judges: Judge[]) => void;
@@ -12,6 +14,8 @@ export default function EmptyState({ onJudgesImported }: EmptyStateProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { settings } = useSettings();
+  const [roundName, setRoundName] = useState(settings.exportName ?? '');
 
   const handleFile = useCallback(async (file: File) => {
     if (!file.type.includes('csv') && !file.name.endsWith('.csv')) {
@@ -147,6 +151,16 @@ export default function EmptyState({ onJudgesImported }: EmptyStateProps) {
             </div>
           </div>
         )}
+
+        <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-3 text-left">
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100">
+            Need the code before the schedule is ready?
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Reserve one now and share it with attendees. They’ll see a “coming soon” page until you publish.
+          </p>
+          <ReserveCodePanel roundName={roundName} onRoundNameChange={setRoundName} />
+        </div>
 
         {isProcessing && (
           <div className="flex items-center justify-center p-8">
