@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { claimExistingCode } from '../utils/claimExistingCode';
 import { formatCode, normalizeCode } from '../utils/publishCodes';
 import { getPublishCredentials } from '../utils/publishStorage';
 import { userMessageForApiError } from '../utils/scheduleApi';
 
 type Props = {
+  /** True while the form is the visible half of the panel; focuses the code field. */
+  active: boolean;
   onDone: (message: string) => void;
   onCancel: () => void;
 };
@@ -18,11 +20,16 @@ const MESSAGES: Record<string, string> = {
 };
 
 /** Enter a code + edit token by hand; the server confirms they match before anything is saved. */
-export default function ExistingCodeForm({ onDone, onCancel }: Props) {
+export default function ExistingCodeForm({ active, onDone, onCancel }: Props) {
+  const codeRef = useRef<HTMLInputElement>(null);
   const [code, setCode] = useState('');
   const [token, setToken] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (active) codeRef.current?.focus({ preventScroll: true });
+  }, [active]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -60,12 +67,22 @@ export default function ExistingCodeForm({ onDone, onCancel }: Props) {
     'w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 focus:border-transparent';
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-2 text-sm text-left">
+    <form
+      onSubmit={(e) => void handleSubmit(e)}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && !busy) {
+          e.stopPropagation();
+          onCancel();
+        }
+      }}
+      className="space-y-2 text-sm text-left"
+    >
       <div>
         <label className="block text-sm font-medium mb-1" htmlFor="existing-code">
-          Code
+          Publish Code
         </label>
         <input
+          ref={codeRef}
           id="existing-code"
           type="text"
           value={formatCode(code)}
@@ -79,14 +96,14 @@ export default function ExistingCodeForm({ onDone, onCancel }: Props) {
       </div>
       <div>
         <label className="block text-sm font-medium mb-1" htmlFor="existing-token">
-          Edit token
+          Edit Token
         </label>
         <input
           id="existing-token"
           type="text"
           value={token}
           onChange={(e) => setToken(e.target.value)}
-          placeholder="Paste from Settings → Publishing on the other device"
+          placeholder="Paste from the other device"
           autoComplete="off"
           spellCheck={false}
           className={`${inputClass} font-mono text-xs`}

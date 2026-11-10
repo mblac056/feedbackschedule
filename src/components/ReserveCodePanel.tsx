@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FaCheck, FaCopy } from 'react-icons/fa';
 import { useSettings } from '../contexts/useSettings';
@@ -17,9 +17,27 @@ type Props = {
 
 type CopyTarget = 'code' | 'token' | null;
 
+/** Collapses to zero height and fades out when closed; hidden content can't take focus. */
+function Swap({ open, children }: { open: boolean; children: ReactNode }) {
+  return (
+    <div
+      className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
+        open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+      }`}
+      inert={!open}
+      aria-hidden={!open}
+    >
+      {/* Padding keeps focus rings inside the clipped area. */}
+      <div className="overflow-hidden">
+        <div className="p-1">{children}</div>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Reserve a code ahead of time by publishing an empty "coming soon" page, or, once
- * this browser holds a code, show it with its edit token.
+ * Settings → Publishing. Shows this browser's code and edit token (or a Reserve button),
+ * and swaps in a form to use a different code.
  */
 export default function ReserveCodePanel({ roundName, codePrefix }: Props) {
   const { settings, setSettings } = useSettings();
@@ -28,8 +46,20 @@ export default function ReserveCodePanel({ roundName, codePrefix }: Props) {
   const [error, setError] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState<CopyTarget>(null);
-  const [showExisting, setShowExisting] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [notice, setNotice] = useState('');
+  // Remounts the form on each open so it starts empty.
+  const [formKey, setFormKey] = useState(0);
+  const switchRef = useRef<HTMLButtonElement>(null);
+  const restoreFocus = useRef(false);
+
+  // Return focus to the header link once it's back after the form closes.
+  useEffect(() => {
+    if (!showForm && restoreFocus.current) {
+      restoreFocus.current = false;
+      switchRef.current?.focus({ preventScroll: true });
+    }
+  }, [showForm]);
 
   useEffect(() => {
     const onChange = () => setCredentials(getPublishCredentials());
@@ -69,11 +99,23 @@ export default function ReserveCodePanel({ roundName, codePrefix }: Props) {
     }
   };
 
+  const openForm = () => {
+    setNotice('');
+    setError('');
+    setFormKey((k) => k + 1);
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    restoreFocus.current = true;
+    setShowForm(false);
+  };
+
   const copyButton = (target: Exclude<CopyTarget, null>, text: string, label: string) => (
     <button
       type="button"
       onClick={() => void copy(target, text)}
-      className="p-1.5 rounded border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:text-gray-800 hover:border-gray-800 focus:ring-2 focus:ring-gray-500 transition-colors shrink-0"
+      className="p-1.5 rounded border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-600 dark:text-gray-300 hover:text-gray-800 hover:border-gray-800 focus:ring-2 focus:ring-gray-500 transition-colors shrink-0"
       aria-label={label}
       title={label}
     >
@@ -81,82 +123,56 @@ export default function ReserveCodePanel({ roundName, codePrefix }: Props) {
     </button>
   );
 
-  const existingSection = showExisting ? (
-    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-      <ExistingCodeForm
-        onDone={(message) => {
-          setShowExisting(false);
-          setShowToken(false);
-          setError('');
-          setNotice(message);
-        }}
-        onCancel={() => setShowExisting(false)}
-      />
-    </div>
-  ) : (
-    <button
-      type="button"
-      onClick={() => {
-        setNotice('');
-        setShowExisting(true);
-      }}
-      className="block text-sm text-gray-600 dark:text-gray-300 underline hover:no-underline"
-    >
-      {credentials ? 'Switch to a different code' : 'Use an existing code'}
-    </button>
+  const messages = (
+    <>
+      {error && (
+        <p className="text-red-600 dark:text-red-400" role="alert">
+          {error}
+        </p>
+      )}
+      {notice && <p className="text-green-700 dark:text-green-400">{notice}</p>}
+    </>
   );
 
-  const noticeLine = notice ? <p className="text-sm text-green-700 dark:text-green-400">{notice}</p> : null;
-
-  if (credentials) {
-    return (
-      <div className="space-y-3 text-sm">
-        <div>
-          <p className="font-medium mb-1">Publish Code:</p>
-          <div className="flex items-center gap-2">
-            <code className="font-mono tracking-wider text-[var(--primary-color)]">
-              <Link to={`/${credentials.code}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
-                {formatCode(credentials.code)}
-              </Link>
-            </code>
-            {copyButton('code', formatCode(credentials.code), 'Copy publish code')}
-          </div>
+  const current = credentials ? (
+    <div className="space-y-3 text-sm">
+      <div>
+        <p className="font-medium mb-1">Publish Code:</p>
+        <div className="flex items-center gap-2">
+          <code className="font-mono tracking-wider text-[var(--primary-color)]">
+            <Link to={`/${credentials.code}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+              {formatCode(credentials.code)}
+            </Link>
+          </code>
+          {copyButton('code', formatCode(credentials.code), 'Copy publish code')}
         </div>
-        <div>
-          <p className="font-medium mb-1">Edit Token:</p>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowToken((shown) => !shown)}
-              aria-pressed={showToken}
-              title={showToken ? 'Click to hide' : 'Click to reveal'}
-              className={`min-w-0 text-left font-mono text-xs break-all px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 ${
-                showToken ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500 tracking-widest'
-              }`}
-            >
-              {showToken ? credentials.editToken : '•'.repeat(24)}
-              <span className="sr-only">{showToken ? ' (click to hide)' : 'Edit token hidden. Click to reveal'}</span>
-            </button>
-            {copyButton('token', credentials.editToken, 'Copy edit token')}
-          </div>
-          {showToken && (
-            <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-              Anyone with this code and token can change the published schedule. Exports include it too.
-            </p>
-          )}
+      </div>
+      <div>
+        <p className="font-medium mb-1">Edit Token:</p>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowToken((shown) => !shown)}
+            aria-pressed={showToken}
+            title={showToken ? 'Click to hide' : 'Click to reveal'}
+            className={`min-w-0 text-left font-mono text-xs break-all px-2 py-1 rounded bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 ${
+              showToken ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500 tracking-widest'
+            }`}
+          >
+            {showToken ? credentials.editToken : '•'.repeat(24)}
+            <span className="sr-only">{showToken ? ' (click to hide)' : 'Edit token hidden. Click to reveal'}</span>
+          </button>
+          {copyButton('token', credentials.editToken, 'Copy edit token')}
         </div>
-        {error && (
-          <p className="text-red-600 dark:text-red-400" role="alert">
-            {error}
+        {showToken && (
+          <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+            Anyone with this code and token can change the published schedule. Exports include it too.
           </p>
         )}
-        {noticeLine}
-        {existingSection}
       </div>
-    );
-  }
-
-  return (
+      {messages}
+    </div>
+  ) : (
     <div className="space-y-2 text-sm text-left">
       <button
         type="button"
@@ -170,13 +186,45 @@ export default function ReserveCodePanel({ roundName, codePrefix }: Props) {
         Posts a “coming soon” page with the round name so you can share the code now. Build the schedule later and
         Publish to the same code.
       </p>
-      {error && (
-        <p className="text-red-600 dark:text-red-400" role="alert">
-          {error}
-        </p>
-      )}
-      {noticeLine}
-      {existingSection}
+      {messages}
     </div>
+  );
+
+  const formTitle = credentials ? 'Use a different code' : 'Use an existing code';
+
+  return (
+    <section
+      aria-labelledby="publishing-heading"
+      className="rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/40 p-4"
+    >
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <h3 id="publishing-heading" className="text-sm font-semibold">
+          {showForm ? formTitle : 'Publishing'}
+        </h3>
+        {!showForm && (
+          <button
+            ref={switchRef}
+            type="button"
+            onClick={openForm}
+            className="text-xs text-gray-600 dark:text-gray-300 underline hover:no-underline focus:outline-none focus:ring-2 focus:ring-gray-500 rounded"
+          >
+            {formTitle}
+          </button>
+        )}
+      </div>
+      <Swap open={!showForm}>{current}</Swap>
+      <Swap open={showForm}>
+        <ExistingCodeForm
+          key={formKey}
+          active={showForm}
+          onDone={(message) => {
+            setShowToken(false);
+            setNotice(message);
+            closeForm();
+          }}
+          onCancel={closeForm}
+        />
+      </Swap>
+    </section>
   );
 }
