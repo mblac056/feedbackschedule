@@ -536,11 +536,11 @@ Use this when attendees need the code before the schedule exists (printed progra
 3. Attendees who open the code see the round name and **Coming soon**
 4. Build the schedule as usual, then **Publish**. It goes to the same code
 
-Settings → Publishing also shows this browser's code and **Show edit token** if you need to hand ownership to someone. Anyone with the code and token can change the published schedule.
+Settings → Publishing also shows this browser's **Publish Code** and **Edit Token**, each with a copy button. The token is hidden; click it to reveal it if you need to hand ownership to someone. Anyone with the code and token can change the published schedule.
 
 ### Use an existing code
 
-To take over a code on another device without an export file: **Settings → Publishing → Use an existing code** (or **Switch to a different code**). Enter the code and paste its edit token from **Show edit token** on the original device. The server checks they match before anything is saved; nothing is published until you click **Publish**.
+To take over a code on another device without an export file: **Settings → Publishing → Use an existing code** (or **Switch to a different code**). Enter the code and paste its **Edit Token** from Settings → Publishing on the original device (the copy button works without revealing it). The server checks they match before anything is saved; nothing is published until you click **Publish**.
 
 | Message | Meaning |
 |---------|---------|
