@@ -29,7 +29,7 @@ describe('fingerprintPayload', () => {
 
   it('ignores key order', async () => {
     const payload = build();
-    const reordered = { slugIndex: payload.slugIndex, ...payload };
+    const reordered = Object.fromEntries(Object.entries(payload).reverse()) as typeof payload;
     expect(await fingerprintPayload(reordered)).toBe(await fingerprintPayload(payload));
   });
 
