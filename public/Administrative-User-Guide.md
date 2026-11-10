@@ -117,7 +117,7 @@ The create page is the admin workspace. Until at least one judge exists, you see
 | **Manage Entrants** | Roster, preferences, Include checkboxes |
 | **Manage Judges** | Categories, rooms, active/inactive |
 | **Import/Export** | Full JSON backup and restore (shortcut **E**) |
-| **Settings** | Round name, movement, times, lengths, publish prefix |
+| **Settings** | Round name, movement, times, lengths, publish prefix, publishing (reserve a code, edit token, use an existing code) |
 | Theme toggle | Light / dark mode (create page; preference is remembered) |
 | **Refresh** | Reloads the page |
 
@@ -131,7 +131,7 @@ On narrow screens the same actions live in the hamburger menu.
 | **Clear Grid** | Unschedules everything after confirm; session *blocks* remain in Unassigned |
 | **Print** | Prints the Feedback Matrix; disabled if any **red** conflict exists |
 | Print dropdown | Other reports (see [Printable reports](#15-printable-reports)) |
-| **Publish** | Shareable code / preview (see [Preview and publish](#17-preview-and-publish)); disabled on red conflicts |
+| **Publish** | Shareable code / preview (see [Preview and publish](#17-preview-and-publish)); disabled on red conflicts. Below it, a status line shows the code, whether it's up to date, and when it expires |
 | **Session Format** | Shows current movement mode (color-coded) — **Groups moving to Judges** or **Judges moving to Groups** |
 | **Total Length** | Span from earliest to latest session; turns **red if over 120 minutes** |
 
@@ -158,7 +158,7 @@ Open **Settings** from the header.
 - Lengths must be **multiples of 5**, and **3X10 &lt; 3X20 &lt; 1XLong**  
 - Changing lengths shows **Warning: Scheduling Grid Reset** — the grid will be cleared (export first if you care about placements)  
 - **Reset to Defaults** — settings only  
-- **Complete Reset** — deletes judges, entrants, session blocks, settings, preference notes, and local publish credentials in this browser, then reloads. It does **not** clear your theme preference. Export first if you want to restore the same publish code later.  
+- **Complete Reset** — deletes judges, entrants, session blocks, settings, preference notes, and local publish credentials in this browser, then reloads. It does **not** clear your theme preference. Export first if you want to restore the same publish code later. The warning names the code this browser will lose.  
 
 When you save entrants after a roster that is mostly choruses or mostly quartets, you may also be prompted to **Switch Movement** (or keep the current mode). That prompt is advisory convenience, not a hard rule.
 
@@ -465,7 +465,7 @@ Preference-panel reds (avoid conflicts, mismatched types) are a separate, always
 - **Choose File to Import** — `.json` only  
 - **Replaces all current data**, then reloads after a short success message  
 - If the file includes publish credentials, they are restored so **Publish** can update the same code  
-- If the file has no publish block (older exports and unpublished schedules), any leftover publish credentials on this device are cleared  
+- If this browser already has a different code, or the file has none, you're asked whether to keep this browser's code (see [Preview and publish](#17-preview-and-publish))  
 - Bad files: **Failed to read file…** / structure errors  
 
 ### Best practice
@@ -474,7 +474,7 @@ Preference-panel reds (avoid conflicts, mismatched types) are a separate, always
 2. Duplicate / re-import and carve each feedback round (quartet semis, quartet finals, chorus, etc.) from that base  
 3. Export again after major edits **before** Complete Reset or length changes  
 
-Email the JSON to a colleague for review or co-editing. They import on their machine (full replace, including publish identity when present).
+Email the JSON to a colleague for review or co-editing. They import on their machine (full replace, including publish identity when present). To hand over only the code, share it with its edit token and use **Use an existing code** instead.
 
 ---
 
@@ -621,7 +621,8 @@ After a code expires, it stays reserved for its owner for **one more year**: onl
 - **Refresh** reloads the page  
 - **Download full grid PDF** (matrix-style packet; **Preparing PDF…** while working)  
 - Tabs: **Entrant Schedules** / **Judge Schedules** (judges listed as `Name (CAT)`)  
-- Empty: **No scheduled people yet.**  
+- Reserved code with nothing scheduled: round name plus **Coming soon** (no tabs or PDF)  
+- Updates can take up to a minute to appear on a phone that already had the page open
 
 ### Person page
 
@@ -687,7 +688,8 @@ Entrant person pages show the countdown and wake lock but **not** the sound butt
 
 - Export JSON before **Complete Reset**, length changes, or major Clear + Populate experiments  
 - Use **Preview** before the first Publish of the weekend  
-- If **Publish** can’t update, use **Publish as new** and retire the old code  
+- If **Publish** can’t update, check **Settings → Publishing** (or import an export that carries the code) before using **Publish as new**: a new code means re-sharing it  
+- Reserve the code early if it goes in a program or email; attendees see **Coming soon** until you publish  
 - Preference **Notes** are the place for protocol that isn’t in the CSV or is session-specific in the CSV  
 
 ---
@@ -702,7 +704,7 @@ Entrant person pages show the countdown and wake lock but **not** the sound butt
 | Session blocks | Types and placements |
 | Preference notes | Notes and Reminders text |
 | Theme | Light / dark |
-| Publish credentials | Last code + edit token for updates |
+| Publish credentials | Code + edit token for updates, plus last publish time, expiry, and a fingerprint used for the status line |
 
 **Not** persisted: sound on/off, multi-select state, preferences panel open/width, PWA “Later” dismissals.
 
@@ -716,7 +718,7 @@ Clearing site data in the browser wipes the unpublished schedule. Export first.
 2. **Create a schedule**  
 3. Import **Assignments Report** (judges)  
 4. **Manage Entrants** → import **DRCJ**, then **Eval Preferences**  
-5. **Settings:** Feedback Round, movement, start time, lengths, optional publish prefix  
+5. **Settings:** Feedback Round, movement, start time, lengths, optional publish prefix. **Reserve a code** now if attendees need it before the schedule is ready  
 6. Set priority (drag or sort by score); **Include** this round’s groups  
 7. **Populate Grid**  
 8. Open Preferences (**P**) — review Good / Conflicts / Unassigned; add Notes  
@@ -727,7 +729,7 @@ Clearing site data in the browser wipes the unpublished schedule. Export first.
 13. Print Matrix, Judge/Entrant schedules, Labels, Announcements, Flow, Preference Check, Shared Room Guide as needed  
 14. **Preview**, then **Publish**; copy code; generate QR from the hub  
 15. Brief judges: open their person link, leave the page up during sessions, optionally enable timer sounds  
-16. Re-**Publish** after late changes so phones see the update (within the ~7-day window)  
+16. Re-**Publish** whenever the status line says **out of date** so phones see the update (codes stay live 90 days after the last publish)  
 
 ---
 

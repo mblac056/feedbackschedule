@@ -1,7 +1,7 @@
 # Publish status, 90-day lifespan, and reserving a code ahead of time
 
 **Date:** 2026-11-10  
-**Status:** Draft design
+**Status:** Implemented (Renew dropped)
 
 ## Goal
 
