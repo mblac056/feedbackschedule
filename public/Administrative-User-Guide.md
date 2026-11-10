@@ -540,7 +540,7 @@ Settings → Publishing also shows this browser's **Publish Code** and **Edit To
 
 ### Use an existing code
 
-To take over a code on another device without an export file: **Settings → Publishing → Use an existing code** (**Use a different code** if this browser already has one; the link is top right of the Publishing box). The form replaces the current code in place; **Cancel** or **Escape** puts it back. Enter the code and paste its **Edit Token** from Settings → Publishing on the original device (the copy button works without revealing it). The server checks they match before anything is saved; nothing is published until you click **Publish**.
+To take over a code on another device without an export file: **Settings → Publishing → Use an existing code** (**Use a different code** if this browser already has one; the link is at the bottom of the Publishing box). The **Publish Code** and **Edit Token** values turn into input fields in place; **Cancel** or **Escape** puts them back. Enter the code and paste its **Edit Token** from Settings → Publishing on the original device (the copy button works without revealing it). The server checks they match before anything is saved; nothing is published until you click **Publish**.
 
 | Message | Meaning |
 |---------|---------|
