@@ -112,11 +112,7 @@ export default function UnassignedSessions({
       aria-pressed={isPinned}
       aria-label={isPinned ? 'Unpin unscheduled sessions' : 'Pin unscheduled sessions to the bottom of the screen'}
       title={isPinned ? 'Unpin' : 'Pin to bottom'}
-      className={`absolute top-2 left-2 z-20 rounded-md p-1.5 transition-colors ${
-        isPinned
-          ? 'bg-[var(--primary-color)] text-white'
-          : 'text-gray-600 hover:bg-gray-300 dark:text-gray-300 dark:hover:bg-gray-700'
-      }`}
+      className="absolute top-2 left-2 z-20 rounded-md p-1.5 text-gray-600 transition-colors hover:bg-gray-300 dark:text-gray-300 dark:hover:bg-gray-700"
     >
       {isPinned ? <RiPushpinFill className="h-4 w-4" aria-hidden /> : <RiPushpinLine className="h-4 w-4" aria-hidden />}
     </button>
