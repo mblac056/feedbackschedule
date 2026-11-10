@@ -43,7 +43,7 @@ Extend local credentials (same localStorage key):
 type PublishCredentials = {
   code: string;
   editToken: string;
-  /** ISO, from server response on last successful publish/renew/verify */
+  /** ISO, from server response on last successful publish/verify */
   updatedAt?: string;
   /** ISO, from server response */
   expiresAt?: string;
@@ -113,16 +113,13 @@ PUT response also gains `expiresAt` (today it returns only `updatedAt`).
 - `parsePublishedSchedulePayload` isn't called on tombstones. GET checks expiry before validating.
 - Blob cleanup: none needed beyond the existing lazy behaviour. Tombstones are tiny.
 
-### Renew
+### Renew (dropped)
 
-- Settings → Publishing → **Renew** (also offered inline when the status is amber/expired).
-- Flow: GET the live payload → PUT the same payload with the stored token → store the new `expiresAt`.
-- Content doesn't change. This works even when local data differs from what's live.
-- If the live payload is gone (expired), Renew isn't offered. Publish restores it via the tombstone path.
+Built and then removed (2026-11-10). Published schedules are short-lived; 90 days covers the use, and an owner can republish an expired code for up to a year. No Renew action.
 
 ### Docs
 
-- Admin guide §17 "Lifetime": 7 → 90 days, describe Renew and the 1-year reclaim window.
+- Admin guide §17 "Lifetime": 7 → 90 days, describe the 1-year reclaim window.
 
 ---
 
@@ -132,7 +129,7 @@ PUT response also gains `expiresAt` (today it returns only `updatedAt`).
 
 - **Settings → Publishing** (new section, next to the existing code prefix input):
   - No credentials → **Reserve a code** button.
-  - Credentials present → status (§1), Renew, Copy code, Show/copy edit token, Use an existing code.
+  - Credentials present → status (§1), Copy code, Show/copy edit token, Use an existing code.
 - **Empty state** (`EmptyState.tsx`, before any judges exist): secondary link "Reserve a code now, add the schedule later" that opens the same flow.
 - Reserve = the existing `publishWithNewCode()` with whatever payload `buildPublishedPayload` produces (empty `judges`/`entrants`/`sessions`, current settings, round name). The server already accepts it.
 - Prompt for **Feedback Round** name first if it's blank. It's the only thing the placeholder page shows.
@@ -175,6 +172,7 @@ Publish button visibility: show `PublishControls` whenever judges exist, not onl
 
 ## Out of scope
 
+- Renew (extend expiry without republishing).
 - Shorter / typeable edit tokens.
 - Placeholder note or custom "coming soon" text.
 - Handoff links. Credentials alone can't continue editing; the editable data lives in the export.
@@ -192,7 +190,7 @@ Publish button visibility: show `PublishControls` whenever judges exist, not onl
 | `src/utils/importExport.ts` | Carry optional fields; return a "credentials conflict" result instead of clearing silently |
 | `src/components/PublishControls.tsx` | Status line, Publish-as-new and empty-overwrite confirms |
 | `src/components/SessionsArea.tsx` | Render `PublishControls` when judges exist |
-| `src/components/SettingsModal.tsx` | Publishing section: reserve, renew, show token, use existing code; Complete Reset warning |
+| `src/components/SettingsModal.tsx` | Publishing section: reserve, show token, use existing code; Complete Reset warning |
 | `src/components/ImportExportModal.tsx` | Keep/clear/switch prompt |
 | `src/components/EmptyState.tsx` | "Reserve a code" link |
 | `src/components/public/PublicScheduleHub.tsx` | Coming-soon state |
@@ -210,8 +208,7 @@ Publish button visibility: show `PublishControls` whenever judges exist, not onl
 
 1. Server: TTL, tombstones, status endpoint, `expiresAt` in PUT.
 2. Status indicator + fingerprint.
-3. Renew.
-4. Reserve + coming-soon page.
-5. Import / Publish-as-new / empty-overwrite / reset guards.
-6. Use an existing code.
-7. Admin guide.
+3. Reserve + coming-soon page.
+4. Import / Publish-as-new / empty-overwrite / reset guards.
+5. Use an existing code.
+6. Admin guide.

@@ -24,7 +24,6 @@ import {
 import { formatCode, generateCode, generateEditToken } from '../utils/publishCodes';
 import { invalidatePublishedScheduleCache } from '../utils/publishedScheduleCache';
 import { fingerprintPayload } from '../utils/publishFingerprint';
-import { renewPublishedSchedule } from '../utils/publishRenew';
 import {
   derivePublishState,
   effectiveExpiresAt,
@@ -133,7 +132,6 @@ export default function PublishControls({
   const [serverStatus, setServerStatus] = useState<PublishStatus | null>(null);
   const [currentFingerprint, setCurrentFingerprint] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [notice, setNotice] = useState('');
   const lastPublishedCode = credentials?.code ?? null;
 
   useEffect(() => {
@@ -199,8 +197,6 @@ export default function PublishControls({
   const expiryLabel = formatExpiryDate(expiresAt);
   const expiringSoon = isExpiringSoon(expiresAt);
   const needsPublish = displayState === 'out-of-date' || displayState === 'expired';
-  // Renew only makes sense while something is live and this token owns it.
-  const canRenew = Boolean(credentials) && displayState !== 'expired' && displayState !== 'token-rejected';
 
   useEffect(() => {
     if (disabled) {
@@ -225,7 +221,6 @@ export default function PublishControls({
     setShowDropdown(false);
     setBusy(true);
     setError('');
-    setNotice('');
     try {
       const credentials = getPublishCredentials();
       if (credentials) {
@@ -260,39 +255,12 @@ export default function PublishControls({
     setShowDropdown(false);
     setBusy(true);
     setError('');
-    setNotice('');
     try {
       const code = await publishWithNewCode();
       setServerStatus(null);
       invalidatePublishedScheduleCache(code);
     } catch (err) {
       setError(userMessageForApiError(err, 'Publish failed'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const handleRenew = async () => {
-    if (busy || !credentials) return;
-    setShowDropdown(false);
-    setBusy(true);
-    setError('');
-    setNotice('');
-    try {
-      const newExpiry = await renewPublishedSchedule(credentials.code, credentials.editToken);
-      setServerStatus(null);
-      const label = formatExpiryDate(newExpiry);
-      setNotice(label ? `Renewed. Now expires ${label}.` : 'Renewed for 90 days.');
-    } catch (err) {
-      if (err instanceof ScheduleApiError && err.status === 404) {
-        setServerStatus({ state: 'expired' });
-        setError('This code has expired. Use Publish to restore it.');
-      } else if (err instanceof ScheduleApiError && err.status === 403) {
-        setServerStatus({ state: 'forbidden' });
-        setError('Cannot renew this schedule (edit token rejected). Use “Publish as new”.');
-      } else {
-        setError(userMessageForApiError(err, 'Renew failed'));
-      }
     } finally {
       setBusy(false);
     }
@@ -371,16 +339,6 @@ export default function PublishControls({
               >
                 Publish as new
               </button>
-              {canRenew && (
-                <button
-                  type="button"
-                  onClick={() => void handleRenew()}
-                  className="w-full text-left px-3 my-1 py-1 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors whitespace-nowrap"
-                  title="Keep the published schedule live for another 90 days without changing it"
-                >
-                  Renew (90 days)
-                </button>
-              )}
               <button
                 type="button"
                 onClick={handlePreview}
@@ -436,20 +394,7 @@ export default function PublishControls({
                   · expires {expiryLabel}
                 </span>
               )}
-              {expiringSoon && canRenew && (
-                <button
-                  type="button"
-                  onClick={() => void handleRenew()}
-                  disabled={busy}
-                  className="text-amber-700 dark:text-amber-400 font-medium underline hover:no-underline disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-amber-500 rounded"
-                >
-                  {busy ? 'Renewing…' : 'Renew'}
-                </button>
-              )}
             </div>
-          )}
-          {notice && !error && (
-            <p className="text-sm text-green-700 dark:text-green-400">{notice}</p>
           )}
           {error && (
             <p className="text-sm text-red-600 dark:text-red-400" role="alert">

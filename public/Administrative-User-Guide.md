@@ -535,7 +535,6 @@ Shown when there is at least one scheduled session.
 |--------|----------|
 | **Publish** / **Publishing…** | If this browser already published a code, **updates** that code (same edit token). Otherwise mints a new six-character code |
 | **Publish as new** | Always creates a **new** code and token (old code remains until it expires) |
-| **Renew (90 days)** | Keeps the published schedule live for another 90 days **without changing it**. Your unpublished edits stay unpublished. Shown while the code is live |
 | **Preview** | Opens `/preview` using **local** data only — dry run of the public UI without uploading |
 
 After a successful publish you see a status line with the code (link opens in a new tab), a **copy** control, and the expiry date. The date turns amber within 14 days of expiry.
@@ -561,7 +560,7 @@ Publish credentials (`code` + edit token) are stored in this browser so **Publis
 
 ### Lifetime
 
-Published schedules expire **90 days** after the last publish. Viewing a schedule does not extend it; publishing again or **Renew** resets the 90 days. Within 14 days of expiry, a **Renew** link appears next to the date. Viewers of an expired code see **Schedule not found or expired.**
+Published schedules expire **90 days** after the last publish. Viewing a schedule does not extend it; publishing again resets the 90 days. Viewers of an expired code see **Schedule not found or expired.**
 
 After a code expires, it stays reserved for its owner for **one more year**: only the original edit token (this browser, or an export that carries it) can publish to it again. After that year the code is released.
 
