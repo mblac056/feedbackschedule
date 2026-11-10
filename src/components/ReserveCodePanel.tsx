@@ -7,6 +7,7 @@ import { getPublishCredentials, PUBLISH_CREDENTIALS_CHANGED, type PublishCredent
 import { formatCode } from '../utils/publishCodes';
 import { formatExpiryDate } from '../utils/publishStatus';
 import { userMessageForApiError } from '../utils/scheduleApi';
+import ExistingCodeForm from './ExistingCodeForm';
 
 type Props = {
   /** Round name to show on the "coming soon" page. */
@@ -15,6 +16,8 @@ type Props = {
   onRoundNameChange?: (value: string) => void;
   /** Code prefix to use; defaults to the saved setting. */
   codePrefix?: string;
+  /** Offer "Use an existing code" (Settings only; the start screen keeps it simple). */
+  allowExistingCode?: boolean;
 };
 
 type CopyTarget = 'code' | 'token' | null;
@@ -23,13 +26,15 @@ type CopyTarget = 'code' | 'token' | null;
  * Reserve a code ahead of time by publishing an empty "coming soon" page, or, once
  * this browser holds a code, show it with its edit token.
  */
-export default function ReserveCodePanel({ roundName, onRoundNameChange, codePrefix }: Props) {
+export default function ReserveCodePanel({ roundName, onRoundNameChange, codePrefix, allowExistingCode = false }: Props) {
   const { settings, setSettings } = useSettings();
   const [credentials, setCredentials] = useState<PublishCredentials | null>(() => getPublishCredentials());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState<CopyTarget>(null);
+  const [showExisting, setShowExisting] = useState(false);
+  const [notice, setNotice] = useState('');
 
   useEffect(() => {
     const onChange = () => setCredentials(getPublishCredentials());
@@ -81,6 +86,33 @@ export default function ReserveCodePanel({ roundName, onRoundNameChange, codePre
     </button>
   );
 
+  const existingSection = !allowExistingCode ? null : showExisting ? (
+    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+      <ExistingCodeForm
+        onDone={(message) => {
+          setShowExisting(false);
+          setShowToken(false);
+          setError('');
+          setNotice(message);
+        }}
+        onCancel={() => setShowExisting(false)}
+      />
+    </div>
+  ) : (
+    <button
+      type="button"
+      onClick={() => {
+        setNotice('');
+        setShowExisting(true);
+      }}
+      className="block text-sm text-gray-600 dark:text-gray-300 underline hover:no-underline"
+    >
+      {credentials ? 'Switch to a different code' : 'Use an existing code'}
+    </button>
+  );
+
+  const noticeLine = notice ? <p className="text-sm text-green-700 dark:text-green-400">{notice}</p> : null;
+
   if (credentials) {
     const expiry = formatExpiryDate(credentials.expiresAt);
     const count = credentials.publishedSessionCount;
@@ -131,6 +163,8 @@ export default function ReserveCodePanel({ roundName, onRoundNameChange, codePre
             {error}
           </p>
         )}
+        {noticeLine}
+        {existingSection}
       </div>
     );
   }
@@ -169,6 +203,8 @@ export default function ReserveCodePanel({ roundName, onRoundNameChange, codePre
           {error}
         </p>
       )}
+      {noticeLine}
+      {existingSection}
     </div>
   );
 }

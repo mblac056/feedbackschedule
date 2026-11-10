@@ -538,6 +538,18 @@ Use this when attendees need the code before the schedule exists (printed progra
 
 Settings → Publishing also shows this browser's code, its expiry, and **Show edit token** if you need to hand ownership to someone. Anyone with the code and token can change the published schedule.
 
+### Use an existing code
+
+To take over a code on another device without an export file: **Settings → Publishing → Use an existing code** (or **Switch to a different code**). Enter the code and paste its edit token from **Show edit token** on the original device. The server checks they match before anything is saved; nothing is published until you click **Publish**.
+
+| Message | Meaning |
+|---------|---------|
+| That edit token doesn't match this code | Wrong token, or the code belongs to someone else |
+| No live schedule at that code | The code was never published, or expired more than a year ago |
+| …has expired. It's saved here; Publish to restore it | The token still owns the expired code. **Publish** brings it back |
+
+The edit token only lets you publish to the code. To keep editing the schedule itself, import the export file.
+
 ### Publish menu
 
 Shown once judges exist. Publishing with no scheduled sessions posts the **Coming soon** page.

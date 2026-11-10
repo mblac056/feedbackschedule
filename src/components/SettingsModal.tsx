@@ -241,7 +241,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
             {/* Publishing */}
             <div>
               <h3 className="block text-sm font-medium mb-2">Publishing</h3>
-              <ReserveCodePanel roundName={settings.exportName ?? ''} codePrefix={settings.codePrefix ?? ''} />
+              <ReserveCodePanel roundName={settings.exportName ?? ''} codePrefix={settings.codePrefix ?? ''} allowExistingCode />
             </div>
             {/* Travel Directions */}
             <div>
