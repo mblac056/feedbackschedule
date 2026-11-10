@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { derivePublishState, formatExpiryDate, isExpiringSoon } from './publishStatus';
+import { derivePublishState } from './publishStatus';
 import type { PublishCredentials } from './publishStorage';
 
 const NOW = Date.parse('2026-03-01T00:00:00Z');
@@ -72,20 +72,5 @@ describe('derivePublishState', () => {
 
   it('falls back to local data when the server check has not run', () => {
     expect(state({ server: null })).toBe('up-to-date');
-  });
-});
-
-describe('expiry helpers', () => {
-  it('warns within 14 days only', () => {
-    expect(isExpiringSoon('2026-03-10T00:00:00Z', NOW)).toBe(true);
-    expect(isExpiringSoon('2026-04-10T00:00:00Z', NOW)).toBe(false);
-    expect(isExpiringSoon('2026-02-10T00:00:00Z', NOW)).toBe(false);
-    expect(isExpiringSoon(undefined, NOW)).toBe(false);
-  });
-
-  it('adds the year only when it differs', () => {
-    expect(formatExpiryDate('2026-05-02T12:00:00Z', new Date(NOW))).not.toMatch(/2026/);
-    expect(formatExpiryDate('2027-01-15T12:00:00Z', new Date(NOW))).toMatch(/2027/);
-    expect(formatExpiryDate(undefined)).toBeNull();
   });
 });

@@ -1,7 +1,7 @@
 # Publish status, 90-day lifespan, and reserving a code ahead of time
 
 **Date:** 2026-11-10  
-**Status:** Implemented (Renew dropped)
+**Status:** Implemented (Renew dropped). Follow-up 2026-11-10: expiry date no longer shown in the UI; one status label per state; reserve only from Settings, not the start screen.
 
 ## Goal
 

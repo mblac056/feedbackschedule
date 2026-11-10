@@ -23,9 +23,6 @@ import { invalidatePublishedScheduleCache } from '../utils/publishedScheduleCach
 import { fingerprintPayload } from '../utils/publishFingerprint';
 import {
   derivePublishState,
-  effectiveExpiresAt,
-  formatExpiryDate,
-  isExpiringSoon,
   type PublishDisplayState,
 } from '../utils/publishStatus';
 
@@ -41,15 +38,16 @@ type PublishControlsProps = {
   settings: SessionSettings;
 };
 
-const STATE_LABELS: Record<PublishDisplayState, { label: string; detail?: string; tone: string }> = {
-  'up-to-date': { label: 'Live', detail: 'up to date', tone: 'text-green-700 dark:text-green-400' },
-  'out-of-date': { label: 'Live, out of date', detail: 'unpublished changes', tone: 'text-amber-700 dark:text-amber-400' },
-  reserved: { label: 'Reserved', detail: 'nothing published yet', tone: 'text-blue-700 dark:text-blue-400' },
-  'reserved-pending': { label: 'Reserved', detail: 'schedule not published yet', tone: 'text-amber-700 dark:text-amber-400' },
-  expired: { label: 'Expired', detail: 'Publish to restore', tone: 'text-red-700 dark:text-red-400' },
-  'changed-elsewhere': { label: 'Live', detail: 'updated from another device', tone: 'text-amber-700 dark:text-amber-400' },
-  'token-rejected': { label: 'Edit token rejected', detail: 'use Publish as new', tone: 'text-red-700 dark:text-red-400' },
-  unknown: { label: 'Live', tone: 'text-gray-700 dark:text-gray-300' },
+/** One short label per state, shown before the code; `hint` is the hover text. */
+const STATE_LABELS: Record<PublishDisplayState, { label: string; hint: string; tone: string }> = {
+  'up-to-date': { label: 'Live', hint: 'Attendees see what’s on screen', tone: 'text-green-700 dark:text-green-400' },
+  'out-of-date': { label: 'Unpublished changes', hint: 'Publish to update what attendees see', tone: 'text-amber-700 dark:text-amber-400' },
+  reserved: { label: 'Reserved', hint: 'Attendees see “Coming soon”', tone: 'text-blue-700 dark:text-blue-400' },
+  'reserved-pending': { label: 'Reserved, not yet published', hint: 'Attendees see “Coming soon”. Publish to post the schedule', tone: 'text-amber-700 dark:text-amber-400' },
+  expired: { label: 'Expired', hint: 'Publish to restore this code', tone: 'text-red-700 dark:text-red-400' },
+  'changed-elsewhere': { label: 'Updated on another device', hint: 'Someone published this code from another browser', tone: 'text-amber-700 dark:text-amber-400' },
+  'token-rejected': { label: 'Edit token rejected', hint: 'This browser can’t update this code. Use Publish as new', tone: 'text-red-700 dark:text-red-400' },
+  unknown: { label: 'Published', hint: 'Publish once to start tracking changes', tone: 'text-gray-700 dark:text-gray-300' },
 };
 
 export default function PublishControls({
@@ -128,9 +126,6 @@ export default function PublishControls({
         server: serverStatus,
       })
     : null;
-  const expiresAt = credentials ? effectiveExpiresAt(credentials, serverStatus) : undefined;
-  const expiryLabel = formatExpiryDate(expiresAt);
-  const expiringSoon = isExpiringSoon(expiresAt);
   const needsPublish =
     displayState === 'out-of-date' || displayState === 'reserved-pending' || displayState === 'expired';
 
@@ -314,11 +309,14 @@ export default function PublishControls({
           {lastPublishedCode && (
             <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" aria-live="polite">
               {displayState && (
-                <span className={`font-semibold ${STATE_LABELS[displayState].tone}`}>
+                <span
+                  className={`font-semibold ${STATE_LABELS[displayState].tone}`}
+                  title={STATE_LABELS[displayState].hint}
+                >
                   {STATE_LABELS[displayState].label}
+                  <span className="text-gray-400 font-normal" aria-hidden="true"> ·</span>
                 </span>
               )}
-              <span className="text-gray-400" aria-hidden="true">·</span>
               <code className="font-mono tracking-wider dark:text-gray-100 text-[var(--primary-color)]">
               <Link
                 to={`/${lastPublishedCode}`}
@@ -338,20 +336,6 @@ export default function PublishControls({
               >
                 {copied ? <FaCheck className="text-sm text-green-600" /> : <FaCopy className="text-sm" />}
               </button>
-              {displayState && STATE_LABELS[displayState].detail && (
-                <span className={STATE_LABELS[displayState].tone}>· {STATE_LABELS[displayState].detail}</span>
-              )}
-              {expiryLabel && displayState !== 'expired' && displayState !== 'token-rejected' && (
-                <span
-                  className={
-                    expiringSoon
-                      ? 'text-amber-700 dark:text-amber-400 font-medium'
-                      : 'text-gray-500 dark:text-gray-400'
-                  }
-                >
-                  · expires {expiryLabel}
-                </span>
-              )}
             </div>
           )}
           {error && (

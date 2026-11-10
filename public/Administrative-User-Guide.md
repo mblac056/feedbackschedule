@@ -131,7 +131,7 @@ On narrow screens the same actions live in the hamburger menu.
 | **Clear Grid** | Unschedules everything after confirm; session *blocks* remain in Unassigned |
 | **Print** | Prints the Feedback Matrix; disabled if any **red** conflict exists |
 | Print dropdown | Other reports (see [Printable reports](#15-printable-reports)) |
-| **Publish** | Shareable code / preview (see [Preview and publish](#17-preview-and-publish)); disabled on red conflicts. Below it, a status line shows the code, whether it's up to date, and when it expires |
+| **Publish** | Shareable code / preview (see [Preview and publish](#17-preview-and-publish)); disabled on red conflicts. Below it, a status line shows the code and whether attendees see the latest version |
 | **Session Format** | Shows current movement mode (color-coded) — **Groups moving to Judges** or **Judges moving to Groups** |
 | **Total Length** | Span from earliest to latest session; turns **red if over 120 minutes** |
 
@@ -531,16 +531,16 @@ Publishing uploads the **current** scheduled grid so others can open it with a s
 
 Use this when attendees need the code before the schedule exists (printed programs, emails).
 
-1. **Settings → Publishing → Reserve a code**, or the **Reserve a code** section on the start screen before any judges are imported
-2. A **Feedback Round** name is required. It's the title attendees see
+1. Import judges, then **Settings → Publishing → Reserve a code**
+2. A **Feedback Round** name (top of Settings) is required. It's the title attendees see
 3. Attendees who open the code see the round name and **Coming soon**
 4. Build the schedule as usual, then **Publish**. It goes to the same code
 
-Settings → Publishing also shows this browser's code, its expiry, and **Show edit token** if you need to hand ownership to someone. Anyone with the code and token can change the published schedule.
+Settings → Publishing also shows this browser's **Publish Code** and **Edit Token**, each with a copy button. The token is hidden; click it to reveal it if you need to hand ownership to someone. Anyone with the code and token can change the published schedule.
 
 ### Use an existing code
 
-To take over a code on another device without an export file: **Settings → Publishing → Use an existing code** (or **Switch to a different code**). Enter the code and paste its edit token from **Show edit token** on the original device. The server checks they match before anything is saved; nothing is published until you click **Publish**.
+To take over a code on another device without an export file: **Settings → Publishing → Use an existing code** (or **Switch to a different code**). Enter the code and paste its **Edit Token** from Settings → Publishing on the original device (the copy button works without revealing it). The server checks they match before anything is saved; nothing is published until you click **Publish**.
 
 | Message | Meaning |
 |---------|---------|
@@ -560,22 +560,22 @@ Shown once judges exist. Publishing with no scheduled sessions posts the **Comin
 | **Publish as new** | Always creates a **new** code and token (old code remains until it expires). Asks first if this browser already has a code |
 | **Preview** | Opens `/preview` using **local** data only — dry run of the public UI without uploading |
 
-After a successful publish you see a status line with the code (link opens in a new tab), a **copy** control, and the expiry date. The date turns amber within 14 days of expiry.
+After a successful publish you see a status line: one status label, then the code (link opens in a new tab) and a **copy** control. Hover the label for what to do next.
 
 | Status | Meaning |
 |--------|---------|
-| **Live** · up to date | The published schedule matches what's on screen |
-| **Reserved** · nothing published yet | The code shows **Coming soon** and you have nothing scheduled yet |
-| **Reserved** · schedule not published yet | The code shows **Coming soon** and you now have sessions to publish. **Publish** is highlighted |
-| **Live, out of date** · unpublished changes | You've changed something attendees can see since the last publish. **Publish** is highlighted |
-| **Live** · updated from another device | Someone published this code from another browser or an imported export after your last publish here |
-| **Expired** · Publish to restore | The code has expired. **Publish** brings it back with the same code |
+| **Live** | The published schedule matches what's on screen |
+| **Reserved** | The code shows **Coming soon** and you have nothing scheduled yet |
+| **Reserved, not yet published** | The code shows **Coming soon** and you now have sessions to publish. **Publish** is highlighted |
+| **Unpublished changes** | You've changed something attendees can see since the last publish. **Publish** is highlighted |
+| **Updated on another device** | Someone published this code from another browser or an imported export after your last publish here |
+| **Expired** | The code has expired. **Publish** brings it back with the same code |
 | **Edit token rejected** | This browser's token doesn't own the code. Use **Publish as new** |
-| **Live** (no detail) | Published before status tracking existed, or the server couldn't be reached. Publish once to start tracking |
+| **Published** | Published before status tracking existed, or the server couldn't be reached. Publish once to start tracking |
 
 If you publish with no scheduled sessions over a code that currently shows a schedule, you're asked to confirm first.
 
-Only what attendees see counts as a change. Preference notes and unscheduled sessions don't mark a publish as out of date.
+Only what attendees see counts as a change. Preference notes and unscheduled sessions don't count as unpublished changes.
 
 ### Common errors
 
@@ -718,7 +718,7 @@ Clearing site data in the browser wipes the unpublished schedule. Export first.
 2. **Create a schedule**  
 3. Import **Assignments Report** (judges)  
 4. **Manage Entrants** → import **DRCJ**, then **Eval Preferences**  
-5. **Settings:** Feedback Round, movement, start time, lengths, optional publish prefix. **Reserve a code** now if attendees need it before the schedule is ready  
+5. **Settings:** Feedback Round, movement, start time, lengths, optional publish prefix. **Reserve a code** (Settings → Publishing) if attendees need it before the schedule is ready  
 6. Set priority (drag or sort by score); **Include** this round’s groups  
 7. **Populate Grid**  
 8. Open Preferences (**P**) — review Good / Conflicts / Unassigned; add Notes  
@@ -729,7 +729,7 @@ Clearing site data in the browser wipes the unpublished schedule. Export first.
 13. Print Matrix, Judge/Entrant schedules, Labels, Announcements, Flow, Preference Check, Shared Room Guide as needed  
 14. **Preview**, then **Publish**; copy code; generate QR from the hub  
 15. Brief judges: open their person link, leave the page up during sessions, optionally enable timer sounds  
-16. Re-**Publish** whenever the status line says **out of date** so phones see the update (codes stay live 90 days after the last publish)  
+16. Re-**Publish** whenever the status line says **Unpublished changes** so phones see the update (codes stay live 90 days after the last publish)  
 
 ---
 

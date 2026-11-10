@@ -5,19 +5,14 @@ import { useSettings } from '../contexts/useSettings';
 import { buildPlaceholderPayload, publishWithNewCode } from '../utils/publishActions';
 import { getPublishCredentials, PUBLISH_CREDENTIALS_CHANGED, type PublishCredentials } from '../utils/publishStorage';
 import { formatCode } from '../utils/publishCodes';
-import { formatExpiryDate } from '../utils/publishStatus';
 import { userMessageForApiError } from '../utils/scheduleApi';
 import ExistingCodeForm from './ExistingCodeForm';
 
 type Props = {
   /** Round name to show on the "coming soon" page. */
   roundName: string;
-  /** When given, the panel renders its own round name input (empty state). */
-  onRoundNameChange?: (value: string) => void;
   /** Code prefix to use; defaults to the saved setting. */
   codePrefix?: string;
-  /** Offer "Use an existing code" (Settings only; the start screen keeps it simple). */
-  allowExistingCode?: boolean;
 };
 
 type CopyTarget = 'code' | 'token' | null;
@@ -26,7 +21,7 @@ type CopyTarget = 'code' | 'token' | null;
  * Reserve a code ahead of time by publishing an empty "coming soon" page, or, once
  * this browser holds a code, show it with its edit token.
  */
-export default function ReserveCodePanel({ roundName, onRoundNameChange, codePrefix, allowExistingCode = false }: Props) {
+export default function ReserveCodePanel({ roundName, codePrefix }: Props) {
   const { settings, setSettings } = useSettings();
   const [credentials, setCredentials] = useState<PublishCredentials | null>(() => getPublishCredentials());
   const [busy, setBusy] = useState(false);
@@ -46,7 +41,7 @@ export default function ReserveCodePanel({ roundName, onRoundNameChange, codePre
     if (busy) return;
     const name = roundName.trim();
     if (!name) {
-      setError('Enter a Feedback Round name first. It’s the title attendees will see.');
+      setError('Enter a Feedback Round name above first. It’s the title attendees will see.');
       return;
     }
     setBusy(true);
@@ -86,7 +81,7 @@ export default function ReserveCodePanel({ roundName, onRoundNameChange, codePre
     </button>
   );
 
-  const existingSection = !allowExistingCode ? null : showExisting ? (
+  const existingSection = showExisting ? (
     <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
       <ExistingCodeForm
         onDone={(message) => {
@@ -114,50 +109,42 @@ export default function ReserveCodePanel({ roundName, onRoundNameChange, codePre
   const noticeLine = notice ? <p className="text-sm text-green-700 dark:text-green-400">{notice}</p> : null;
 
   if (credentials) {
-    const expiry = formatExpiryDate(credentials.expiresAt);
-    const count = credentials.publishedSessionCount;
-    const summary =
-      count === undefined
-        ? 'Published'
-        : count === 0
-          ? 'Reserved · nothing published yet'
-          : `Published · ${count} session${count === 1 ? '' : 's'}`;
     return (
-      <div className="space-y-2 text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-gray-600 dark:text-gray-300">This browser publishes to</span>
-          <code className="font-mono tracking-wider text-[var(--primary-color)]">
-            <Link to={`/${credentials.code}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
-              {formatCode(credentials.code)}
-            </Link>
-          </code>
-          {copyButton('code', formatCode(credentials.code), 'Copy publish code')}
+      <div className="space-y-3 text-sm">
+        <div>
+          <p className="font-medium mb-1">Publish Code:</p>
+          <div className="flex items-center gap-2">
+            <code className="font-mono tracking-wider text-[var(--primary-color)]">
+              <Link to={`/${credentials.code}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                {formatCode(credentials.code)}
+              </Link>
+            </code>
+            {copyButton('code', formatCode(credentials.code), 'Copy publish code')}
+          </div>
         </div>
-        <p className="text-gray-500 dark:text-gray-400">
-          {summary}
-          {expiry ? ` · expires ${expiry}` : ''}
-        </p>
-        {showToken ? (
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <code className="font-mono text-xs break-all bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
-                {credentials.editToken}
-              </code>
-              {copyButton('token', credentials.editToken, 'Copy edit token')}
-            </div>
-            <p className="text-xs text-amber-700 dark:text-amber-400">
+        <div>
+          <p className="font-medium mb-1">Edit Token:</p>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowToken((shown) => !shown)}
+              aria-pressed={showToken}
+              title={showToken ? 'Click to hide' : 'Click to reveal'}
+              className={`min-w-0 text-left font-mono text-xs break-all px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 ${
+                showToken ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400 dark:text-gray-500 tracking-widest'
+              }`}
+            >
+              {showToken ? credentials.editToken : '•'.repeat(24)}
+              <span className="sr-only">{showToken ? ' (click to hide)' : 'Edit token hidden. Click to reveal'}</span>
+            </button>
+            {copyButton('token', credentials.editToken, 'Copy edit token')}
+          </div>
+          {showToken && (
+            <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
               Anyone with this code and token can change the published schedule. Exports include it too.
             </p>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setShowToken(true)}
-            className="text-gray-600 dark:text-gray-300 underline hover:no-underline"
-          >
-            Show edit token
-          </button>
-        )}
+          )}
+        </div>
         {error && (
           <p className="text-red-600 dark:text-red-400" role="alert">
             {error}
@@ -171,21 +158,6 @@ export default function ReserveCodePanel({ roundName, onRoundNameChange, codePre
 
   return (
     <div className="space-y-2 text-sm text-left">
-      {onRoundNameChange && (
-        <div>
-          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-200" htmlFor="reserve-round-name">
-            Feedback Round
-          </label>
-          <input
-            id="reserve-round-name"
-            type="text"
-            value={roundName}
-            onChange={(e) => onRoundNameChange(e.target.value)}
-            placeholder="2027 Spring ONT Quartet Finals"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 focus:border-transparent"
-          />
-        </div>
-      )}
       <button
         type="button"
         onClick={() => void handleReserve()}
