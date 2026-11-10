@@ -316,15 +316,14 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
                     </div>
                   )}
                 </div>
-                {scheduledSessions.length > 0 && (
-                  <PublishControls
+                {/* Shown with 0 sessions too: publishing then posts a "coming soon" page. */}
+                <PublishControls
                     disabled={hasRedConflicts}
                     judges={judges}
                     entrants={entrants}
                     sessionBlocks={allSessionBlocks}
                     settings={settings}
                   />
-                )}
               </div>
               
           </div>

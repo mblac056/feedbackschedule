@@ -37,6 +37,18 @@ describe('derivePublishState', () => {
     expect(state({ currentSessionCount: 0 })).toBe('reserved');
   });
 
+  it('is reserved-pending when a placeholder is live and sessions now exist', () => {
+    expect(
+      state({ credentials: { ...base, publishedSessionCount: 0 }, currentFingerprint: 'fp2', currentSessionCount: 3 })
+    ).toBe('reserved-pending');
+  });
+
+  it('is out of date when only the round name changed on a placeholder', () => {
+    expect(
+      state({ credentials: { ...base, publishedSessionCount: 0 }, currentFingerprint: 'fp2', currentSessionCount: 0 })
+    ).toBe('out-of-date');
+  });
+
   it('is expired when the stored expiry has passed and the server is unreachable', () => {
     expect(state({ server: null, now: Date.parse('2026-06-01T00:00:00Z') })).toBe('expired');
   });

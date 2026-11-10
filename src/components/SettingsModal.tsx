@@ -5,6 +5,7 @@ import { useSettings } from '../contexts/useSettings';
 import type { SessionSettings } from '../config/timeConfig';
 import { LocalStorageService } from '../utils/localStorage';
 import { filterCodePrefix } from '../utils/publishCodes';
+import ReserveCodePanel from './ReserveCodePanel';
 import { anySessionLengthIncreased } from '../utils/sessionLengthSettings';
 
 interface Settings extends SessionSettings {
@@ -233,6 +234,11 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Optional up to 3 characters used at the start of new publish codes. Remaining characters are random (avoiding 0/O/1/I/L).
               </p>
+            </div>
+            {/* Publishing */}
+            <div>
+              <h3 className="block text-sm font-medium mb-2">Publishing</h3>
+              <ReserveCodePanel roundName={settings.exportName ?? ''} codePrefix={settings.codePrefix ?? ''} />
             </div>
             {/* Travel Directions */}
             <div>

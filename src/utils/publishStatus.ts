@@ -5,6 +5,8 @@ export type PublishDisplayState =
   | 'up-to-date'
   | 'out-of-date'
   | 'reserved'
+  /** A placeholder is live and there's now a schedule to publish over it. */
+  | 'reserved-pending'
   | 'expired'
   | 'changed-elsewhere'
   | 'token-rejected'
@@ -42,7 +44,9 @@ export function derivePublishState(args: {
   }
 
   if (!credentials.fingerprint || !currentFingerprint) return 'unknown';
-  if (credentials.fingerprint !== currentFingerprint) return 'out-of-date';
+  if (credentials.fingerprint !== currentFingerprint) {
+    return credentials.publishedSessionCount === 0 && currentSessionCount > 0 ? 'reserved-pending' : 'out-of-date';
+  }
   if (currentSessionCount === 0) return 'reserved';
   return 'up-to-date';
 }

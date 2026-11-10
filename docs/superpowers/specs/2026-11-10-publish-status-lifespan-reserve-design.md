@@ -208,7 +208,7 @@ Publish button visibility: show `PublishControls` whenever judges exist, not onl
 
 1. Server: TTL, tombstones, status endpoint, `expiresAt` in PUT.
 2. Status indicator + fingerprint.
-3. Reserve + coming-soon page.
-4. Import / Publish-as-new / empty-overwrite / reset guards.
+3. Reserve + coming-soon page + empty-overwrite guard + Publish visible when judges exist.
+4. Import / Publish-as-new / reset guards.
 5. Use an existing code.
 6. Admin guide.

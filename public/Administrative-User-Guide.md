@@ -527,9 +527,20 @@ Publishing uploads the **current** scheduled grid so others can open it with a s
 2. Set **Feedback Round** (hub title)  
 3. Optionally set **Publish code prefix** (e.g. district code or similar)  
 
+### Reserve a code ahead of time
+
+Use this when attendees need the code before the schedule exists (printed programs, emails).
+
+1. **Settings → Publishing → Reserve a code**, or the **Reserve a code** section on the start screen before any judges are imported
+2. A **Feedback Round** name is required. It's the title attendees see
+3. Attendees who open the code see the round name and **Coming soon**
+4. Build the schedule as usual, then **Publish**. It goes to the same code
+
+Settings → Publishing also shows this browser's code, its expiry, and **Show edit token** if you need to hand ownership to someone. Anyone with the code and token can change the published schedule.
+
 ### Publish menu
 
-Shown when there is at least one scheduled session.
+Shown once judges exist. Publishing with no scheduled sessions posts the **Coming soon** page.
 
 | Action | Behavior |
 |--------|----------|
@@ -542,11 +553,15 @@ After a successful publish you see a status line with the code (link opens in a 
 | Status | Meaning |
 |--------|---------|
 | **Live** · up to date | The published schedule matches what's on screen |
+| **Reserved** · nothing published yet | The code shows **Coming soon** and you have nothing scheduled yet |
+| **Reserved** · schedule not published yet | The code shows **Coming soon** and you now have sessions to publish. **Publish** is highlighted |
 | **Live, out of date** · unpublished changes | You've changed something attendees can see since the last publish. **Publish** is highlighted |
 | **Live** · updated from another device | Someone published this code from another browser or an imported export after your last publish here |
 | **Expired** · Publish to restore | The code has expired. **Publish** brings it back with the same code |
 | **Edit token rejected** | This browser's token doesn't own the code. Use **Publish as new** |
 | **Live** (no detail) | Published before status tracking existed, or the server couldn't be reached. Publish once to start tracking |
+
+If you publish with no scheduled sessions over a code that currently shows a schedule, you're asked to confirm first.
 
 Only what attendees see counts as a change. Preference notes and unscheduled sessions don't mark a publish as out of date.
 

@@ -22,6 +22,8 @@ export default function PublicScheduleHub({ payload, personBasePath, title, show
   const [pdfError, setPdfError] = useState('');
 
   const heading = title ?? (payload.exportName?.trim() || 'Feedback Schedule');
+  // A reserved code with nothing scheduled yet.
+  const comingSoon = payload.sessions.length === 0;
   const base = personBasePath.replace(/\/$/, '');
 
   const people = (
@@ -87,6 +89,7 @@ export default function PublicScheduleHub({ payload, personBasePath, title, show
             </div>
           </div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{heading}</h1>
+          {!comingSoon && (
           <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <button
               type="button"
@@ -102,7 +105,18 @@ export default function PublicScheduleHub({ payload, personBasePath, title, show
               </p>
             )}
           </div>
+          )}
         </header>
+
+        {comingSoon ? (
+          <div className="border border-gray-200 dark:border-gray-800 rounded-lg bg-white dark:bg-gray-900 px-4 py-8 text-center">
+            <p className="text-lg font-medium text-gray-900 dark:text-gray-100">Coming soon</p>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
+              This feedback schedule hasn’t been posted yet. Check back closer to the event.
+            </p>
+          </div>
+        ) : (
+        <>
 
         <div className="flex gap-2 border-b border-gray-300 dark:border-gray-700" role="tablist">
           {(['entrants', 'judges'] as const).map((key) => (
@@ -138,6 +152,8 @@ export default function PublicScheduleHub({ payload, personBasePath, title, show
               </li>
             ))}
           </ul>
+        )}
+        </>
         )}
       </div>
     </div>

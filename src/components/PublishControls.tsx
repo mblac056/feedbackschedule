@@ -3,13 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { FaChevronDown, FaCopy, FaCheck } from 'react-icons/fa';
 import type { Entrant, Judge, SessionBlock } from '../types';
 import type { SessionSettings } from '../config/timeConfig';
-import type { PublishedSchedulePayload } from '../types/publishedSchedule';
 import { buildPublishedPayload } from '../utils/buildPublishedPayload';
-import { getEntrants, getJudges, getSessionBlocks, getSettings } from '../utils/localStorage';
 import {
   getPublishCredentials,
   PUBLISH_CREDENTIALS_CHANGED,
-  setPublishCredentials,
   updatePublishMeta,
   type PublishCredentials,
 } from '../utils/publishStorage';
@@ -18,10 +15,10 @@ import {
   putPublishedSchedule,
   ScheduleApiError,
   userMessageForApiError,
-  type PublishResult,
   type PublishStatus,
 } from '../utils/scheduleApi';
-import { formatCode, generateCode, generateEditToken } from '../utils/publishCodes';
+import { formatCode } from '../utils/publishCodes';
+import { buildCurrentPayload, publishWithNewCode, recordPublish } from '../utils/publishActions';
 import { invalidatePublishedScheduleCache } from '../utils/publishedScheduleCache';
 import { fingerprintPayload } from '../utils/publishFingerprint';
 import {
@@ -32,7 +29,6 @@ import {
   type PublishDisplayState,
 } from '../utils/publishStatus';
 
-const MAX_COLLISION_RETRIES = 5;
 const FINGERPRINT_DEBOUNCE_MS = 300;
 
 type PublishControlsProps = {
@@ -45,72 +41,11 @@ type PublishControlsProps = {
   settings: SessionSettings;
 };
 
-/** Saves credentials plus what the server confirmed, so the status line can compare later. */
-async function recordPublish(
-  code: string,
-  editToken: string,
-  payload: PublishedSchedulePayload,
-  result: PublishResult
-): Promise<boolean> {
-  let fingerprint: string | undefined;
-  try {
-    fingerprint = await fingerprintPayload(payload);
-  } catch {
-    fingerprint = undefined;
-  }
-  return setPublishCredentials(code, editToken, {
-    updatedAt: result.updatedAt,
-    expiresAt: result.expiresAt,
-    fingerprint,
-    publishedSessionCount: payload.sessions.length,
-  });
-}
-
-function buildCurrentPayload() {
-  window.dispatchEvent(new Event('evalmatrix:flush-persist'));
-  return buildPublishedPayload({
-    judges: getJudges(),
-    entrants: getEntrants(),
-    sessionBlocks: getSessionBlocks(),
-    settings: getSettings(),
-  });
-}
-
-async function publishWithNewCode(): Promise<string> {
-  const payload = buildCurrentPayload();
-  const prefix = getSettings().codePrefix;
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < MAX_COLLISION_RETRIES; attempt++) {
-    const code = generateCode(prefix);
-    const editToken = generateEditToken();
-    try {
-      const result = await putPublishedSchedule(code, editToken, payload);
-      if (!(await recordPublish(code, editToken, payload, result))) {
-        throw new Error('Published, but this browser could not save the edit token. Export a backup with credentials immediately.');
-      }
-      return code;
-    } catch (err) {
-      lastError = err;
-      if (
-        err instanceof ScheduleApiError &&
-        (err.status === 403 || err.status === 409)
-      ) {
-        continue;
-      }
-      throw err;
-    }
-  }
-
-  throw lastError instanceof Error
-    ? lastError
-    : new Error('Could not publish: too many code collisions');
-}
-
 const STATE_LABELS: Record<PublishDisplayState, { label: string; detail?: string; tone: string }> = {
   'up-to-date': { label: 'Live', detail: 'up to date', tone: 'text-green-700 dark:text-green-400' },
   'out-of-date': { label: 'Live, out of date', detail: 'unpublished changes', tone: 'text-amber-700 dark:text-amber-400' },
   reserved: { label: 'Reserved', detail: 'nothing published yet', tone: 'text-blue-700 dark:text-blue-400' },
+  'reserved-pending': { label: 'Reserved', detail: 'schedule not published yet', tone: 'text-amber-700 dark:text-amber-400' },
   expired: { label: 'Expired', detail: 'Publish to restore', tone: 'text-red-700 dark:text-red-400' },
   'changed-elsewhere': { label: 'Live', detail: 'updated from another device', tone: 'text-amber-700 dark:text-amber-400' },
   'token-rejected': { label: 'Edit token rejected', detail: 'use Publish as new', tone: 'text-red-700 dark:text-red-400' },
@@ -196,7 +131,8 @@ export default function PublishControls({
   const expiresAt = credentials ? effectiveExpiresAt(credentials, serverStatus) : undefined;
   const expiryLabel = formatExpiryDate(expiresAt);
   const expiringSoon = isExpiringSoon(expiresAt);
-  const needsPublish = displayState === 'out-of-date' || displayState === 'expired';
+  const needsPublish =
+    displayState === 'out-of-date' || displayState === 'reserved-pending' || displayState === 'expired';
 
   useEffect(() => {
     if (disabled) {
@@ -226,6 +162,17 @@ export default function PublishControls({
       if (credentials) {
         try {
           const payload = buildCurrentPayload();
+          // Unknown count (published before tracking) is treated as "had sessions" to be safe.
+          const hadSessions = (credentials.publishedSessionCount ?? 1) > 0;
+          if (
+            payload.sessions.length === 0 &&
+            hadSessions &&
+            !window.confirm(
+              `This will replace the live schedule at ${formatCode(credentials.code)} with an empty “coming soon” page. Continue?`
+            )
+          ) {
+            return;
+          }
           const result = await putPublishedSchedule(credentials.code, credentials.editToken, payload);
           await recordPublish(credentials.code, credentials.editToken, payload, result);
           setServerStatus(null);
