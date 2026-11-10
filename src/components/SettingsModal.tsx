@@ -239,10 +239,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
               </p>
             </div>
             {/* Publishing */}
-            <div>
-              <h3 className="block text-sm font-medium mb-2">Publishing</h3>
-              <ReserveCodePanel roundName={settings.exportName ?? ''} codePrefix={settings.codePrefix ?? ''} />
-            </div>
+            <ReserveCodePanel roundName={settings.exportName ?? ''} codePrefix={settings.codePrefix ?? ''} />
             {/* Travel Directions */}
             <div>
               <label className="block text-sm font-medium  mb-2">
