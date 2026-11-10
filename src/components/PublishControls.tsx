@@ -1,19 +1,70 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FaChevronDown, FaCopy, FaCheck } from 'react-icons/fa';
+import type { Entrant, Judge, SessionBlock } from '../types';
+import type { SessionSettings } from '../config/timeConfig';
+import type { PublishedSchedulePayload } from '../types/publishedSchedule';
 import { buildPublishedPayload } from '../utils/buildPublishedPayload';
 import { getEntrants, getJudges, getSessionBlocks, getSettings } from '../utils/localStorage';
-import { getPublishCredentials, setPublishCredentials } from '../utils/publishStorage';
-import { putPublishedSchedule, ScheduleApiError, userMessageForApiError } from '../utils/scheduleApi';
+import {
+  getPublishCredentials,
+  PUBLISH_CREDENTIALS_CHANGED,
+  setPublishCredentials,
+  updatePublishMeta,
+  type PublishCredentials,
+} from '../utils/publishStorage';
+import {
+  checkPublishStatus,
+  putPublishedSchedule,
+  ScheduleApiError,
+  userMessageForApiError,
+  type PublishResult,
+  type PublishStatus,
+} from '../utils/scheduleApi';
 import { formatCode, generateCode, generateEditToken } from '../utils/publishCodes';
 import { invalidatePublishedScheduleCache } from '../utils/publishedScheduleCache';
+import { fingerprintPayload } from '../utils/publishFingerprint';
+import {
+  derivePublishState,
+  effectiveExpiresAt,
+  formatExpiryDate,
+  isExpiringSoon,
+  type PublishDisplayState,
+} from '../utils/publishStatus';
 
 const MAX_COLLISION_RETRIES = 5;
+const FINGERPRINT_DEBOUNCE_MS = 300;
 
 type PublishControlsProps = {
   /** Same gate as Print — red conflicts disable publish actions. */
   disabled?: boolean;
+  /** Live editor state, used to tell whether the published copy is out of date. */
+  judges: Judge[];
+  entrants: Entrant[];
+  sessionBlocks: SessionBlock[];
+  settings: SessionSettings;
 };
+
+/** Saves credentials plus what the server confirmed, so the status line can compare later. */
+async function recordPublish(
+  code: string,
+  editToken: string,
+  payload: PublishedSchedulePayload,
+  result: PublishResult
+): Promise<boolean> {
+  let fingerprint: string | undefined;
+  try {
+    fingerprint = await fingerprintPayload(payload);
+  } catch {
+    fingerprint = undefined;
+  }
+  return setPublishCredentials(code, editToken, {
+    updatedAt: result.updatedAt,
+    expiresAt: result.expiresAt,
+    fingerprint,
+    publishedSessionCount: payload.sessions.length,
+  });
+}
 
 function buildCurrentPayload() {
   window.dispatchEvent(new Event('evalmatrix:flush-persist'));
@@ -34,8 +85,8 @@ async function publishWithNewCode(): Promise<string> {
     const code = generateCode(prefix);
     const editToken = generateEditToken();
     try {
-      await putPublishedSchedule(code, editToken, payload);
-      if (!setPublishCredentials(code, editToken)) {
+      const result = await putPublishedSchedule(code, editToken, payload);
+      if (!(await recordPublish(code, editToken, payload, result))) {
         throw new Error('Published, but this browser could not save the edit token. Export a backup with credentials immediately.');
       }
       return code;
@@ -56,15 +107,96 @@ async function publishWithNewCode(): Promise<string> {
     : new Error('Could not publish: too many code collisions');
 }
 
-export default function PublishControls({ disabled = false }: PublishControlsProps) {
+const STATE_LABELS: Record<PublishDisplayState, { label: string; detail?: string; tone: string }> = {
+  'up-to-date': { label: 'Live', detail: 'up to date', tone: 'text-green-700 dark:text-green-400' },
+  'out-of-date': { label: 'Live, out of date', detail: 'unpublished changes', tone: 'text-amber-700 dark:text-amber-400' },
+  reserved: { label: 'Reserved', detail: 'nothing published yet', tone: 'text-blue-700 dark:text-blue-400' },
+  expired: { label: 'Expired', detail: 'Publish to restore', tone: 'text-red-700 dark:text-red-400' },
+  'changed-elsewhere': { label: 'Live', detail: 'updated from another device', tone: 'text-amber-700 dark:text-amber-400' },
+  'token-rejected': { label: 'Edit token rejected', detail: 'use Publish as new', tone: 'text-red-700 dark:text-red-400' },
+  unknown: { label: 'Live', tone: 'text-gray-700 dark:text-gray-300' },
+};
+
+export default function PublishControls({
+  disabled = false,
+  judges,
+  entrants,
+  sessionBlocks,
+  settings,
+}: PublishControlsProps) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
-  const [lastPublishedCode, setLastPublishedCode] = useState<string | null>(
-    () => getPublishCredentials()?.code ?? null
-  );
+  const [credentials, setCredentials] = useState<PublishCredentials | null>(() => getPublishCredentials());
+  const [serverStatus, setServerStatus] = useState<PublishStatus | null>(null);
+  const [currentFingerprint, setCurrentFingerprint] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const lastPublishedCode = credentials?.code ?? null;
+
+  useEffect(() => {
+    const onChange = () => setCredentials(getPublishCredentials());
+    window.addEventListener(PUBLISH_CREDENTIALS_CHANGED, onChange);
+    return () => window.removeEventListener(PUBLISH_CREDENTIALS_CHANGED, onChange);
+  }, []);
+
+  const currentPayload = useMemo(
+    () => buildPublishedPayload({ judges, entrants, sessionBlocks, settings }),
+    [judges, entrants, sessionBlocks, settings]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      fingerprintPayload(currentPayload)
+        .then((fp) => {
+          if (!cancelled) setCurrentFingerprint(fp);
+        })
+        .catch(() => {
+          if (!cancelled) setCurrentFingerprint(null);
+        });
+    }, FINGERPRINT_DEBOUNCE_MS);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [currentPayload]);
+
+  // Ask the server once per code whether it's still live and who last changed it.
+  const credentialCode = credentials?.code;
+  const credentialToken = credentials?.editToken;
+  useEffect(() => {
+    setServerStatus(null);
+    if (!credentialCode || !credentialToken) return;
+    const controller = new AbortController();
+    checkPublishStatus(credentialCode, credentialToken, controller.signal)
+      .then((status) => {
+        if (controller.signal.aborted) return;
+        setServerStatus(status);
+        const stored = getPublishCredentials();
+        // Backfill dates for credentials saved before status tracking existed.
+        if (status.state === 'live' && stored && !stored.updatedAt) {
+          updatePublishMeta(credentialCode, { updatedAt: status.updatedAt, expiresAt: status.expiresAt });
+        }
+      })
+      .catch(() => {
+        // Offline, local dev without functions, or an older server: show what we know locally.
+      });
+    return () => controller.abort();
+  }, [credentialCode, credentialToken]);
+
+  const displayState = credentials
+    ? derivePublishState({
+        credentials,
+        currentFingerprint,
+        currentSessionCount: currentPayload.sessions.length,
+        server: serverStatus,
+      })
+    : null;
+  const expiresAt = credentials ? effectiveExpiresAt(credentials, serverStatus) : undefined;
+  const expiryLabel = formatExpiryDate(expiresAt);
+  const expiringSoon = isExpiringSoon(expiresAt);
+  const needsPublish = displayState === 'out-of-date' || displayState === 'expired';
 
   useEffect(() => {
     if (disabled) {
@@ -93,15 +225,14 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
       const credentials = getPublishCredentials();
       if (credentials) {
         try {
-          await putPublishedSchedule(
-            credentials.code,
-            credentials.editToken,
-            buildCurrentPayload()
-          );
-          setLastPublishedCode(credentials.code);
+          const payload = buildCurrentPayload();
+          const result = await putPublishedSchedule(credentials.code, credentials.editToken, payload);
+          await recordPublish(credentials.code, credentials.editToken, payload, result);
+          setServerStatus(null);
           invalidatePublishedScheduleCache(credentials.code);
         } catch (err) {
           if (err instanceof ScheduleApiError && err.status === 403) {
+            setServerStatus({ state: 'forbidden' });
             setError('Cannot update this schedule (edit token rejected). Use “Publish as new”.');
             return;
           }
@@ -109,7 +240,7 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
         }
       } else {
         const code = await publishWithNewCode();
-        setLastPublishedCode(code);
+        setServerStatus(null);
         invalidatePublishedScheduleCache(code);
       }
     } catch (err) {
@@ -126,7 +257,7 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
     setError('');
     try {
       const code = await publishWithNewCode();
-      setLastPublishedCode(code);
+      setServerStatus(null);
       invalidatePublishedScheduleCache(code);
     } catch (err) {
       setError(userMessageForApiError(err, 'Publish failed'));
@@ -154,7 +285,9 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
 
   const disabledClass = disabled
     ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed opacity-70'
-    : 'bg-gray-600 hover:bg-gray-800 text-white';
+    : needsPublish
+      ? 'bg-[var(--primary-color)] hover:bg-[var(--primary-color-dark)] text-white'
+      : 'bg-gray-600 hover:bg-gray-800 text-white';
 
   return (
     <>
@@ -173,7 +306,9 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
             className={`px-2 py-2 rounded-r-md transition-colors border-l ${
               disabled
                 ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-gray-200 dark:border-gray-600 cursor-not-allowed opacity-70'
-                : 'bg-gray-600 hover:bg-gray-800 text-white border-gray-300 dark:border-gray-500'
+                : needsPublish
+                  ? 'bg-[var(--primary-color)] hover:bg-[var(--primary-color-dark)] text-white border-white/40'
+                  : 'bg-gray-600 hover:bg-gray-800 text-white border-gray-300 dark:border-gray-500'
             }`}
             onClick={() => {
               if (disabled || busy) return;
@@ -219,8 +354,13 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
       {(lastPublishedCode || error) && (
         <div className="basis-full w-full flex flex-col gap-1">
           {lastPublishedCode && (
-            <div className="flex flex-wrap items-center gap-2 text-sm">
-              <span className="text-gray-600 dark:text-gray-300">Code:</span>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" aria-live="polite">
+              {displayState && (
+                <span className={`font-semibold ${STATE_LABELS[displayState].tone}`}>
+                  {STATE_LABELS[displayState].label}
+                </span>
+              )}
+              <span className="text-gray-400" aria-hidden="true">·</span>
               <code className="font-mono tracking-wider dark:text-gray-100 text-[var(--primary-color)]">
               <Link
                 to={`/${lastPublishedCode}`}
@@ -240,6 +380,20 @@ export default function PublishControls({ disabled = false }: PublishControlsPro
               >
                 {copied ? <FaCheck className="text-sm text-green-600" /> : <FaCopy className="text-sm" />}
               </button>
+              {displayState && STATE_LABELS[displayState].detail && (
+                <span className={STATE_LABELS[displayState].tone}>· {STATE_LABELS[displayState].detail}</span>
+              )}
+              {expiryLabel && displayState !== 'expired' && displayState !== 'token-rejected' && (
+                <span
+                  className={
+                    expiringSoon
+                      ? 'text-amber-700 dark:text-amber-400 font-medium'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }
+                >
+                  · expires {expiryLabel}
+                </span>
+              )}
             </div>
           )}
           {error && (

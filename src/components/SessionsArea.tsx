@@ -317,7 +317,13 @@ export default function SessionsArea({judges, setJudges, onScheduledSessionsChan
                   )}
                 </div>
                 {scheduledSessions.length > 0 && (
-                  <PublishControls disabled={hasRedConflicts} />
+                  <PublishControls
+                    disabled={hasRedConflicts}
+                    judges={judges}
+                    entrants={entrants}
+                    sessionBlocks={allSessionBlocks}
+                    settings={settings}
+                  />
                 )}
               </div>
               

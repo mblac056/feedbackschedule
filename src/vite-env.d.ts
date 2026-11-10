@@ -15,6 +15,7 @@ interface WindowEventMap {
   'evalmatrix:persist-failed': CustomEvent<{ operation: string; quotaExceeded: boolean }>;
   'evalmatrix:persist-ok': CustomEvent<{ operation: string }>;
   'evalmatrix:flush-persist': Event;
+  'evalmatrix:publish-credentials-changed': Event;
 }
 
 interface Navigator {

@@ -537,7 +537,18 @@ Shown when there is at least one scheduled session.
 | **Publish as new** | Always creates a **new** code and token (old code remains until it expires) |
 | **Preview** | Opens `/preview` using **local** data only — dry run of the public UI without uploading |
 
-After a successful publish you see **Code: ABC-DEF** (link opens in a new tab) plus a **copy** control.
+After a successful publish you see a status line with the code (link opens in a new tab), a **copy** control, and the expiry date. The date turns amber within 14 days of expiry.
+
+| Status | Meaning |
+|--------|---------|
+| **Live** · up to date | The published schedule matches what's on screen |
+| **Live, out of date** · unpublished changes | You've changed something attendees can see since the last publish. **Publish** is highlighted |
+| **Live** · updated from another device | Someone published this code from another browser or an imported export after your last publish here |
+| **Expired** · Publish to restore | The code has expired. **Publish** brings it back with the same code |
+| **Edit token rejected** | This browser's token doesn't own the code. Use **Publish as new** |
+| **Live** (no detail) | Published before status tracking existed, or the server couldn't be reached. Publish once to start tracking |
+
+Only what attendees see counts as a change. Preference notes and unscheduled sessions don't mark a publish as out of date.
 
 ### Common errors
 

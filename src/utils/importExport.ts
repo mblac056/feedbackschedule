@@ -4,13 +4,13 @@ import { stripLegacyEndRowIndex } from './scheduleHelpers';
 import {
   clearPublishCredentials,
   getPublishCredentials,
+  parsePublishCredentials,
   setPublishCredentials,
+  type PublishCredentials,
 } from './publishStorage';
 
-export interface ExportPublishCredentials {
-  code: string;
-  editToken: string;
-}
+/** Code + token, plus optional publish status fields (updatedAt, expiresAt, fingerprint…). */
+export type ExportPublishCredentials = PublishCredentials;
 
 export interface ExportData {
   judges: Judge[];
@@ -63,16 +63,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function applyPublishCredentialsFromImport(publish: unknown): void {
-  if (
-    publish &&
-    typeof publish === 'object' &&
-    typeof (publish as ExportPublishCredentials).code === 'string' &&
-    typeof (publish as ExportPublishCredentials).editToken === 'string' &&
-    (publish as ExportPublishCredentials).code.trim() !== '' &&
-    (publish as ExportPublishCredentials).editToken.trim() !== ''
-  ) {
-    const { code, editToken } = publish as ExportPublishCredentials;
-    setPublishCredentials(code, editToken);
+  const credentials = parsePublishCredentials(publish);
+  if (credentials) {
+    const { code, editToken, ...meta } = credentials;
+    setPublishCredentials(code, editToken, meta);
     return;
   }
   clearPublishCredentials();
