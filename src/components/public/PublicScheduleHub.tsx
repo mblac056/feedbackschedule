@@ -162,7 +162,6 @@ export default function PublicScheduleHub({ payload, personBasePath, title, show
           >
             View flow document
           </Link>
-          <span> · every start, move and notice, minute by minute</span>
         </footer>
         </>
         )}

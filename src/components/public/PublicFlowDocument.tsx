@@ -186,9 +186,13 @@ export default function PublicFlowDocument({ payload, hubPath, showBackToCreate 
                         </span>
                       )}
                     </div>
-                    <ul className={`mt-1 flex flex-col gap-1 text-sm ${style.text}`}>
+                    <ul
+                      className={`mt-1 text-sm divide-y divide-gray-200 dark:divide-gray-800 ${style.text}`}
+                    >
                       {entry.events.map((event, eventIndex) => (
-                        <li key={eventIndex}>{event}</li>
+                        <li key={eventIndex} className="py-1.5 first:pt-0.5 last:pb-0">
+                          {event}
+                        </li>
                       ))}
                     </ul>
                   </section>
