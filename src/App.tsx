@@ -12,6 +12,7 @@ import PreviewPersonPage from './pages/PreviewPersonPage';
 import PublishedFlowPage from './pages/PublishedFlowPage';
 import PublishedHubPage from './pages/PublishedHubPage';
 import PublishedPersonPage from './pages/PublishedPersonPage';
+import { FLOW_DOCUMENT_SLUG } from './utils/personSlugs';
 
 export default function App() {
   return (
@@ -24,10 +25,10 @@ export default function App() {
         <Route path="/create" element={<CreatePage />} />
         <Route path="/admin-guide" element={<AdminGuidePage />} />
         <Route path="/preview" element={<PreviewHubPage />} />
-        <Route path="/preview/flow" element={<PreviewFlowPage />} />
+        <Route path={`/preview/${FLOW_DOCUMENT_SLUG}`} element={<PreviewFlowPage />} />
         <Route path="/preview/:personSlug" element={<PreviewPersonPage />} />
         <Route path="/:code" element={<PublishedHubPage />} />
-        <Route path="/:code/flow" element={<PublishedFlowPage />} />
+        <Route path={`/:code/${FLOW_DOCUMENT_SLUG}`} element={<PublishedFlowPage />} />
         <Route path="/:code/:personSlug" element={<PublishedPersonPage />} />
       </Routes>
     </ErrorBoundary>

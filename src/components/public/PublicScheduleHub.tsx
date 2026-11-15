@@ -160,7 +160,7 @@ export default function PublicScheduleHub({ payload, personBasePath, title, show
             to={`${base}/${FLOW_DOCUMENT_SLUG}`}
             className="text-[var(--primary-color)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
           >
-            View flow document
+            Flow Document
           </Link>
         </footer>
         </>

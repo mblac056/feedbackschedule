@@ -9,7 +9,7 @@ export function slugifyName(name: string): string {
 }
 
 /** Path segment for the flow document page; never handed out as a person slug. */
-export const FLOW_DOCUMENT_SLUG = 'flow';
+export const FLOW_DOCUMENT_SLUG = 'flow-doc';
 
 export function buildSlugMap(entries: Array<{ id: string; name: string }>): Record<string, string> {
   const used = new Set<string>([FLOW_DOCUMENT_SLUG]);

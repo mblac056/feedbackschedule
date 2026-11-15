@@ -34,7 +34,7 @@ export default function PublishedFlowPage() {
   }
 
   const normalized = normalizeCode(code);
-  // Schedules published before "flow" was reserved may have a person with that slug.
+  // Schedules published before "flow-doc" was reserved may have a person with that slug.
   if (payload.slugIndex[FLOW_DOCUMENT_SLUG]) {
     return (
       <PublicPersonSchedule
