@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('html2canvas', () => ({ default: () => undefined }));
 vi.mock('html2pdf.js', () => ({ default: () => ({}) }));
 vi.mock('jspdf', () => ({ default: class JsPDF {} }));
 vi.mock('jspdf-autotable', () => ({ default: () => undefined }));

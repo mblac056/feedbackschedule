@@ -8,11 +8,14 @@ export function slugifyName(name: string): string {
     || 'person';
 }
 
+/** Path segment for the flow document page; never handed out as a person slug. */
+export const FLOW_DOCUMENT_SLUG = 'flow';
+
 export function buildSlugMap(entries: Array<{ id: string; name: string }>): Record<string, string> {
-  const used = new Set<string>();
+  const used = new Set<string>([FLOW_DOCUMENT_SLUG]);
   const map: Record<string, string> = {};
   for (const entry of entries) {
-    let base = slugifyName(entry.name);
+    const base = slugifyName(entry.name);
     let slug = base;
     if (used.has(slug)) {
       slug = `${base}-${entry.id.slice(0, 4).toLowerCase()}`;

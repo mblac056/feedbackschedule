@@ -2,6 +2,8 @@ import type { Judge, SessionBlock } from '../types';
 import { getEntrants, getSettings, getPreferenceNotes } from './localStorage';
 import { countPreferencePills } from './preferencePills';
 import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '../config/timeConfig';
+import { buildFlowDocument } from './flowDocument';
+import { addMinutesToTime, findByes, rowIndexToTime } from './scheduleTime';
 import jsPDF from 'jspdf';
 import { generateMatrixPage } from './printTemplate-matrix';
 import { generateJudgeSchedulePages, type JudgeSchedule } from './printTemplate-judgeSchedules';
@@ -14,17 +16,6 @@ import {
   buildSharedRoomGuideData,
   generateSharedRoomGuidePage,
 } from './printTemplate-sharedRoomGuide';
-
-interface SessionEvent {
-  time: string;
-  type: 'start' | 'end';
-  entrantName: string;
-  judgeName: string;
-  sessionType: string;
-  duration: number;
-  entrantRoom?: string;
-  judgeRoom?: string;
-}
 
 // Types are now imported from template files
 
@@ -120,71 +111,9 @@ export function calculateTotalByeLength(
 export function generatePrintData(scheduledSessions: SessionBlock[], judges: Judge[]) {
   const entrants = getEntrants();
   const settings = getSettings();
-  
-  // Helper function to convert row index to time string
-  const rowIndexToTime = (rowIndex: number): string => {
-    const startTime = settings.startTime;
-    const [startHour, startMinute] = startTime.split(':').map(Number);
-    const totalMinutes = startMinute + (rowIndex * TIME_CONFIG.MINUTES_PER_SLOT);
-    const hour = (startHour + Math.floor(totalMinutes / 60));
-    const minute = totalMinutes % 60;
-    return `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-  };
-  
-  // Helper function to get session duration in minutes
-  const getSessionDuration = (sessionType: string): number => {
-    return getSessionDurationMinutes(sessionType as '1xLong' | '3x20' | '3x10', settings);
-  };
 
-  // Helper function to add minutes to time string
-  const addMinutesToTime = (timeStr: string, minutes: number): string => {
-    const [hours, mins] = timeStr.split(':').map(Number);
-    const totalMinutes = hours * 60 + mins + minutes;
-    const newHours = Math.floor(totalMinutes / 60);
-    const newMins = totalMinutes % 60;
-    return `${newHours.toString().padStart(2, '0')}:${newMins.toString().padStart(2, '0')}`;
-  };
-
-  // Create all session events (start and end)
-  const events: SessionEvent[] = [];
-  
-  scheduledSessions.forEach(session => {
-    const entrant = entrants.find(e => e.id === session.entrantId);
-    const judge = judges.find(j => j.id === session.judgeId);
-    const duration = getSessionDuration(session.type);
-    const startTime = rowIndexToTime(session.startRowIndex!);
-    const endTime = addMinutesToTime(startTime, duration);
-    
-    if (entrant && judge) {
-      events.push({
-        time: startTime,
-        type: 'start',
-        entrantName: entrant.name,
-        judgeName: judge.name,
-        sessionType: session.type,
-        duration,
-        entrantRoom: entrant.roomNumber,
-        judgeRoom: judge.roomNumber
-      });
-      
-      events.push({
-        time: endTime,
-        type: 'end',
-        entrantName: entrant.name,
-        judgeName: judge.name,
-        sessionType: session.type,
-        duration,
-        entrantRoom: entrant.roomNumber,
-        judgeRoom: judge.roomNumber
-      });
-    }
-  });
-
-  // Sort events by time
-  // Note: String comparison works here because all times are generated sequentially
-  // from the same startTime, so they maintain chronological order even when wrapping
-  // around midnight (e.g., 23:55 -> 00:00 -> 00:05)
-  events.sort((a, b) => a.time.localeCompare(b.time));
+  const getSessionDuration = (sessionType: SessionBlock['type']): number =>
+    getSessionDurationMinutes(sessionType, settings);
 
   // Generate judge schedules
   const judgeSchedules: JudgeSchedule[] = judges.map(judge => {
@@ -193,7 +122,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
       .map(session => {
         const entrant = entrants.find(e => e.id === session.entrantId);
         const duration = getSessionDuration(session.type);
-        const startTime = rowIndexToTime(session.startRowIndex!);
+        const startTime = rowIndexToTime(session.startRowIndex!, settings.startTime);
         const isFirstPreference = entrant?.judgePreference1 === judge.id;
         return {
           entrantName: entrant?.name || 'Unknown',
@@ -210,59 +139,12 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
       })
       .sort((a, b) => a.startTime.localeCompare(b.startTime)); // Safe: times generated sequentially
 
-    // Calculate byes (gaps between sessions)
-    const byes: Array<{ startTime: string; endTime: string; duration: number }> = [];
-    for (let i = 0; i < judgeSessions.length - 1; i++) {
-      const currentEnd = judgeSessions[i].endTime;
-      const nextStart = judgeSessions[i + 1].startTime;
-      
-      if (currentEnd !== nextStart) {
-        const byeDuration = (() => {
-          const [endHours, endMins] = currentEnd.split(':').map(Number);
-          const [startHours, startMins] = nextStart.split(':').map(Number);
-          let duration = (startHours * 60 + startMins) - (endHours * 60 + endMins);
-          // Handle midnight wraparound
-          if (duration < 0) {
-            duration += 24 * 60; // Add 24 hours in minutes
-          }
-          return duration;
-        })();
-        
-        byes.push({
-          startTime: currentEnd,
-          endTime: nextStart,
-          duration: byeDuration
-        });
-      }
-    }
-    
-    // Check for bye between last session and first session (midnight wraparound)
-    if (judgeSessions.length > 1) {
-      const lastEnd = judgeSessions[judgeSessions.length - 1].endTime;
-      const firstStart = judgeSessions[0].startTime;
-      
-      const [lastEndHours, lastEndMins] = lastEnd.split(':').map(Number);
-      const [firstStartHours, firstStartMins] = firstStart.split(':').map(Number);
-      const lastEndMinutes = lastEndHours * 60 + lastEndMins;
-      const firstStartMinutes = firstStartHours * 60 + firstStartMins;
-      
-      // If last session ends before first session starts (wraparound), add a bye
-      if (lastEndMinutes < firstStartMinutes) {
-        const byeDuration = firstStartMinutes - lastEndMinutes;
-        byes.push({
-          startTime: lastEnd,
-          endTime: firstStart,
-          duration: byeDuration
-        });
-      }
-    }
-
     return {
       judgeName: judge.name,
       judgeId: judge.id,
       judgeCategory: judge.category,
       sessions: judgeSessions,
-      byes,
+      byes: findByes(judgeSessions, { wrapMidnight: true }),
       moving: settings.moving
     };
   });
@@ -276,7 +158,7 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
         .map(session => {
           const judge = judges.find(j => j.id === session.judgeId);
           const duration = getSessionDuration(session.type);
-          const startTime = rowIndexToTime(session.startRowIndex!);
+          const startTime = rowIndexToTime(session.startRowIndex!, settings.startTime);
           return {
             judgeName: judge?.name || 'Unknown',
             judgeCategory: judge?.category,
@@ -290,194 +172,20 @@ export function generatePrintData(scheduledSessions: SessionBlock[], judges: Jud
         })
         .sort((a, b) => a.startTime.localeCompare(b.startTime)); // Safe: times generated sequentially
 
-      // Calculate byes (gaps between sessions)
-      const byes: Array<{ startTime: string; endTime: string; duration: number }> = [];
-      for (let i = 0; i < entrantSessions.length - 1; i++) {
-        const currentEnd = entrantSessions[i].endTime;
-        const nextStart = entrantSessions[i + 1].startTime;
-        
-        if (currentEnd !== nextStart) {
-          const byeDuration = (() => {
-            const [endHours, endMins] = currentEnd.split(':').map(Number);
-            const [startHours, startMins] = nextStart.split(':').map(Number);
-            return (startHours * 60 + startMins) - (endHours * 60 + endMins);
-          })();
-          
-          byes.push({
-            startTime: currentEnd,
-            endTime: nextStart,
-            duration: byeDuration
-          });
-        }
-      }
-
       return {
         entrantName: entrant.name,
         sessions: entrantSessions,
-        byes,
+        byes: findByes(entrantSessions, { wrapMidnight: false }),
         moving: settings.moving
       };
     });
 
-  // Add bye events for judges
-  judgeSchedules.forEach(judgeSchedule => {
-    judgeSchedule.byes.forEach(bye => {
-      events.push({
-        time: bye.startTime,
-        type: 'start',
-        entrantName: settings.moving === 'judges' ? 'BYE' : judgeSchedule.judgeName,
-        judgeName: settings.moving === 'judges' ? judgeSchedule.judgeName : 'BYE',
-        sessionType: 'bye',
-        duration: bye.duration,
-        entrantRoom: undefined,
-        judgeRoom: undefined
-      });
-    });
+  const flowDocument = buildFlowDocument({
+    sessions: scheduledSessions,
+    entrants,
+    judges,
+    settings,
   });
-
-  // Add bye events for entrants
-  entrantSchedules.forEach(entrantSchedule => {
-    entrantSchedule.byes.forEach(bye => {
-      events.push({
-        time: bye.startTime,
-        type: 'start',
-        entrantName: settings.moving === 'judges' ? 'BYE' : entrantSchedule.entrantName,
-        judgeName: settings.moving === 'judges' ? entrantSchedule.entrantName : 'BYE',
-        sessionType: 'bye',
-        duration: bye.duration,
-        entrantRoom: undefined,
-        judgeRoom: undefined
-      });
-    });
-  });
-
-  // Re-sort events by time to include bye events
-  // Note: String comparison is safe here - all times generated sequentially from startTime
-  events.sort((a, b) => a.time.localeCompare(b.time));
-
-  // Generate flow document
-  const flowDocument: Array<{ time: string; events: string[] }> = [];
-  const timeGroups = new Map<string, string[]>();
-
-  // Group events by time and either entrant or judge (depending on who's moving)
-  const eventGroups = new Map<string, Map<string, { start?: SessionEvent; end?: SessionEvent }>>();
-  
-  events.forEach(event => {
-    if (!eventGroups.has(event.time)) {
-      eventGroups.set(event.time, new Map());
-    }
-    
-    const timeGroup = eventGroups.get(event.time)!;
-    // Group by judge name when judges are moving, entrant name when groups are moving
-    const groupKey = settings.moving === 'judges' ? event.judgeName : event.entrantName;
-    
-    if (!timeGroup.has(groupKey)) {
-      timeGroup.set(groupKey, {});
-    }
-    
-    const entityGroup = timeGroup.get(groupKey)!;
-    if (event.type === 'start') {
-      entityGroup.start = event;
-    } else {
-      entityGroup.end = event;
-    }
-  });
-
-  // Convert grouped events to flow text
-  eventGroups.forEach((entityGroups, time) => {
-    if (!timeGroups.has(time)) {
-      timeGroups.set(time, []);
-    }
-    
-    entityGroups.forEach((eventGroup, entityName) => {
-      if (eventGroup.start && eventGroup.end) {
-        // Both start and end at same time - combine them
-        const startRoom = settings.moving === 'judges' ? eventGroup.start.entrantRoom : eventGroup.start.judgeRoom;
-        const endRoom = settings.moving === 'judges' ? eventGroup.end.entrantRoom : eventGroup.end.judgeRoom;
-        const startRoomText = startRoom ? ` (${startRoom})` : ' (ROOM MISSING)';
-        const endRoomText = endRoom ? ` (${endRoom})` : ' (ROOM MISSING)';
-        
-        let eventText;
-        if (settings.moving === 'judges') {
-          if (eventGroup.start.sessionType === 'bye') {
-            // Judge finishes with entrant and begins bye
-            eventText = `${entityName} finishes with ${eventGroup.end.entrantName}${endRoomText} and begins bye (${eventGroup.start.duration} mins)`;
-          } else {
-            eventText = `${entityName} finishes with ${eventGroup.end.entrantName}${endRoomText} and moves to ${eventGroup.start.entrantName}${startRoomText}`;
-          }
-        } else {
-          if (eventGroup.start.sessionType === 'bye') {
-            // Entrant finishes with judge and begins bye
-            eventText = `${entityName} finishes with ${eventGroup.end.judgeName}${endRoomText} and begins bye (${eventGroup.start.duration} mins)`;
-          } else {
-            eventText = `${entityName} finishes with ${eventGroup.end.judgeName}${endRoomText} and moves to ${eventGroup.start.judgeName}${startRoomText}`;
-          }
-        }
-        timeGroups.get(time)!.push(eventText);
-      } else if (eventGroup.start) {
-        // Only start event
-        const room = settings.moving === 'judges' ? eventGroup.start.entrantRoom : eventGroup.start.judgeRoom;
-        const roomText = room ? ` (${room})` : ' (ROOM MISSING)';
-        
-        let eventText;
-        if (settings.moving === 'judges') {
-          if (eventGroup.start.sessionType === 'bye') {
-            eventText = `${entityName} begins bye (${eventGroup.start.duration} mins)`;
-          } else {
-            eventText = `${entityName} starts with ${eventGroup.start.entrantName}${roomText}`;
-          }
-        } else {
-          if (eventGroup.start.sessionType === 'bye') {
-            eventText = `${entityName} begins bye (${eventGroup.start.duration} mins)`;
-          } else {
-            eventText = `${entityName} starts with ${eventGroup.start.judgeName}${roomText}`;
-          }
-        }
-        timeGroups.get(time)!.push(eventText);
-      } else if (eventGroup.end) {
-        // Only end event
-        const room = settings.moving === 'judges' ? eventGroup.end.entrantRoom : eventGroup.end.judgeRoom;
-        const roomText = room ? ` (${room})` : ' (ROOM MISSING)';
-        
-        let eventText;
-        if (settings.moving === 'judges') {
-          eventText = `${entityName} finishes with ${eventGroup.end.entrantName}${roomText}`;
-        } else {
-          eventText = `${entityName} ends with ${eventGroup.end.judgeName}${roomText}`;
-        }
-        timeGroups.get(time)!.push(eventText);
-      }
-    });
-  });
-
-
-  // Warn before session ends: 2 minutes for 3x10, 5 minutes otherwise
-  scheduledSessions.forEach(session => {
-    const entrant = entrants.find(e => e.id === session.entrantId);
-    const judge = judges.find(j => j.id === session.judgeId);
-    const duration = getSessionDuration(session.type);
-    const startTime = rowIndexToTime(session.startRowIndex!);
-    const endTime = addMinutesToTime(startTime, duration);
-    const warningLeadMinutes = session.type === '3x10' ? 2 : 5;
-    const warningTime = addMinutesToTime(endTime, -warningLeadMinutes);
-    
-    if (entrant && judge) {
-      if (!timeGroups.has(warningTime)) {
-        timeGroups.set(warningTime, []);
-      }
-      const room = settings.moving === 'judges' ? entrant.roomNumber : judge.roomNumber;
-      const roomText = room ? ` (${room})` : ' (ROOM MISSING)';
-      const noticeLabel = warningLeadMinutes === 2 ? 'Two-minute' : 'Five-minute';
-      timeGroups.get(warningTime)!.push(`${noticeLabel} notice to ${judge.name} with ${entrant.name}${roomText}`);
-    }
-  });
-
-  // Convert to sorted array
-  Array.from(timeGroups.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([time, events]) => {
-      flowDocument.push({ time, events });
-    });
 
   return {
     judgeSchedules,
@@ -682,7 +390,7 @@ export async function generatePDF(
     generateEntrantSchedulePages(doc, printData.entrantSchedules);
   }
   if (reports.includes('flowDocument')) {
-    generateFlowDocumentPage(doc, printData.flowDocument);
+    generateFlowDocumentPage(doc, printData.flowDocument, feedbackRound);
   }
   if (reports.includes('feedbackAnnouncements')) {
     generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges);

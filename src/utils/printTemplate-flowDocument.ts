@@ -1,15 +1,12 @@
 import jsPDF from 'jspdf';
 import { formatTimeForDisplay } from './printHelpers';
-import { getSettings } from './localStorage';
+import type { FlowDocumentEntry } from './flowDocument';
 
-export interface FlowDocumentEntry {
-  time: string;
-  events: string[];
-}
-
-export function generateFlowDocumentPage(doc: jsPDF, flowDocument: FlowDocumentEntry[]) {
-  const settings = getSettings();
-  const feedbackRound = settings.exportName?.trim();
+export function generateFlowDocumentPage(
+  doc: jsPDF,
+  flowDocument: FlowDocumentEntry[],
+  feedbackRound?: string
+) {
   const title = feedbackRound ? `Flow Document - ${feedbackRound}` : 'Flow Document';
 
   doc.setTextColor(0, 0, 0);

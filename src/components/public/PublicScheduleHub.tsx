@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { RiLayoutMasonryFill } from 'react-icons/ri';
 import type { PublishedSchedulePayload } from '../../types/publishedSchedule';
 import { downloadPublishedMatrixPdf } from '../../utils/publishedPdf';
+import { FLOW_DOCUMENT_SLUG } from '../../utils/personSlugs';
 import MaskIcon from './MaskIcon';
 import ScheduleQrButton from './ScheduleQrButton';
 
@@ -153,6 +154,16 @@ export default function PublicScheduleHub({ payload, personBasePath, title, show
             ))}
           </ul>
         )}
+
+        <footer className="pt-4 border-t border-gray-300 dark:border-gray-800 text-sm text-gray-600 dark:text-gray-400">
+          <Link
+            to={`${base}/${FLOW_DOCUMENT_SLUG}`}
+            className="text-[var(--primary-color)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] rounded"
+          >
+            View flow document
+          </Link>
+          <span> · every start, move and notice, minute by minute</span>
+        </footer>
         </>
         )}
       </div>
