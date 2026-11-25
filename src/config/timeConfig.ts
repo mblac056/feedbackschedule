@@ -19,6 +19,9 @@ export const TIME_CONFIG = {
   HALF_HOUR_MARKER_INTERVAL: 6 // Show half-hour marker every 6 slots
 } as const;
 
+/** How clock times are displayed. Stored times are always "HH:MM" 24-hour strings. */
+export type TimeFormat = '24h' | '12h';
+
 // Settings interface for session durations
 export interface SessionSettings {
   oneXLongLength: number;
@@ -29,6 +32,8 @@ export interface SessionSettings {
   /** Persisted feedback round label; also used as the export file base name. */
   exportName?: string;
   codePrefix?: string;
+  /** Display format for times; missing means 24-hour. */
+  timeFormat?: TimeFormat;
 }
 
 // Helper function to get session duration in minutes from settings

@@ -34,7 +34,7 @@ export interface PublishedSchedulePayload {
   exportName?: string;
   settings: Pick<
     SessionSettings,
-    'startTime' | 'oneXLongLength' | 'threeX20Length' | 'threeX10Length' | 'moving'
+    'startTime' | 'oneXLongLength' | 'threeX20Length' | 'threeX10Length' | 'moving' | 'timeFormat'
   >;
   judges: PublishedJudge[];
   entrants: PublishedEntrant[];

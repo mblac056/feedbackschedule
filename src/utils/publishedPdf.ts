@@ -48,6 +48,7 @@ function toSettings(payload: PublishedSchedulePayload): SessionSettings {
     threeX20Length: payload.settings.threeX20Length,
     threeX10Length: payload.settings.threeX10Length,
     moving: payload.settings.moving,
+    timeFormat: payload.settings.timeFormat,
     exportName: payload.exportName,
   };
 }

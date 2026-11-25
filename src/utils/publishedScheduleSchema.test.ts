@@ -59,6 +59,21 @@ describe('publishedScheduleSchema', () => {
     expect(parsed.sessions[0]).not.toHaveProperty('endRowIndex');
   });
 
+  it('carries a 12-hour time format and omits the 24-hour default', () => {
+    const twelve = buildPublishedPayload({ judges, entrants, sessionBlocks, settings: { ...settings, timeFormat: '12h' } });
+    expect(parsePublishedSchedulePayload(twelve).settings.timeFormat).toBe('12h');
+
+    const twentyFour = buildPublishedPayload({ judges, entrants, sessionBlocks, settings: { ...settings, timeFormat: '24h' } });
+    expect(twentyFour.settings).not.toHaveProperty('timeFormat');
+    expect(parsePublishedSchedulePayload(twentyFour).settings).not.toHaveProperty('timeFormat');
+  });
+
+  it('ignores an unknown time format value', () => {
+    const payload = buildPublishedPayload({ judges, entrants, sessionBlocks, settings });
+    const odd = { ...payload, settings: { ...payload.settings, timeFormat: 'bogus' } };
+    expect(parsePublishedSchedulePayload(odd).settings).not.toHaveProperty('timeFormat');
+  });
+
   it('rejects an unknown major version', () => {
     const payload = { ...buildPublishedPayload({ judges, entrants, sessionBlocks, settings }), version: 2 };
     expect(() => parsePublishedSchedulePayload(payload)).toThrow(/Unsupported schedule version/);

@@ -1,4 +1,5 @@
-import { TIME_CONFIG } from '../config/timeConfig';
+import { TIME_CONFIG, type TimeFormat } from '../config/timeConfig';
+import { formatTimeForDisplay } from './printHelpers';
 
 export type TimeSlot = {
   time: string;
@@ -6,7 +7,7 @@ export type TimeSlot = {
   isHour: boolean;
 };
 
-export function generateTimeSlots(startTime: string): TimeSlot[] {
+export function generateTimeSlots(startTime: string, timeFormat: TimeFormat = '24h'): TimeSlot[] {
   const slots: TimeSlot[] = [];
   const startHour = parseInt(startTime.split(':')[0], 10);
   const startMinute = parseInt(startTime.split(':')[1], 10);
@@ -19,7 +20,7 @@ export function generateTimeSlots(startTime: string): TimeSlot[] {
 
     slots.push({
       time: timeString,
-      displayTime: i % TIME_CONFIG.HOUR_MARKER_INTERVAL === 0 ? timeString : '',
+      displayTime: i % TIME_CONFIG.HOUR_MARKER_INTERVAL === 0 ? formatTimeForDisplay(timeString, timeFormat) : '',
       isHour: i % TIME_CONFIG.HOUR_MARKER_INTERVAL === 0,
     });
   }

@@ -1,11 +1,13 @@
 import jsPDF from 'jspdf';
 import { formatTimeForDisplay } from './printHelpers';
+import type { TimeFormat } from '../config/timeConfig';
 import type { FlowDocumentEntry } from './flowDocument';
 
 export function generateFlowDocumentPage(
   doc: jsPDF,
   flowDocument: FlowDocumentEntry[],
-  feedbackRound?: string
+  feedbackRound?: string,
+  timeFormat: TimeFormat = '24h'
 ) {
   const title = feedbackRound ? `Flow Document - ${feedbackRound}` : 'Flow Document';
 
@@ -30,7 +32,7 @@ export function generateFlowDocumentPage(
     }
     
     doc.setFont('helvetica', 'bold');
-    doc.text(formatTimeForDisplay(timeSlot.time), leftMargin, yPos);
+    doc.text(formatTimeForDisplay(timeSlot.time, timeFormat), leftMargin, yPos);
     yPos += 8;
     
     doc.setFont('helvetica', 'normal');

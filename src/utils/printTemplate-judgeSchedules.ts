@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatTimeForDisplay } from './printHelpers';
+import { formatTimeRange } from './printHelpers';
+import type { TimeFormat } from '../config/timeConfig';
 
 export interface JudgeSchedule {
   judgeName: string;
@@ -24,7 +25,7 @@ export interface JudgeSchedule {
   moving: 'judges' | 'groups';
 }
 
-export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSchedule[]) {
+export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSchedule[], timeFormat: TimeFormat = '24h') {
   judgeSchedules.forEach((schedule, index) => {
     if (index > 0) {
       doc.addPage();
@@ -73,7 +74,7 @@ export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSche
           const entrantName = session.isFirstPreference ? `*${session.entrantName}` : session.entrantName;
           
           const baseRow = [
-            `${formatTimeForDisplay(session.startTime)}-${formatTimeForDisplay(session.endTime)}`,
+            `${formatTimeRange(session.startTime, session.endTime, timeFormat)}`,
             entrantName,
             session.sessionType
           ];
@@ -103,7 +104,7 @@ export function generateJudgeSchedulePages(doc: jsPDF, judgeSchedules: JudgeSche
           // This is a bye
           const bye = item.data;
           const baseRow = [
-            `${formatTimeForDisplay(bye.startTime)}-${formatTimeForDisplay(bye.endTime)}`,
+            `${formatTimeRange(bye.startTime, bye.endTime, timeFormat)}`,
             'BYE',
             `${bye.duration} min`
           ];

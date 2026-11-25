@@ -32,6 +32,7 @@ const DEFAULT_SETTINGS: Settings = {
   moving: 'groups',
   exportName: '',
   codePrefix: '',
+  timeFormat: '24h',
 };
 
 
@@ -55,6 +56,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
         feedbackStart: '21:00', // Default feedback start time
         exportName: loadedSettings.exportName ?? '',
         codePrefix: loadedSettings.codePrefix ?? '',
+        timeFormat: loadedSettings.timeFormat ?? '24h',
       };
       setSettings(settingsWithFeedback);
       // Store the original settings to detect changes
@@ -99,6 +101,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       moving: settings.moving,
       exportName: settings.exportName ?? '',
       codePrefix: settings.codePrefix ?? '',
+      timeFormat: settings.timeFormat ?? '24h',
     };
 
     // Persist settings before grid updates so conflict checks see new durations
@@ -142,6 +145,7 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
       moving: DEFAULT_SETTINGS.moving as 'judges' | 'groups',
       exportName: DEFAULT_SETTINGS.exportName ?? '',
       codePrefix: DEFAULT_SETTINGS.codePrefix ?? '',
+      timeFormat: DEFAULT_SETTINGS.timeFormat,
     });
     
     // Reset all warning states
@@ -252,6 +256,20 @@ export default function SettingsModal({ isOpen, onClose, scheduledSessions, onCo
               >
                 <option value="judges">Judges visit groups</option>
                 <option value="groups">Groups visit judges</option>
+              </select>
+            </div>
+            {/* Time Display */}
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Time Display
+              </label>
+              <select
+                value={settings.timeFormat ?? '24h'}
+                onChange={(e) => handleInputChange('timeFormat', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-gray-500 dark:focus:ring-gray-400 focus:border-transparent"
+              >
+                <option value="24h">24-hour (13:30)</option>
+                <option value="12h">12-hour (1:30 PM)</option>
               </select>
             </div>
             {/* Feedback Start Time */}

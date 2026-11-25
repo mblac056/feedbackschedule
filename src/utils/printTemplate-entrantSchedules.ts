@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { formatTimeForDisplay } from './printHelpers';
+import { formatTimeRange } from './printHelpers';
+import type { TimeFormat } from '../config/timeConfig';
 
 export interface EntrantSchedule {
   entrantName: string;
@@ -22,7 +23,7 @@ export interface EntrantSchedule {
 }
 
 /** One page per entrant with a table (same style as Judge Schedules). */
-export function generateEntrantScheduleSummaryPages(doc: jsPDF, entrantSchedules: EntrantSchedule[]) {
+export function generateEntrantScheduleSummaryPages(doc: jsPDF, entrantSchedules: EntrantSchedule[], timeFormat: TimeFormat = '24h') {
   entrantSchedules.forEach((schedule, index) => {
     if (index > 0) {
       doc.addPage();
@@ -59,7 +60,7 @@ export function generateEntrantScheduleSummaryPages(doc: jsPDF, entrantSchedules
           const session = item.data;
           const judgeStr = session.judgeName + (session.judgeCategory ? ` (${session.judgeCategory})` : '');
           const baseRow = [
-            `${formatTimeForDisplay(session.startTime)}-${formatTimeForDisplay(session.endTime)}`,
+            `${formatTimeRange(session.startTime, session.endTime, timeFormat)}`,
             judgeStr,
             session.sessionType
           ];
@@ -70,7 +71,7 @@ export function generateEntrantScheduleSummaryPages(doc: jsPDF, entrantSchedules
         } else {
           const bye = item.data;
           const baseRow = [
-            `${formatTimeForDisplay(bye.startTime)}-${formatTimeForDisplay(bye.endTime)}`,
+            `${formatTimeRange(bye.startTime, bye.endTime, timeFormat)}`,
             'BYE',
             `${bye.duration} min`
           ];

@@ -73,6 +73,8 @@ export function parsePublishedSchedulePayload(input: unknown): PublishedSchedule
     threeX20Length: requireNumber(input.settings.threeX20Length, 'settings.threeX20Length'),
     threeX10Length: requireNumber(input.settings.threeX10Length, 'settings.threeX10Length'),
     moving: moving as 'judges' | 'groups',
+    // Optional; older payloads omit it and display as 24-hour.
+    ...(input.settings.timeFormat === '12h' ? { timeFormat: '12h' as const } : {}),
   };
 
   if (!Array.isArray(input.judges) || !Array.isArray(input.entrants) || !Array.isArray(input.sessions)) {

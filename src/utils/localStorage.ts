@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: SessionSettings = {
   moving: 'groups',
   exportName: '',
   codePrefix: '',
+  timeFormat: '24h',
 };
 
 function isQuotaExceeded(error: unknown): boolean {

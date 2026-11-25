@@ -5,6 +5,7 @@ import type { PublishedSchedulePayload } from '../../types/publishedSchedule';
 import { buildFlowDocumentFromPayload } from '../../utils/flowDocument';
 import { getFlowTimeline, type FlowEntryStatus } from '../../utils/flowTimeline';
 import { formatTimeForDisplay } from '../../utils/printHelpers';
+import type { TimeFormat } from '../../config/timeConfig';
 import MaskIcon from './MaskIcon';
 import ScheduleQrButton from './ScheduleQrButton';
 
@@ -35,11 +36,11 @@ function useNow(override: Date | null): Date {
   return override ?? now;
 }
 
-function formatClock(minutes: number): string {
+function formatClock(minutes: number, timeFormat: TimeFormat = '24h'): string {
   const whole = Math.floor(minutes);
   const h = Math.floor(whole / 60) % 24;
   const m = whole % 60;
-  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  return formatTimeForDisplay(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`, timeFormat);
 }
 
 function formatIn(minutes: number): string {
@@ -101,7 +102,7 @@ export default function PublicFlowDocument({ payload, hubPath, showBackToCreate 
     <div ref={markerRef} className="flex items-center gap-3 py-1" aria-live="polite">
       <span className="h-px flex-1 bg-red-500/70" aria-hidden />
       <span className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400 whitespace-nowrap">
-        Now · {formatClock(timeline.nowMinutes)}
+        Now · {formatClock(timeline.nowMinutes, payload.settings.timeFormat)}
         {timeline.minutesUntilNext !== undefined && (
           <span className="font-normal normal-case tracking-normal">
             {' '}· next {formatIn(timeline.minutesUntilNext)}
@@ -173,7 +174,7 @@ export default function PublicFlowDocument({ payload, hubPath, showBackToCreate 
                   >
                     <div className="flex items-baseline justify-between gap-3">
                       <h2 className={`font-mono font-bold tabular-nums ${style.time}`}>
-                        {formatTimeForDisplay(entry.time)}
+                        {formatTimeForDisplay(entry.time, payload.settings.timeFormat)}
                       </h2>
                       {status === 'now' && (
                         <span className="text-xs font-semibold uppercase tracking-wide text-white bg-[var(--primary-color)] rounded px-2 py-0.5">

@@ -1,8 +1,9 @@
 import jsPDF from 'jspdf';
-import { formatTimeForDisplay } from './printHelpers';
+import { formatTimeRange } from './printHelpers';
+import type { TimeFormat } from '../config/timeConfig';
 import type { EntrantSchedule } from './printTemplate-entrantSchedules';
 
-export function generateEntrantSchedulePages(doc: jsPDF, entrantSchedules: EntrantSchedule[]) {
+export function generateEntrantSchedulePages(doc: jsPDF, entrantSchedules: EntrantSchedule[], timeFormat: TimeFormat = '24h') {
   const LABELS_PER_PAGE = 10; // 2 columns x 5 rows
   const CELL_WIDTH = 95; // mm
   // Avery 8163 alignment tweaks (mm)
@@ -79,7 +80,7 @@ export function generateEntrantSchedulePages(doc: jsPDF, entrantSchedules: Entra
       schedule.items.forEach(item => {
         if (item.type === 'session') {
           const session = item.data;
-          const timeStr = `${formatTimeForDisplay(session.startTime)}-${formatTimeForDisplay(session.endTime)}`;
+          const timeStr = `${formatTimeRange(session.startTime, session.endTime, timeFormat)}`;
           const judgeStr = session.judgeName + (session.judgeCategory ? ` (${session.judgeCategory})` : '');
           const roomSuffix = schedule.moving === 'groups' && session.roomNumber ? ` (Rm ${session.roomNumber})` : '';
 
@@ -88,7 +89,7 @@ export function generateEntrantSchedulePages(doc: jsPDF, entrantSchedules: Entra
           currentY += 5;
         } else {
           const bye = item.data;
-          doc.text(`${formatTimeForDisplay(bye.startTime)}-${formatTimeForDisplay(bye.endTime)} - BYE`, x + 2, currentY);
+          doc.text(`${formatTimeRange(bye.startTime, bye.endTime, timeFormat)} - BYE`, x + 2, currentY);
           currentY += 6;
         }
       });

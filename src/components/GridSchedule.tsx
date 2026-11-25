@@ -165,7 +165,12 @@ export default function GridSchedule({
     }
     return map;
   }, [scheduledSessions, judges, entrants, settings]);
-  const timeSlots = useMemo(() => generateTimeSlots(settings.startTime), [settings.startTime]);
+  const timeSlots = useMemo(
+    () => generateTimeSlots(settings.startTime, settings.timeFormat),
+    [settings.startTime, settings.timeFormat]
+  );
+  // "11:00 AM" needs a wider label column than "11:00".
+  const timeColumnWidthClass = settings.timeFormat === '12h' ? 'w-16' : 'w-12';
 
   return (
     <div>
@@ -174,7 +179,7 @@ export default function GridSchedule({
       <div>
         <div className="min-w-max mt-4">
           <div className="flex">
-            <div className="w-12 flex-shrink-0"></div>
+            <div className={`${timeColumnWidthClass} flex-shrink-0`}></div>
             {judges.map((judge) => (
               <JudgeColumnHeader
                 key={judge.id}
@@ -211,7 +216,7 @@ export default function GridSchedule({
                 }}
               />
             )}
-            <div className="w-12 flex-shrink-0">
+            <div className={`${timeColumnWidthClass} flex-shrink-0`}>
               {timeSlots.map((slot, index) => (
                 <div
                   key={index}
@@ -222,7 +227,7 @@ export default function GridSchedule({
                   }`}
                   style={{ height: `${TIME_CONFIG.SLOT_HEIGHT_PX}px` }}
                 >
-                  <div className="p-1 text-right">
+                  <div className="p-1 text-right whitespace-nowrap">
                     {index === 0 ? (
                       isEditingStartTime ? (
                         <input
@@ -239,7 +244,7 @@ export default function GridSchedule({
                         <button
                           onClick={handleStartTimeClick}
                           className="w-full text-right hover:bg-gray-100 dark:hover:bg-gray-800 rounded px-1 py-0.5 transition-colors cursor-pointer"
-                          title="Click to edit start time"
+                          title="Click to edit start time (24-hour HH:MM)"
                         >
                           {slot.displayTime}
                         </button>

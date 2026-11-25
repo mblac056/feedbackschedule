@@ -1,5 +1,6 @@
 import type { Judge, SessionBlock, Entrant } from '../types';
 import { getSettings } from './localStorage';
+import { formatTimeForDisplay } from './printHelpers';
 import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '../config/timeConfig';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -67,7 +68,7 @@ export async function generateMatrixPage(
       th { background-color: #d3d3d3; color: #000; padding: 8px; text-align: center; font-weight: bold; border: 1px solid #666; }
       tbody tr { height: ${SLOT_ROW_PX}px; }
       td { height: ${SLOT_ROW_PX}px; min-height: ${SLOT_ROW_PX}px; padding: 4px 6px; box-sizing: border-box; background-color:rgb(243, 243, 243); border: 1px solid #000; text-align: center; vertical-align: middle; color: #000; }
-      .time-col { line-height: 0.5; padding: 0 0 16px 0; background-color: #d3d3d3; width: 20px; font-size: 12px; vertical-align: top; }
+      .time-col { white-space: nowrap; line-height: 0.5; padding: 0 0 16px 0; background-color: #d3d3d3; width: 20px; font-size: 12px; vertical-align: top; }
       .session-cell { background-color:#ffffff; padding: 0; position: relative; vertical-align: top; }
       .session-cell-inner { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 0 4px 12px 4px; line-height: 1; text-align: center; }
       .session-entrant-name { font-size: 14px; line-height: 1.15; }
@@ -98,7 +99,7 @@ export async function generateMatrixPage(
     html += `<tr>`;
     
     // Time column
-    html += `<td class="time-col">${time}</td>`;
+    html += `<td class="time-col">${formatTimeForDisplay(time, settings.timeFormat)}</td>`;
     
     // Judge columns
     judges.forEach((judge, colIndex) => {

@@ -62,6 +62,8 @@ export function buildPublishedPayload(args: {
       threeX20Length: args.settings.threeX20Length,
       threeX10Length: args.settings.threeX10Length,
       moving: args.settings.moving,
+      // Only carried when non-default so 24h payloads (and their fingerprints) are unchanged.
+      ...(args.settings.timeFormat === '12h' ? { timeFormat: '12h' as const } : {}),
     },
     judges,
     entrants,

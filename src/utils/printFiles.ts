@@ -381,16 +381,16 @@ export async function generatePDF(
 
   // Generate requested sections
   if (reports.includes('judgeSchedules')) {
-    generateJudgeSchedulePages(doc, printData.judgeSchedules);
+    generateJudgeSchedulePages(doc, printData.judgeSchedules, settings.timeFormat);
   }
   if (reports.includes('entrantSchedules')) {
-    generateEntrantScheduleSummaryPages(doc, printData.entrantSchedules);
+    generateEntrantScheduleSummaryPages(doc, printData.entrantSchedules, settings.timeFormat);
   }
   if (reports.includes('entrantSchedLabels')) {
-    generateEntrantSchedulePages(doc, printData.entrantSchedules);
+    generateEntrantSchedulePages(doc, printData.entrantSchedules, settings.timeFormat);
   }
   if (reports.includes('flowDocument')) {
-    generateFlowDocumentPage(doc, printData.flowDocument, feedbackRound);
+    generateFlowDocumentPage(doc, printData.flowDocument, feedbackRound, settings.timeFormat);
   }
   if (reports.includes('feedbackAnnouncements')) {
     generateFeedbackAnnouncementsPage(doc, scheduledSessions, entrants, judges);

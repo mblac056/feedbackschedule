@@ -71,7 +71,7 @@ export function generateFeedbackAnnouncementsPage(doc: jsPDF, scheduledSessions:
     
     // Time header
     doc.setFont('helvetica', 'bold');
-    doc.text(`${formatTimeForDisplay(startTime)}:`, 20, yPos);
+    doc.text(`${formatTimeForDisplay(startTime, settings.timeFormat)}:`, 20, yPos);
     yPos += 7;
     
     // Entrant names under that time with room numbers

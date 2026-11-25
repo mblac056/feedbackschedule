@@ -1,6 +1,6 @@
 import type { PublishedSchedulePayload } from '../types/publishedSchedule';
-import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings } from '../config/timeConfig';
-import { formatTimeForDisplay } from './printHelpers';
+import { getSessionDurationMinutes, TIME_CONFIG, type SessionSettings, type TimeFormat } from '../config/timeConfig';
+import { formatTimeRange } from './printHelpers';
 
 export interface PersonScheduleRow {
   startTime: string;
@@ -64,7 +64,7 @@ function minutesBetween(start: string, end: string): number {
 }
 
 /** Gaps between consecutive sessions become BYE rows (same idea as print schedules). */
-function insertByeRows(sessionRows: PersonScheduleRow[]): PersonScheduleRow[] {
+function insertByeRows(sessionRows: PersonScheduleRow[], timeFormat: TimeFormat): PersonScheduleRow[] {
   const sorted = [...sessionRows].sort((a, b) => a.startTime.localeCompare(b.startTime));
   const combined: PersonScheduleRow[] = [];
 
@@ -79,7 +79,7 @@ function insertByeRows(sessionRows: PersonScheduleRow[]): PersonScheduleRow[] {
           combined.push({
             startTime: currentEnd,
             endTime: nextStart,
-            timeLabel: `${formatTimeForDisplay(currentEnd)}-${formatTimeForDisplay(nextStart)}`,
+            timeLabel: formatTimeRange(currentEnd, nextStart, timeFormat),
             counterpart: `BYE (${duration} min)`,
             sessionType: '',
             isBye: true,
@@ -127,7 +127,7 @@ export function buildPersonSchedule(
         return {
           startTime,
           endTime,
-          timeLabel: `${formatTimeForDisplay(startTime)}-${formatTimeForDisplay(endTime)}`,
+          timeLabel: formatTimeRange(startTime, endTime, settings.timeFormat),
           counterpart: judgeLabel,
           sessionType: session.type,
           roomNumber: showRoomColumn ? judge?.roomNumber : undefined,
@@ -145,7 +145,7 @@ export function buildPersonSchedule(
       ownSessionType,
       showRoomColumn,
       showOrderColumn: false,
-      rows: insertByeRows(sessionRows),
+      rows: insertByeRows(sessionRows, settings.timeFormat ?? '24h'),
     };
   }
 
@@ -166,7 +166,7 @@ export function buildPersonSchedule(
       return {
         startTime,
         endTime,
-        timeLabel: `${formatTimeForDisplay(startTime)}-${formatTimeForDisplay(endTime)}`,
+        timeLabel: formatTimeRange(startTime, endTime, settings.timeFormat),
         counterpart: isFirstPreference ? `*${entrantName}` : entrantName,
         sessionType: session.type,
         roomNumber: showRoomColumn ? entrant?.roomNumber : undefined,
@@ -183,6 +183,6 @@ export function buildPersonSchedule(
     ownRoom: settings.moving === 'groups' ? judge.roomNumber : undefined,
     showRoomColumn,
     showOrderColumn,
-    rows: insertByeRows(sessionRows),
+    rows: insertByeRows(sessionRows, settings.timeFormat ?? '24h'),
   };
 }
